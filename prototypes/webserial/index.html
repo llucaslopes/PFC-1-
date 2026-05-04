@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipo WebSerial — monitor esportivo (simulação)</title>
+    <style>
+      :root {
+        font-family: system-ui, Segoe UI, Roboto, sans-serif;
+        color: #0f172a;
+        background: #f1f5f9;
+        line-height: 1.45;
+      }
+      body {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        margin: 0 0 0.5rem;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        align-items: center;
+        margin: 0.5rem 0;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.8rem;
+        color: #475569;
+        gap: 0.2rem;
+      }
+      input[type="number"] {
+        width: 6rem;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        padding: 0.45rem 0.9rem;
+        font-weight: 600;
+        background: #2563eb;
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.secondary {
+        background: #64748b;
+      }
+      button.danger {
+        background: #dc2626;
+      }
+      #status {
+        font-size: 0.95rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        background: #e2e8f0;
+      }
+      #status[data-ok="false"] {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      #status[data-ok="true"] {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+        gap: 0.75rem;
+      }
+      .metric {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #e2e8f0;
+      }
+      .metric strong {
+        display: block;
+        font-size: 1.25rem;
+        color: #0f172a;
+      }
+      .metric span {
+        font-size: 0.75rem;
+        color: #64748b;
+      }
+      #log {
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.75rem;
+        white-space: pre-wrap;
+        max-height: 10rem;
+        overflow: auto;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 0.75rem;
+        border-radius: 8px;
+      }
+      code {
+        background: #e2e8f0;
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        font-size: 0.85em;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Arquitetura 1: WebSerial (com simulação de Arduino)</h1>
+    <p>
+      Mesmo formato de dados que o sketch <code>sketch_sensor_sim.ino</code> envia. Use
+      <strong>Simular Arduino</strong> sem placa; com Uno em mãos, use
+      <strong>Conectar serial</strong> (Chrome/Edge, via servidor local — não abra como
+      <code>file://</code>).
+    </p>
+
+    <div class="card">
+      <div id="status">Carregando…</div>
+      <div class="row">
+        <label>
+          Intervalo (ms)
+          <input type="number" id="intervalMs" value="100" min="10" step="10" />
+        </label>
+        <label>
+          Baud (Arduino)
+          <input type="number" id="baud" value="115200" step="300" />
+        </label>
+      </div>
+      <div class="row">
+        <button type="button" id="connect">Conectar serial</button>
+        <button type="button" class="secondary" id="disconnect">Fechar serial</button>
+        <button type="button" id="simStart">Iniciar simulação</button>
+        <button type="button" class="danger" id="simStop">Parar simulação</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin: 0 0 0.75rem; font-size: 1.05rem">Última amostra</h2>
+      <p style="margin: 0 0 0.5rem; font-size: 0.9rem; word-break: break-all" id="lastLine">—</p>
+      <div class="metrics">
+        <div class="metric">
+          <span>Frequência cardíaca (sim.)</span>
+          <strong id="hr">—</strong>
+        </div>
+        <div class="metric">
+          <span>Aceleração g (ax, ay, az)</span>
+          <strong id="accel">—</strong>
+        </div>
+        <div class="metric">
+          <span>Throughput (amostras/s)</span>
+          <strong id="throughput">—</strong>
+        </div>
+        <div class="metric">
+          <span>Intervalo médio entre chegadas (ms)</span>
+          <strong id="interMean">—</strong>
+        </div>
+        <div class="metric">
+          <span>Jitter (desvio padrão, ms)</span>
+          <strong id="interJitter">—</strong>
+        </div>
+        <div class="metric">
+          <span>Δ recebimento − send_ms</span>
+          <strong id="latencyHint">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin: 0 0 0.5rem; font-size: 1.05rem">Log</h2>
+      <div id="log"></div>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
