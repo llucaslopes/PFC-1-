@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Monitor Esportivo</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Arduino -> Node.js -> WebSocket</p>
+          <h1>Monitor Esportivo</h1>
+        </div>
+        <div class="status" id="connectionStatus">
+          <span class="status-dot"></span>
+          <span>Conectando</span>
+        </div>
+      </section>
+
+      <section class="readings" aria-label="Leituras dos sensores">
+        <article class="reading-card pulse">
+          <span>Batimento</span>
+          <strong><output id="heartRate">--</output><small>bpm</small></strong>
+        </article>
+        <article class="reading-card motion">
+          <span>Aceleracao</span>
+          <strong><output id="acceleration">--</output><small>g</small></strong>
+        </article>
+        <article class="reading-card heat">
+          <span>Temperatura</span>
+          <strong><output id="temperature">--</output><small>C</small></strong>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="panel chart-panel">
+          <div class="panel-heading">
+            <h2>Tempo real</h2>
+            <span id="messageInfo">Aguardando dados</span>
+          </div>
+          <canvas id="sensorChart" width="960" height="360" aria-label="Grafico de batimentos em tempo real"></canvas>
+        </div>
+
+        <aside class="panel details-panel">
+          <div class="panel-heading">
+            <h2>Sistema</h2>
+          </div>
+          <dl class="metrics-list">
+            <div>
+              <dt>Fonte</dt>
+              <dd id="source">--</dd>
+            </div>
+            <div>
+              <dt>Mensagens</dt>
+              <dd id="totalMessages">0</dd>
+            </div>
+            <div>
+              <dt>Invalidas</dt>
+              <dd id="invalidMessages">0</dd>
+            </div>
+            <div>
+              <dt>Perdidas</dt>
+              <dd id="lostMessages">0</dd>
+            </div>
+            <div>
+              <dt>Por segundo</dt>
+              <dd id="messagesPerSecond">0</dd>
+            </div>
+            <div>
+              <dt>Latencia</dt>
+              <dd id="latency">--</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
