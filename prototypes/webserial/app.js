@@ -9,6 +9,7 @@ const LINE_RE = /^(\d+),(\d+(?:\.\d+)?),(\d+),([-0-9.]+),([-0-9.]+),([-0-9.]+)\r
 
 const els = {
   status: document.getElementById("status"),
+  statusLabel: document.querySelector("#status span:last-child"),
   connect: document.getElementById("connect"),
   disconnect: document.getElementById("disconnect"),
   simStart: document.getElementById("simStart"),
@@ -19,9 +20,12 @@ const els = {
   hr: document.getElementById("hr"),
   accel: document.getElementById("accel"),
   throughput: document.getElementById("throughput"),
-  interMean: document.getElementById("interMean"),
-  interJitter: document.getElementById("interJitter"),
-  latencyHint: document.getElementById("latencyHint"),
+  source: document.getElementById("source"),
+  totalMessages: document.getElementById("totalMessages"),
+  invalidMessages: document.getElementById("invalidMessages"),
+  lostMessages: document.getElementById("lostMessages"),
+  messagesPerSecond: document.getElementById("messagesPerSecond"),
+  latency: document.getElementById("latency"),
   log: document.getElementById("log"),
 };
 
@@ -35,12 +39,18 @@ let simSeq = 0;
 
 /** @type {number|null} */
 let lastArrival = null;
+/** @type {number|null} */
+let lastSeq = null;
+let totalMessages = 0;
+let invalidMessages = 0;
+let lostMessages = 0;
 const interArrivals = [];
 const MAX_SAMPLES = 500;
 
 function setStatus(text, ok = true) {
-  els.status.textContent = text;
+  els.statusLabel.textContent = text;
   els.status.dataset.ok = String(ok);
+  els.status.className = `status ${ok ? "online" : "offline"}`;
 }
 
 function pushInterArrival(now) {
@@ -61,29 +71,60 @@ function stats(arr) {
 
 function resetMetrics() {
   lastArrival = null;
+  lastSeq = null;
+  totalMessages = 0;
+  invalidMessages = 0;
+  lostMessages = 0;
   interArrivals.length = 0;
+  els.throughput.textContent = "--";
+  els.totalMessages.textContent = "0";
+  els.invalidMessages.textContent = "0";
+  els.lostMessages.textContent = "0";
+  els.messagesPerSecond.textContent = "0";
+  els.latency.textContent = "--";
+}
+
+function formatSerialSource(selectedPort) {
+  const info = selectedPort?.getInfo?.();
+
+  if (info?.usbVendorId || info?.usbProductId) {
+    const vendor = info.usbVendorId?.toString(16).padStart(4, "0").toUpperCase() ?? "----";
+    const product = info.usbProductId?.toString(16).padStart(4, "0").toUpperCase() ?? "----";
+    return `USB ${vendor}:${product}`;
+  }
+
+  return "Serial";
+}
+
+function applySystemMetrics(messagesPerSecond, latencyMs) {
+  els.totalMessages.textContent = String(totalMessages);
+  els.invalidMessages.textContent = String(invalidMessages);
+  els.lostMessages.textContent = String(lostMessages);
+  els.messagesPerSecond.textContent = messagesPerSecond.toFixed(3);
+  els.latency.textContent = latencyMs === null ? "--" : `${latencyMs.toFixed(3)} ms`;
 }
 
 function handleParsedLine(seq, sendMs, hr, ax, ay, az, receiveTime) {
+  const processingStartedAt = performance.now();
+
   pushInterArrival(receiveTime);
 
   const { mean, std } = stats(interArrivals);
-  const nominal = Number(els.intervalMs.value) || 100;
-  const thr = interArrivals.length ? (1000 / mean) : 0;
+  const thr = interArrivals.length ? 1000 / mean : 0;
+  totalMessages += 1;
+
+  if (lastSeq !== null && seq > lastSeq + 1) {
+    lostMessages += seq - lastSeq - 1;
+  }
+  lastSeq = seq;
 
   els.lastLine.textContent = `${seq},${sendMs},${hr},${ax},${ay},${az}`;
   els.hr.textContent = String(hr);
   els.accel.textContent = `${ax.toFixed(2)}, ${ay.toFixed(2)}, ${az.toFixed(2)}`;
   els.throughput.textContent = thr.toFixed(1);
-  els.interMean.textContent = mean.toFixed(2);
-  els.interJitter.textContent = std.toFixed(2);
 
-  // Mesmo relógio (PC): diferença aproxima atraso software+fila; no Arduino real, send_ms é millis() da placa e esta diferença não é latência física.
-  const oneWaySameClock = receiveTime - sendMs;
-  els.latencyHint.textContent =
-    interArrivals.length < 2
-      ? "—"
-      : `${oneWaySameClock.toFixed(2)} ms (válido só na simulação; com Arduino use jitter e throughput)`;
+  const processingLatencyMs = performance.now() - processingStartedAt;
+  applySystemMetrics(thr, processingLatencyMs);
 }
 
 function parseAndConsumeLines(chunk, receiveTime) {
@@ -93,7 +134,13 @@ function parseAndConsumeLines(chunk, receiveTime) {
   for (const raw of parts) {
     const line = raw.replace(/\r$/, "");
     const m = line.match(LINE_RE);
-    if (!m) continue;
+    if (!m) {
+      if (line.trim()) {
+        invalidMessages += 1;
+        els.invalidMessages.textContent = String(invalidMessages);
+      }
+      continue;
+    }
     const [, seq, sendMs, hr, ax, ay, az] = m;
     handleParsedLine(
       Number(seq),
@@ -133,10 +180,12 @@ function appendLog(msg) {
 }
 
 if (!("serial" in navigator)) {
-  setStatus("Web Serial não disponível neste navegador. Use Chrome/Edge (desktop) em http://localhost.", false);
+  setStatus("Web Serial não disponível neste navegador. Use Chrome/Edge desktop em http://localhost.", false);
   els.connect.disabled = true;
+  els.source.textContent = "Indisponivel";
 } else {
-  setStatus("Pronto. Conecte a porta serial ou inicie a simulação.", true);
+  setStatus("Pronto para serial ou simulação", true);
+  els.source.textContent = "--";
 }
 
 els.connect.addEventListener("click", async () => {
@@ -145,7 +194,8 @@ els.connect.addEventListener("click", async () => {
     port = await navigator.serial.requestPort();
     await port.open({ baudRate: Number(els.baud.value) || 115200 });
     resetMetrics();
-    setStatus("Serial aberta. Recebendo…", true);
+    els.source.textContent = formatSerialSource(port);
+    setStatus("Serial aberta. Recebendo...", true);
     appendLog(`Aberto a ${els.baud.value} baud`);
     readSerialLoop();
   } catch (e) {
@@ -171,6 +221,7 @@ els.disconnect.addEventListener("click", async () => {
     appendLog(`Fechamento: ${e.message}`);
   }
   port = null;
+  els.source.textContent = "Serial offline";
   setStatus("Serial fechada.", true);
   appendLog("Porta fechada.");
 });
@@ -181,8 +232,7 @@ function simTick() {
   const hr = 70 + Math.round(15 * Math.sin(send / 2000));
   const ax = 0.02 * Math.sin(send / 300) + (Math.random() - 0.5) * 0.01;
   const ay = 0.02 * Math.cos(send / 400) + (Math.random() - 0.5) * 0.01;
-  const az = 9.81 + 0.1 * Math.sin(send / 500) + (Math.random() - 0.5) * 0.02;
-  // Mesmo tipo que o sketch: millis inteiro (evita rejeitar pela regex / confusão com Arduino)
+  const az = 1.0 + 0.1 * Math.sin(send / 500) + (Math.random() - 0.5) * 0.02;
   const line = `${simSeq},${Math.round(send)},${hr},${ax.toFixed(4)},${ay.toFixed(4)},${az.toFixed(4)}\n`;
   parseAndConsumeLines(line, performance.now());
 }
@@ -190,10 +240,11 @@ function simTick() {
 els.simStart.addEventListener("click", () => {
   if (simTimer) return;
   resetMetrics();
+  els.source.textContent = "Simulador";
   simSeq = 0;
   const ms = Math.max(10, Number(els.intervalMs.value) || 100);
   simTimer = setInterval(simTick, ms);
-  setStatus(`Simulação a cada ${ms} ms (sem hardware).`, true);
+  setStatus(`Simulação a cada ${ms} ms`, true);
   appendLog(`Simulação iniciada (${ms} ms).`);
 });
 
@@ -202,6 +253,7 @@ els.simStop.addEventListener("click", () => {
     clearInterval(simTimer);
     simTimer = null;
     appendLog("Simulação parada.");
+    els.source.textContent = "Simulador offline";
     setStatus("Simulação parada.", true);
   }
 });

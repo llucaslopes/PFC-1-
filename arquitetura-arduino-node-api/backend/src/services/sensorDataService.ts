@@ -4,6 +4,8 @@ import { ProcessedSensorMessage, SensorPayload } from "../types";
 
 type MessageListener = (message: ProcessedSensorMessage) => void;
 
+const CSV_FIELD_COUNT = 6;
+
 export class SensorDataService {
   private latestMessage: ProcessedSensorMessage | null = null;
   private readonly listeners = new Set<MessageListener>();
@@ -26,21 +28,11 @@ export class SensorDataService {
       return;
     }
 
-    let parsedPayload: unknown;
-
-    try {
-      parsedPayload = JSON.parse(trimmedLine);
-    } catch {
-      this.metricsService.recordInvalidMessage();
-      console.warn(`[serial] JSON invalido recebido: ${trimmedLine}`);
-      return;
-    }
-
-    const sensorPayload = this.validateSensorPayload(parsedPayload);
+    const sensorPayload = this.parseCsvPayload(trimmedLine);
 
     if (!sensorPayload) {
       this.metricsService.recordInvalidMessage();
-      console.warn(`[serial] Payload fora do formato esperado: ${trimmedLine}`);
+      console.warn(`[serial] Linha CSV fora do formato esperado: ${trimmedLine}`);
       return;
     }
 
@@ -62,38 +54,45 @@ export class SensorDataService {
     }
   }
 
-  private validateSensorPayload(payload: unknown): SensorPayload | null {
-    if (!payload || typeof payload !== "object") {
+  private parseCsvPayload(line: string): SensorPayload | null {
+    const fields = line.split(",").map((field) => field.trim());
+
+    if (fields.length !== CSV_FIELD_COUNT) {
       return null;
     }
 
-    const candidate = payload as Record<string, unknown>;
-    const id = candidate.id;
-    const timestamp = candidate.timestamp;
-    const heartRate = candidate.heartRate;
-    const acceleration = candidate.acceleration;
-    const temperature = candidate.temperature;
+    const [seqRaw, sendMsRaw, heartRateRaw, axRaw, ayRaw, azRaw] = fields;
+    const id = Number(seqRaw);
+    const timestamp = Number(sendMsRaw);
+    const heartRate = Number(heartRateRaw);
+    const x = Number(axRaw);
+    const y = Number(ayRaw);
+    const z = Number(azRaw);
 
     const hasRequiredNumbers =
       this.isPositiveInteger(id) &&
       this.isNonNegativeNumber(timestamp) &&
-      this.isNumberInRange(heartRate, 70, 220) &&
-      this.isNonNegativeNumber(acceleration);
+      this.isNumberInRange(heartRate, 40, 220) &&
+      this.isNumberInRange(x, -16, 16) &&
+      this.isNumberInRange(y, -16, 16) &&
+      this.isNumberInRange(z, -16, 16);
 
     if (!hasRequiredNumbers) {
       return null;
     }
 
-    if (temperature !== undefined && !this.isNumberInRange(temperature, 0, 60)) {
-      return null;
-    }
+    const magnitude = Number(Math.sqrt(x ** 2 + y ** 2 + z ** 2).toFixed(4));
 
     return {
       id,
       timestamp,
       heartRate,
-      acceleration,
-      ...(temperature !== undefined ? { temperature } : {})
+      acceleration: {
+        x,
+        y,
+        z,
+        magnitude
+      }
     };
   }
 

@@ -14,6 +14,30 @@ Simulador interno -> Backend Node.js -> Dashboard Web + REST + WebSocket
 
 O objetivo e validar a ingestao, disponibilizar os dados via API, transmitir em tempo real para clientes WebSocket e visualizar as leituras em uma tela simples.
 
+## Padrao unico de dados
+
+Todas as aplicacoes do TCC devem usar o mesmo contrato serial CSV:
+
+```text
+seq,send_ms,hr,ax,ay,az
+```
+
+Exemplo:
+
+```text
+1,100,71,0.0059,0.0184,1.0199
+```
+
+Configuracao padrao:
+
+- baud rate: `115200`
+- intervalo: `100 ms`
+- `send_ms`: `millis()` do Arduino
+- `hr`: frequencia cardiaca simulada em bpm
+- `ax`, `ay`, `az`: aceleracao simulada em `g`
+
+O sketch canonico fica em `../arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino`. A pasta `arduino/sports_sensor_simulator` contem uma copia equivalente para facilitar o uso desta arquitetura.
+
 ## Estrutura
 
 ```text
@@ -30,19 +54,18 @@ backend/
 
 ## Arduino para iniciantes
 
-O Arduino desta versao funciona como simulador. Ele nao precisa de sensores fisicos. A cada 1 segundo, ele escreve uma linha na porta serial USB:
+O Arduino desta versao funciona como simulador. Ele nao precisa de sensores fisicos. A cada 100 ms, ele escreve uma linha CSV na porta serial USB:
 
-```json
-{"id":1,"timestamp":12345,"heartRate":88,"acceleration":1.42,"temperature":36.5}
+```text
+seq,send_ms,hr,ax,ay,az
 ```
 
 Campos:
 
-- `id`: contador incremental. Ajuda o backend a detectar mensagens perdidas.
-- `timestamp`: valor de `millis()`, ou seja, tempo em milissegundos desde que o Arduino ligou.
-- `heartRate`: frequencia cardiaca simulada.
-- `acceleration`: aceleracao simulada em g.
-- `temperature`: temperatura simulada opcional.
+- `seq`: contador incremental. Ajuda o backend a detectar mensagens perdidas.
+- `send_ms`: valor de `millis()`, ou seja, tempo em milissegundos desde que o Arduino ligou.
+- `hr`: frequencia cardiaca simulada.
+- `ax`, `ay`, `az`: aceleracao simulada em 3 eixos, em g.
 
 Limitacao importante para o TCC: `millis()` nao e relogio real. Portanto, a primeira versao mede bem o tempo de processamento no backend, mas nao mede a latencia real fim a fim Arduino -> Backend sem sincronizar relogios.
 
@@ -72,7 +95,7 @@ Opcoes praticas:
 2. Selecione a placa correta em `Tools > Board`.
 3. Selecione a porta correta em `Tools > Port`.
 4. Clique em Upload.
-5. Opcionalmente, abra o Serial Monitor em `9600 baud` para ver as linhas JSON.
+5. Opcionalmente, abra o Serial Monitor em `115200 baud` para ver as linhas CSV.
 6. Feche o Serial Monitor antes de rodar o backend, porque normalmente apenas um programa consegue usar a porta serial por vez.
 
 ## Como rodar o backend
@@ -95,8 +118,8 @@ Crie um `.env` com base em `.env.example`:
 PORT=3000
 SENSOR_SOURCE=auto
 SERIAL_PORT=COM3
-SERIAL_BAUD_RATE=9600
-SIMULATOR_INTERVAL_MS=1000
+SERIAL_BAUD_RATE=115200
+SIMULATOR_INTERVAL_MS=100
 ```
 
 Para rodar sem Arduino, deixe `SENSOR_SOURCE=auto` e remova/deixe vazia a `SERIAL_PORT`, ou use:
@@ -129,8 +152,8 @@ http://localhost:3000
 O dashboard mostra:
 
 - batimento cardiaco;
-- aceleracao;
-- temperatura;
+- aceleracao em magnitude;
+- eixos de aceleracao x/y/z;
 - grafico em tempo real via WebSocket;
 - fonte dos dados, total de mensagens, invalidas, perdidas, taxa por segundo e latencia.
 
@@ -168,14 +191,14 @@ Cada mensagem valida recebida do Arduino e enviada para todos os clientes conect
 
 ## Tratamento de erros
 
-- JSON invalido: incrementa `totalInvalidMessages` e o servidor continua rodando.
-- Payload fora do formato esperado: tambem conta como invalido.
+- CSV invalido: incrementa `totalInvalidMessages` e o servidor continua rodando.
+- Linha fora do formato esperado: tambem conta como invalida.
 - Porta serial ausente ou errada: o backend continua com REST/WebSocket ativos e mostra o erro em `/health`.
 - Perda de mensagens: o backend compara o `id` atual com o anterior e soma os IDs pulados.
 
 ## Evolucoes futuras
 
-- CSV: adicionar gravacao incremental de `sensor-data.csv` e `metrics.csv` para analise experimental.
+- Adicionar gravacao incremental de `sensor-data.csv` e `metrics.csv` para analise experimental.
 - REST vs WebSocket: criar scripts de coleta para comparar polling REST com push WebSocket.
 - Serverless: manter um gateway local lendo a serial e enviar dados a uma API hospedada, pois uma funcao serverless nao acessa diretamente a USB local.
 - Frontend: criar dashboard simples que busca `/data/latest`, escuta o WebSocket e exibe dados/metrica em tempo real.

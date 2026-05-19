@@ -22,6 +22,6 @@ export const config = {
   port: readNumberEnv("PORT", 3000),
   sensorSource: process.env.SENSOR_SOURCE?.trim().toLowerCase() || "auto",
   serialPort: process.env.SERIAL_PORT?.trim() || null,
-  serialBaudRate: readNumberEnv("SERIAL_BAUD_RATE", 9600),
-  simulatorIntervalMs: readNumberEnv("SIMULATOR_INTERVAL_MS", 1000)
+  serialBaudRate: readNumberEnv("SERIAL_BAUD_RATE", 115200),
+  simulatorIntervalMs: readNumberEnv("SIMULATOR_INTERVAL_MS", 100)
 };

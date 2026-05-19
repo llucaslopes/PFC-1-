@@ -1,9 +1,15 @@
+export interface AccelerationPayload {
+  x: number;
+  y: number;
+  z: number;
+  magnitude: number;
+}
+
 export interface SensorPayload {
   id: number;
   timestamp: number;
   heartRate: number;
-  acceleration: number;
-  temperature?: number;
+  acceleration: AccelerationPayload;
 }
 
 export interface ProcessedSensorMessage {

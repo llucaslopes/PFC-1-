@@ -19,7 +19,7 @@ export class SensorSimulator {
 
     this.startedAtMs = Date.now();
     this.timer = setInterval(() => {
-      this.options.onLine(JSON.stringify(this.createPayload()));
+      this.options.onLine(this.createCsvLine());
     }, this.options.intervalMs);
 
     console.log(`[simulator] Gerando dados a cada ${this.options.intervalMs} ms.`);
@@ -35,21 +35,24 @@ export class SensorSimulator {
     };
   }
 
-  private createPayload(): Record<string, number> {
+  private createCsvLine(): string {
     const elapsedMs = Date.now() - this.startedAtMs;
-    const activityWave = Math.sin(this.nextMessageId / 5);
-    const effort = Math.max(0, activityWave);
-
-    const payload = {
-      id: this.nextMessageId,
-      timestamp: elapsedMs,
-      heartRate: Math.round(82 + effort * 54 + this.randomBetween(-5, 5)),
-      acceleration: Number((0.65 + effort * 1.85 + this.randomBetween(0, 0.35)).toFixed(2)),
-      temperature: Number((36.2 + effort * 1.1 + this.randomBetween(-0.2, 0.2)).toFixed(1))
-    };
+    const t = elapsedMs / 1000;
+    const heartRate = Math.round(70 + 15 * Math.sin(t * 1.2));
+    const ax = 0.02 * Math.sin(t * 3.0) + this.randomBetween(-0.005, 0.005);
+    const ay = 0.02 * Math.cos(t * 4.0) + this.randomBetween(-0.005, 0.005);
+    const az = 1.0 + 0.1 * Math.sin(t * 2.0) + this.randomBetween(-0.01, 0.01);
+    const line = [
+      this.nextMessageId,
+      elapsedMs,
+      heartRate,
+      ax.toFixed(4),
+      ay.toFixed(4),
+      az.toFixed(4)
+    ].join(",");
 
     this.nextMessageId++;
-    return payload;
+    return line;
   }
 
   private randomBetween(min: number, max: number): number {

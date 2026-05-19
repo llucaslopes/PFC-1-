@@ -8,7 +8,7 @@ const elements = {
   connectionStatus: document.querySelector("#connectionStatus"),
   heartRate: document.querySelector("#heartRate"),
   acceleration: document.querySelector("#acceleration"),
-  temperature: document.querySelector("#temperature"),
+  axes: document.querySelector("#axes"),
   messageInfo: document.querySelector("#messageInfo"),
   source: document.querySelector("#source"),
   totalMessages: document.querySelector("#totalMessages"),
@@ -41,8 +41,7 @@ function applyMessage(message) {
   state.points.push({
     id: sensor.id,
     heartRate: sensor.heartRate,
-    acceleration: sensor.acceleration,
-    temperature: sensor.temperature
+    acceleration: sensor.acceleration.magnitude
   });
 
   if (state.points.length > state.maxPoints) {
@@ -50,8 +49,8 @@ function applyMessage(message) {
   }
 
   elements.heartRate.value = sensor.heartRate;
-  elements.acceleration.value = formatNumber(sensor.acceleration, 2);
-  elements.temperature.value = formatNumber(sensor.temperature, 1);
+  elements.acceleration.value = formatNumber(sensor.acceleration.magnitude, 3);
+  elements.axes.value = `${formatNumber(sensor.acceleration.x, 2)} / ${formatNumber(sensor.acceleration.y, 2)} / ${formatNumber(sensor.acceleration.z, 2)}`;
   elements.messageInfo.textContent = `Mensagem #${sensor.id} recebida ${new Date(message.receivedAt).toLocaleTimeString()}`;
 
   drawChart();
