@@ -1,4 +1,5 @@
 import { performance } from "node:perf_hooks";
+import { ExperimentService } from "./experimentService";
 import { MetricsService } from "./metricsService";
 import { ProcessedSensorMessage, SensorPayload } from "../types";
 
@@ -10,7 +11,10 @@ export class SensorDataService {
   private latestMessage: ProcessedSensorMessage | null = null;
   private readonly listeners = new Set<MessageListener>();
 
-  constructor(private readonly metricsService: MetricsService) {}
+  constructor(
+    private readonly metricsService: MetricsService,
+    private readonly experimentService?: ExperimentService
+  ) {}
 
   onMessage(listener: MessageListener): void {
     this.listeners.add(listener);
@@ -32,6 +36,7 @@ export class SensorDataService {
 
     if (!sensorPayload) {
       this.metricsService.recordInvalidMessage();
+      this.experimentService?.recordInvalidMessage(trimmedLine);
       console.warn(`[serial] Linha CSV fora do formato esperado: ${trimmedLine}`);
       return;
     }
@@ -45,6 +50,7 @@ export class SensorDataService {
 
     this.latestMessage = message;
     this.metricsService.recordValidMessage(message);
+    this.experimentService?.recordValidMessage(message);
     this.notifyListeners(message);
   }
 

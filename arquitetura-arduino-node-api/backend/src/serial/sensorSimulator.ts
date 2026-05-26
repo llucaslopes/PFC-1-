@@ -18,11 +18,25 @@ export class SensorSimulator {
     }
 
     this.startedAtMs = Date.now();
-    this.timer = setInterval(() => {
-      this.options.onLine(this.createCsvLine());
-    }, this.options.intervalMs);
+    this.startTimer();
 
     console.log(`[simulator] Gerando dados a cada ${this.options.intervalMs} ms.`);
+  }
+
+  setIntervalMs(intervalMs: number): void {
+    if (!Number.isInteger(intervalMs) || intervalMs <= 0) {
+      return;
+    }
+
+    this.options.intervalMs = intervalMs;
+
+    if (!this.timer) {
+      return;
+    }
+
+    clearInterval(this.timer);
+    this.startTimer();
+    console.log(`[simulator] Intervalo atualizado para ${this.options.intervalMs} ms.`);
   }
 
   getStatus(): SerialStatus {
@@ -53,6 +67,12 @@ export class SensorSimulator {
 
     this.nextMessageId++;
     return line;
+  }
+
+  private startTimer(): void {
+    this.timer = setInterval(() => {
+      this.options.onLine(this.createCsvLine());
+    }, this.options.intervalMs);
   }
 
   private randomBetween(min: number, max: number): number {

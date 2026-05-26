@@ -212,7 +212,7 @@ h2 {
 
 .control-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 180px));
+  grid-template-columns: repeat(3, minmax(0, 180px));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -244,6 +244,7 @@ input[type="number"] {
 }
 
 button {
+  max-width: 100%;
   min-height: 42px;
   padding: 0 14px;
   border: 0;
@@ -252,6 +253,7 @@ button {
   background: var(--blue);
   cursor: pointer;
   font-weight: 800;
+  overflow-wrap: anywhere;
 }
 
 button.secondary {
@@ -301,6 +303,13 @@ button:disabled {
   font-size: 0.78rem;
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.experiment-status {
+  margin: -4px 0 14px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 .metrics-list {

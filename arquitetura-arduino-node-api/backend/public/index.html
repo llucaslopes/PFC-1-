@@ -25,7 +25,7 @@
           <strong><output id="heartRate">--</output><small>bpm</small></strong>
         </article>
         <article class="reading-card motion">
-          <span>Aceleracao</span>
+              <span>Aceleração</span>
           <strong><output id="acceleration">--</output><small>g</small></strong>
         </article>
         <article class="reading-card axes">
@@ -47,6 +47,37 @@
           <div class="panel-heading">
             <h2>Sistema</h2>
           </div>
+          <form class="experiment-form" id="experimentForm">
+            <label>
+              <span>Modo</span>
+              <select id="communicationMode">
+                <option value="websocket">WebSocket</option>
+                <option value="rest-polling">REST polling</option>
+              </select>
+            </label>
+            <label>
+              <span>Fonte</span>
+              <select id="experimentSource">
+                <option value="simulator">Simulador</option>
+                <option value="serial">Arduino serial</option>
+              </select>
+            </label>
+            <label>
+              <span>Intervalo (ms)</span>
+              <input type="number" id="sendIntervalMs" value="100" min="10" step="10" />
+            </label>
+            <label>
+              <span>Duração (s)</span>
+              <input type="number" id="durationSeconds" value="60" min="1" step="1" />
+            </label>
+            <div class="actions">
+              <button type="button" id="startExperiment">Iniciar</button>
+              <button type="button" class="secondary" id="stopExperiment">Parar</button>
+              <button type="button" class="secondary" id="resetExperiment">Zerar</button>
+              <button type="button" id="exportExperiment">Exportar</button>
+            </div>
+            <p class="experiment-status" id="experimentStatus">Nenhum experimento iniciado</p>
+          </form>
           <dl class="metrics-list">
             <div>
               <dt>Fonte</dt>
@@ -69,14 +100,26 @@
               <dd id="messagesPerSecond">0</dd>
             </div>
             <div>
-              <dt>Latencia</dt>
+              <dt>Tempo proc. local</dt>
               <dd id="latency">--</dd>
+            </div>
+            <div>
+              <dt>Tempo proc. médio</dt>
+              <dd id="averageLatency">--</dd>
+            </div>
+            <div>
+              <dt>Perda</dt>
+              <dd id="lostPercent">0%</dd>
+            </div>
+            <div>
+              <dt>Invalidas</dt>
+              <dd id="invalidPercent">0%</dd>
             </div>
           </dl>
         </aside>
       </section>
     </main>
 
-    <script src="/app.js"></script>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

@@ -1,0 +1,13 @@
+{
+  "name": "pfc-1",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev-all.mjs",
+    "dev:backend": "npm --prefix arquitetura-arduino-node-api/backend run dev",
+    "dev:webserial": "npm --prefix prototypes/webserial start",
+    "build:backend": "npm --prefix arquitetura-arduino-node-api/backend run build",
+    "test:scale": "npm --prefix arquitetura-arduino-node-api/backend run test:scale",
+    "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix prototypes/webserial install"
+  }
+}

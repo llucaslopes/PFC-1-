@@ -6,6 +6,7 @@ import { config } from "./config";
 import { createRoutes } from "./http/routes";
 import { SerialReader } from "./serial/serialReader";
 import { SensorSimulator } from "./serial/sensorSimulator";
+import { ExperimentService } from "./services/experimentService";
 import { MetricsService } from "./services/metricsService";
 import { SensorDataService } from "./services/sensorDataService";
 import { SensorWebSocketServer } from "./websocket/websocketServer";
@@ -14,7 +15,8 @@ const app = express();
 const httpServer = http.createServer(app);
 
 const metricsService = new MetricsService();
-const sensorDataService = new SensorDataService(metricsService);
+const experimentService = new ExperimentService(metricsService);
+const sensorDataService = new SensorDataService(metricsService, experimentService);
 const websocketServer = new SensorWebSocketServer(httpServer);
 const useSimulator =
   config.sensorSource === "simulator" || (config.sensorSource === "auto" && !config.serialPort);
@@ -38,6 +40,7 @@ app.use(express.static(publicPath));
 app.use(
   createRoutes({
     metricsService,
+    experimentService,
     sensorDataService,
     serialReader: sensorInput,
     websocketServer
@@ -51,7 +54,9 @@ sensorDataService.onMessage((message) => {
 httpServer.listen(config.port, () => {
   console.log(`[http] Backend iniciado em http://localhost:${config.port}`);
   console.log("[http] Dashboard: GET /");
-  console.log("[http] Endpoints: GET /health, GET /data/latest, GET /metrics");
+  console.log(
+    "[http] Endpoints: GET /health, GET /data/latest, GET /metrics, POST /experiments/start, POST /experiments/stop, POST /experiments/reset, GET /experiments/current, GET /experiments/export"
+  );
   console.log(`[ws] WebSocket disponivel em ws://localhost:${config.port}`);
   sensorInput.start();
 });

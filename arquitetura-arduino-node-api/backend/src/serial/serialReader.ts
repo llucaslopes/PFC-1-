@@ -68,4 +68,20 @@ export class SerialReader {
       lastError: this.lastError
     };
   }
+
+  setIntervalMs(intervalMs: number): void {
+    if (!Number.isInteger(intervalMs) || intervalMs <= 0 || !this.serialPort?.writable) {
+      return;
+    }
+
+    this.serialPort.write(`INTERVAL_MS=${intervalMs}\n`, (error) => {
+      if (error) {
+        this.lastError = error.message;
+        console.error(`[serial] Falha ao enviar intervalo ao Arduino: ${error.message}`);
+        return;
+      }
+
+      console.log(`[serial] Intervalo solicitado ao Arduino: ${intervalMs} ms.`);
+    });
+  }
 }

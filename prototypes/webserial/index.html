@@ -10,7 +10,7 @@
     <main class="shell">
       <section class="topbar">
         <div>
-          <p class="eyebrow">Web Serial -> Browser</p>
+          <p class="eyebrow">Web Serial -> Navegador</p>
           <h1>Monitor Esportivo</h1>
         </div>
         <div class="status" id="status">
@@ -47,6 +47,10 @@
               <input type="number" id="intervalMs" value="100" min="10" step="10" />
             </label>
             <label>
+              <span>Duração (s)</span>
+              <input type="number" id="durationSeconds" value="60" min="1" step="1" />
+            </label>
+            <label>
               <span>Baud Arduino</span>
               <input type="number" id="baud" value="115200" step="300" />
             </label>
@@ -57,7 +61,11 @@
             <button type="button" class="secondary" id="disconnect">Fechar serial</button>
             <button type="button" id="simStart">Iniciar simulação</button>
             <button type="button" class="danger" id="simStop">Parar simulação</button>
+            <button type="button" id="experimentStart">Iniciar experimento</button>
+            <button type="button" class="secondary" id="experimentStop">Parar experimento</button>
+            <button type="button" id="experimentExport">Exportar</button>
           </div>
+          <p class="experiment-status" id="experimentStatus">Nenhum experimento iniciado</p>
 
           <div class="sample-block">
             <span>Última amostra</span>
@@ -98,14 +106,26 @@
               <dd id="messagesPerSecond">0</dd>
             </div>
             <div>
-              <dt>Latencia</dt>
+              <dt>Tempo proc. local</dt>
               <dd id="latency">--</dd>
+            </div>
+            <div>
+              <dt>Tempo proc. médio</dt>
+              <dd id="averageLatency">--</dd>
+            </div>
+            <div>
+              <dt>Perda</dt>
+              <dd id="lostPercent">0%</dd>
+            </div>
+            <div>
+              <dt>Invalidas</dt>
+              <dd id="invalidPercent">0%</dd>
             </div>
           </dl>
         </aside>
       </section>
     </main>
 
-    <script src="/app.js" defer></script>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

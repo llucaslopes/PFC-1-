@@ -6,7 +6,8 @@
 
   Configuracao:
     baud rate: 115200
-    intervalo: 100 ms
+    intervalo padrao: 100 ms
+    comando opcional: INTERVAL_MS=50
 
   Unidades:
     seq: contador incremental
@@ -17,9 +18,12 @@
 
 #include <math.h>
 
-const unsigned long SEND_INTERVAL_MS = 100;
+const unsigned long DEFAULT_SEND_INTERVAL_MS = 100;
+const unsigned long MIN_SEND_INTERVAL_MS = 10;
+unsigned long sendIntervalMs = DEFAULT_SEND_INTERVAL_MS;
 unsigned long lastSendAt = 0;
 unsigned long seq = 0;
+String commandBuffer = "";
 
 void setup() {
   Serial.begin(115200);
@@ -32,9 +36,11 @@ void setup() {
 }
 
 void loop() {
+  readIntervalCommand();
+
   unsigned long now = millis();
 
-  if (now - lastSendAt < SEND_INTERVAL_MS) {
+  if (now - lastSendAt < sendIntervalMs) {
     return;
   }
 
@@ -59,4 +65,40 @@ void loop() {
   Serial.print(',');
   Serial.print(az, 4);
   Serial.println();
+}
+
+void readIntervalCommand() {
+  while (Serial.available() > 0) {
+    char c = (char)Serial.read();
+
+    if (c == '\n' || c == '\r') {
+      applyIntervalCommand(commandBuffer);
+      commandBuffer = "";
+      continue;
+    }
+
+    if (commandBuffer.length() < 32) {
+      commandBuffer += c;
+    }
+  }
+}
+
+void applyIntervalCommand(String command) {
+  command.trim();
+
+  if (command.length() == 0) {
+    return;
+  }
+
+  if (command.startsWith("INTERVAL_MS=")) {
+    command = command.substring(12);
+  } else if (command.startsWith("I=")) {
+    command = command.substring(2);
+  }
+
+  unsigned long requestedInterval = command.toInt();
+
+  if (requestedInterval >= MIN_SEND_INTERVAL_MS) {
+    sendIntervalMs = requestedInterval;
+  }
 }
