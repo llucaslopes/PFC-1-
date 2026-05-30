@@ -11,6 +11,7 @@
     "test:scale": "npm --prefix arquitetura-arduino-node-api/backend run test:scale",
     "test:experiments": "node scripts/run-experiments.mjs",
     "experiment:refinement": "node scripts/run-experiments.mjs --campaign refinement",
+    "experiment:scalability": "node scripts/run-scalability-campaign.mjs",
     "diag:sync": "node scripts/debug-sync.mjs",
     "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix prototypes/webserial install"
   },
