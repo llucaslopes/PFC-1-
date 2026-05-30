@@ -32,19 +32,19 @@ Comparar experimentalmente duas arquiteturas para coleta e visualizacao de dados
 Todas as linhas devem seguir:
 
 ```text
-seq,send_ms,hr,ax,ay,az
+seq,send_us,hr,ax,ay,az
 ```
 
 Regras:
 
 - `seq`: inteiro positivo;
-- `send_ms`: tempo de envio do Arduino por `millis()` ou tempo do simulador;
+- `send_us`: instante de envio em microssegundos (`micros()` no Arduino ou equivalente no simulador);
 - `hr`: frequencia cardiaca simulada, entre 40 e 220 bpm;
 - `ax`, `ay`, `az`: aceleracao em g, entre -16 e 16;
 - saltos em `seq` contam mensagens perdidas;
 - linhas fora do formato contam mensagens invalidas.
 
-Importante: o tempo exibido/exportado e **tempo local de processamento no navegador**, nao latencia fim a fim Arduino -> navegador. O relogio `millis()` do Arduino nao esta sincronizado com o computador.
+Importante: a latencia fim a fim e estimada por sincronizacao NTP/Cristian entre Arduino e navegador (`SYNC,<client_t0>` / `SYNC_REPLY`), com incerteza documentada. Sem SYNC, usa fallback relativo. Ver `docs/roteiro-experimentos.md`.
 
 ## Rodar
 
@@ -59,41 +59,42 @@ Abra:
 http://localhost:8765/
 ```
 
-Use **Iniciar simulacao** para testar sem Arduino. Para usar Arduino real, grave o sketch em:
+Use **Iniciar simulacao** para testar sem Arduino. Para usar Arduino real, grave o sketch canonico centralizado em:
 
 ```text
-firmware/sketch_sensor_sim/sketch_sensor_sim.ino
+../../arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino
 ```
 
 Depois abra a pagina no Chrome ou Edge desktop e clique em **Conectar serial**.
 
 ## Matriz experimental principal
 
-Cada cenario deve ser repetido 3 vezes. Use 60 segundos por repeticao e calcule media e desvio padrao das metricas principais.
+Cada cenario deve ser repetido 3 vezes. Use 60 segundos por repeticao e calcule media e desvio padrao das metricas principais. A opcao **Campanha stress** executa automaticamente `100, 50, 20, 10, 5 e 1 ms`.
 
 | Cenario | Arquitetura | Modo | Fonte | Intervalo | Duracao |
 | --- | --- | --- | --- | --- | --- |
-| C1 | WebSerial | direto | simulador/Arduino | 100 ms | 60 s |
-| C2 | Backend | WebSocket | simulador/Arduino | 100 ms | 60 s |
-| C3 | Backend | REST polling | simulador/Arduino | 100 ms | 60 s |
-| C4 | WebSerial | direto | simulador/Arduino | 50 ms | 60 s |
-| C5 | Backend | WebSocket | simulador/Arduino | 50 ms | 60 s |
-| C6 | Backend | REST polling | simulador/Arduino | 50 ms | 60 s |
+| C1 | WebSerial | direto | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
+| C2 | Backend | WebSocket | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
+| C3 | Backend | REST polling | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
 
 ## Exportacao
 
 Clique em **Exportar** para baixar:
 
 - `sensor-data.csv`: amostras validas com arquitetura, modo, fonte, horario, `seq`, `send_ms`, `hr`, `ax`, `ay`, `az`, magnitude e tempo local de processamento;
-- `metrics.csv`: totais e estatisticas agregadas;
+- `metrics.csv`: uma linha por execucao/intervalo com mensagens esperadas, recebidas, ausentes, lacunas de sequencia, throughput e latencia estimada;
+- `campaign-summary.csv`: uma linha por intervalo da campanha, pronta para graficos;
 - `experiment-summary.json`: configuracao, metricas e notas de interpretacao.
 
 ## Metricas
 
 - total de mensagens validas;
 - total de mensagens invalidas;
-- mensagens perdidas por salto de `seq`;
+- mensagens ausentes (`missing_messages`) calculadas por esperado menos recebido;
+- lacunas de sequencia (`sequence_gap_messages`) como diagnostico auxiliar;
 - mensagens por segundo;
+- throughput percentual;
+- latencia fim a fim estimada (`end_to_end_latency_ms`) com offset sincronizado e incerteza; nao e medicao fisica absoluta;
 - percentual de perdas;
 - percentual de invalidas;
 - media, minimo, maximo e desvio padrao do tempo local de processamento;

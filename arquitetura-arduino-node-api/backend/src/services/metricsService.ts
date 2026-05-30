@@ -57,6 +57,7 @@ export class MetricsService {
       totalMessagesReceived: this.totalMessagesReceived,
       totalInvalidMessages: this.totalInvalidMessages,
       lostMessages: this.lostMessages,
+      sequenceGapMessages: this.lostMessages,
       totalSamples: this.totalMessagesReceived,
       lastMessageAt: this.lastMessage?.receivedAt ?? null,
       lastMessage: this.lastMessage,

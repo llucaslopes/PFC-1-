@@ -1,8 +1,10 @@
 import { drawChart } from "./chart.js";
 import { elements, formatNumber } from "./dom.js";
+import { recordObservedMessage } from "./experiments.js";
 import { state } from "./state.js";
 
 export function applyMessage(message) {
+  recordObservedMessage(message);
   state.latestMessage = message;
   const sensor = message.sensor;
 
@@ -34,8 +36,9 @@ export function applyMetrics(metrics) {
   elements.invalidMessages.textContent = metrics.totalInvalidMessages;
   elements.lostMessages.textContent = metrics.lostMessages;
   elements.messagesPerSecond.textContent = formatNumber(metrics.averageMessagesPerSecond, 3);
-  elements.latency.textContent =
-    metrics.lastProcessingLatencyMs === null ? "--" : `${metrics.lastProcessingLatencyMs} ms`;
+  if (!state.observedSamples.length) {
+    elements.latency.textContent = "--";
+  }
   elements.averageLatency.textContent =
     metrics.processingLatencyMs.average === null ? "--" : `${metrics.processingLatencyMs.average} ms`;
   elements.lostPercent.textContent = `${formatNumber(metrics.lostMessagesPercent, 3)}%`;

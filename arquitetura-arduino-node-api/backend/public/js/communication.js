@@ -1,4 +1,3 @@
-import { refreshMetricsOnly } from "./api.js";
 import { applyMessage } from "./dashboard.js";
 import { elements, setConnectionStatus } from "./dom.js";
 import { state } from "./state.js";
@@ -27,7 +26,6 @@ export function connectWebSocket() {
 
     if (payload.type === "sensor-data") {
       applyMessage(payload.data);
-      refreshMetricsOnly();
     }
   });
 
@@ -69,7 +67,7 @@ export async function pollLatestMessage() {
 
 export function configureCommunicationMode() {
   const mode = elements.communicationMode.value;
-  const intervalMs = Math.max(10, Number(elements.sendIntervalMs.value) || 100);
+  const intervalMs = Math.max(1, Number(elements.sendIntervalMs.value) || 100);
 
   if (state.restPollingTimer) {
     clearInterval(state.restPollingTimer);

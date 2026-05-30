@@ -1,0 +1,68 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Build / saída
+dist/
+build/
+*.tsbuildinfo
+coverage/
+.cache/
+
+# Saídas de experimentos (geradas pelos scripts)
+logs/
+resultados/
+*.log
+
+# Python (scripts/consolidate_results.py, plot_results.py)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Arduino (compilação local)
+*.hex
+*.elf
+*.bin
+arduino/**/build/
+
+# IDE / editores
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# Sistema operacional
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Perfil persistente do Chromium usado pelo Playwright (WebSerial)
+.playwright-profile/
+
+# Lixo de merge / backups de editor
+*.bak
+*.orig
+*.rej
+
+# Caches de gerenciadores de pacote
+.npm/
+.yarn/
+.pnpm-store/
+.pnp.*

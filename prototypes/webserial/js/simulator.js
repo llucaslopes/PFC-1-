@@ -11,7 +11,7 @@ export function startSimulator() {
   resetMetrics();
   els.source.textContent = "Simulador";
   simulatorState.seq = 0;
-  const intervalMs = Math.max(10, Number(els.intervalMs.value) || 100);
+  const intervalMs = Math.max(1, Number(els.intervalMs.value) || 100);
   simulatorState.timer = setInterval(simTick, intervalMs);
   setStatus(`Simulacao a cada ${intervalMs} ms`, true);
   appendLog(`Simulacao iniciada (${intervalMs} ms).`);
@@ -22,7 +22,7 @@ export function setSimulatorInterval(intervalMs) {
     return false;
   }
 
-  const nextIntervalMs = Math.max(10, Number(intervalMs) || 100);
+  const nextIntervalMs = Math.max(1, Number(intervalMs) || 100);
   clearInterval(simulatorState.timer);
   simulatorState.timer = setInterval(simTick, nextIntervalMs);
   setStatus(`Simulacao a cada ${nextIntervalMs} ms`, true);
@@ -49,14 +49,15 @@ export function cleanupSimulator() {
 }
 
 function simTick() {
-  const send = performance.now();
+  const receiveTime = performance.now();
+  const sendUs = Math.round(receiveTime * 1000);
   simulatorState.seq += 1;
-  const hr = 70 + Math.round(15 * Math.sin(send / 2000));
-  const ax = 0.02 * Math.sin(send / 300) + (Math.random() - 0.5) * 0.01;
-  const ay = 0.02 * Math.cos(send / 400) + (Math.random() - 0.5) * 0.01;
-  const az = 1.0 + 0.1 * Math.sin(send / 500) + (Math.random() - 0.5) * 0.02;
-  const line = `${simulatorState.seq},${Math.round(send)},${hr},${ax.toFixed(4)},${ay.toFixed(
+  const hr = 70 + Math.round(15 * Math.sin(receiveTime / 2000));
+  const ax = 0.02 * Math.sin(receiveTime / 300) + (Math.random() - 0.5) * 0.01;
+  const ay = 0.02 * Math.cos(receiveTime / 400) + (Math.random() - 0.5) * 0.01;
+  const az = 1.0 + 0.1 * Math.sin(receiveTime / 500) + (Math.random() - 0.5) * 0.02;
+  const line = `${simulatorState.seq},${sendUs},${hr},${ax.toFixed(4)},${ay.toFixed(4)},${az.toFixed(
     4
-  )},${az.toFixed(4)}\n`;
-  parseAndConsumeLines(line, performance.now());
+  )}\n`;
+  parseAndConsumeLines(line, receiveTime);
 }

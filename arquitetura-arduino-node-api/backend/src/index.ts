@@ -16,7 +16,11 @@ const httpServer = http.createServer(app);
 
 const metricsService = new MetricsService();
 const experimentService = new ExperimentService(metricsService);
-const sensorDataService = new SensorDataService(metricsService, experimentService);
+const sensorDataService = new SensorDataService(
+  metricsService,
+  experimentService,
+  () => experimentService.getCurrentClockSync()
+);
 const websocketServer = new SensorWebSocketServer(httpServer);
 const useSimulator =
   config.sensorSource === "simulator" || (config.sensorSource === "auto" && !config.serialPort);
@@ -35,7 +39,7 @@ const sensorInput = useSimulator
 const publicPath = path.join(process.cwd(), "public");
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 app.use(express.static(publicPath));
 app.use(
   createRoutes({
@@ -55,7 +59,7 @@ httpServer.listen(config.port, () => {
   console.log(`[http] Backend iniciado em http://localhost:${config.port}`);
   console.log("[http] Dashboard: GET /");
   console.log(
-    "[http] Endpoints: GET /health, GET /data/latest, GET /metrics, POST /experiments/start, POST /experiments/stop, POST /experiments/reset, GET /experiments/current, GET /experiments/export"
+    "[http] Endpoints: GET /health, GET /data/latest, GET /metrics, POST /experiments/start, POST /experiments/stop, POST /experiments/reset, POST /experiments/observations, GET /experiments/current, GET /experiments/export"
   );
   console.log(`[ws] WebSocket disponivel em ws://localhost:${config.port}`);
   sensorInput.start();

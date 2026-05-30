@@ -2,7 +2,8 @@ export const serialState = {
   port: null,
   reader: null,
   readLoopAbort: false,
-  lineBuffer: ""
+  lineBuffer: "",
+  pendingSyncReplies: []
 };
 
 export const simulatorState = {
@@ -16,7 +17,11 @@ export const metricsState = {
   totalMessages: 0,
   invalidMessages: 0,
   lostMessages: 0,
+  sequenceGapMessages: 0,
+  latencyCalibrator: null,
+  clockSync: null,
   interArrivals: [],
+  endToEndLatencies: [],
   processingLatencies: [],
   heartRates: [],
   accelerationMagnitudes: []
@@ -28,6 +33,8 @@ export const experiment = {
   metricsSnapshot: null,
   samples: [],
   invalidMessages: [],
+  completedRuns: [],
+  campaign: null,
   timer: null,
   ticker: null
 };

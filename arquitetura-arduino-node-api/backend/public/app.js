@@ -5,6 +5,7 @@ import { elements } from "./js/dom.js";
 import {
   exportExperiment,
   resetExperiment,
+  startCampaign,
   startExperiment,
   stopExperiment
 } from "./js/experiments.js";
@@ -22,6 +23,7 @@ elements.sendIntervalMs.addEventListener("change", () => {
   }
 });
 elements.startExperiment.addEventListener("click", startExperiment);
+elements.startCampaign.addEventListener("click", startCampaign);
 elements.stopExperiment.addEventListener("click", stopExperiment);
 elements.resetExperiment.addEventListener("click", resetExperiment);
 elements.exportExperiment.addEventListener("click", exportExperiment);

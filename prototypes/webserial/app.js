@@ -1,6 +1,7 @@
 import { els } from "./js/dom.js";
 import {
   exportExperiment,
+  startCampaign,
   startExperiment,
   stopExperiment,
   stopExperimentTimer
@@ -15,6 +16,7 @@ els.disconnect.addEventListener("click", disconnectSerial);
 els.simStart.addEventListener("click", startSimulator);
 els.simStop.addEventListener("click", stopSimulator);
 els.experimentStart.addEventListener("click", startExperiment);
+els.experimentCampaign.addEventListener("click", startCampaign);
 els.experimentStop.addEventListener("click", stopExperiment);
 els.experimentExport.addEventListener("click", exportExperiment);
 

@@ -8,5 +8,14 @@ export const state = {
   experimentAutoStopTimer: null,
   experimentTicker: null,
   currentExperiment: null,
+  observedSamples: [],
+  invalidMessages: [],
+  completedRuns: [],
+  campaign: null,
+  latencyCalibrator: null,
+  clockSync: null,
+  lastObservedSeq: null,
+  observedLostMessages: 0,
+  observedSequenceGapMessages: 0,
   seenRestSequences: new Set()
 };

@@ -1,5 +1,6 @@
 import { els } from "./dom.js";
 import { MAX_SAMPLES, metricsState } from "./state.js";
+import { createLatencyCalibrator, numericStats } from "./scientific.js";
 
 export function pushInterArrival(now) {
   if (metricsState.lastArrival != null) {
@@ -43,7 +44,11 @@ export function resetMetrics() {
   metricsState.totalMessages = 0;
   metricsState.invalidMessages = 0;
   metricsState.lostMessages = 0;
+  metricsState.sequenceGapMessages = 0;
+  metricsState.latencyCalibrator = createLatencyCalibrator();
+  metricsState.clockSync = null;
   metricsState.interArrivals.length = 0;
+  metricsState.endToEndLatencies.length = 0;
   metricsState.processingLatencies.length = 0;
   metricsState.heartRates.length = 0;
   metricsState.accelerationMagnitudes.length = 0;
@@ -60,17 +65,20 @@ export function resetMetrics() {
 
 export function applySystemMetrics(messagesPerSecond, latencyMs) {
   const expectedMessages =
-    metricsState.totalMessages + metricsState.invalidMessages + metricsState.lostMessages;
+    metricsState.totalMessages + metricsState.invalidMessages + metricsState.sequenceGapMessages;
   const latencyStats = stats(metricsState.processingLatencies);
+  const endToEndStats = numericStats(metricsState.endToEndLatencies);
+  const missingMessages = Math.max(0, expectedMessages - metricsState.totalMessages);
 
   els.totalMessages.textContent = String(metricsState.totalMessages);
   els.invalidMessages.textContent = String(metricsState.invalidMessages);
-  els.lostMessages.textContent = String(metricsState.lostMessages);
+  els.lostMessages.textContent = String(missingMessages);
   els.messagesPerSecond.textContent = messagesPerSecond.toFixed(3);
-  els.latency.textContent = latencyMs === null ? "--" : `${latencyMs.toFixed(3)} ms`;
+  els.latency.textContent =
+    endToEndStats.average === null ? "--" : `${endToEndStats.average.toFixed(3)} ms`;
   els.averageLatency.textContent =
     latencyStats.mean === null ? "--" : `${latencyStats.mean.toFixed(3)} ms`;
-  els.lostPercent.textContent = `${percent(metricsState.lostMessages, expectedMessages).toFixed(3)}%`;
+  els.lostPercent.textContent = `${percent(missingMessages, expectedMessages).toFixed(3)}%`;
   els.invalidPercent.textContent = `${percent(metricsState.invalidMessages, expectedMessages).toFixed(
     3
   )}%`;

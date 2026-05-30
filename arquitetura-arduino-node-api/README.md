@@ -45,26 +45,26 @@ Objetivos especificos:
 Todas as arquiteturas usam CSV:
 
 ```text
-seq,send_ms,hr,ax,ay,az
+seq,send_us,hr,ax,ay,az
 ```
 
 Exemplo:
 
 ```text
-1,100,71,0.0059,0.0184,1.0199
+1,15230487,71,0.0059,0.0184,1.0199
 ```
 
 Regras de confiabilidade:
 
 - mensagens validas precisam ter 6 campos numericos;
 - `seq` deve ser inteiro positivo;
-- `send_ms` deve ser nao negativo;
+- `send_us` deve ser nao negativo (`micros()` no Arduino);
 - `hr` deve ficar entre 40 e 220 bpm;
 - `ax`, `ay`, `az` devem ficar entre -16 e 16 g;
 - se a ultima mensagem foi `seq=10` e a proxima for `seq=13`, contam-se 2 mensagens perdidas;
 - linhas fora do contrato contam como invalidas.
 
-Importante: `send_ms` vem de `millis()` no Arduino ou do temporizador do simulador. Esse relogio nao e sincronizado com o computador. Portanto, a medida registrada neste prototipo e **tempo local de processamento no backend**, nao latencia fim a fim Arduino -> aplicacao.
+Importante: a latencia fim a fim e estimada por sincronizacao de relogio estilo NTP (Arduino↔backend↔frontend), com `send_us` e incerteza `RTT/2`. Sem SYNC valido, o sistema usa fallback relativo explicitamente marcado. Ver `docs/roteiro-experimentos.md`.
 
 ## Como rodar
 
@@ -99,7 +99,7 @@ Abra o dashboard:
 http://localhost:3000
 ```
 
-O sketch canonico fica em:
+O unico sketch Arduino mantido no projeto fica em:
 
 ```text
 ../arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino
@@ -137,35 +137,37 @@ Exemplo de inicio de experimento:
 
 ## Matriz experimental principal
 
-Cada cenario deve ser repetido 3 vezes. Usar 60 segundos por repeticao e calcular media e desvio padrao das metricas principais.
+Cada cenario deve ser repetido 3 vezes. Usar 60 segundos por repeticao e calcular media e desvio padrao das metricas principais. A opcao **Campanha stress** executa automaticamente `100, 50, 20, 10, 5 e 1 ms`.
 
 | Cenario | Arquitetura | Modo | Fonte | Intervalo | Duracao |
 | --- | --- | --- | --- | --- | --- |
-| C1 | WebSerial | direto | simulador/Arduino | 100 ms | 60 s |
-| C2 | Backend | WebSocket | simulador/Arduino | 100 ms | 60 s |
-| C3 | Backend | REST polling | simulador/Arduino | 100 ms | 60 s |
-| C4 | WebSerial | direto | simulador/Arduino | 50 ms | 60 s |
-| C5 | Backend | WebSocket | simulador/Arduino | 50 ms | 60 s |
-| C6 | Backend | REST polling | simulador/Arduino | 50 ms | 60 s |
+| C1 | WebSerial | direto | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
+| C2 | Backend | WebSocket | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
+| C3 | Backend | REST polling | simulador/Arduino | 100, 50, 20, 10, 5, 1 ms | 60 s |
 
 ## Exportacao
 
-`GET /experiments/export` retorna tres arquivos em formato textual:
+O dashboard exporta arquivos em formato textual:
 
-- `sensor-data.csv`: uma linha por amostra valida, com arquitetura, modo, fonte, horario de recebimento, `seq`, `send_ms`, `hr`, `ax`, `ay`, `az`, magnitude e tempo local de processamento;
-- `metrics.csv`: totais e metricas agregadas do experimento;
+- `sensor-data.csv`: uma linha por amostra observada no frontend, com arquitetura, modo, fonte, intervalo, horario de recebimento, `seq`, `send_ms`, latencia relativa estimada, `hr`, `ax`, `ay`, `az`, magnitude e tempo local de processamento;
+- `metrics.csv`: uma linha por execucao/intervalo com mensagens esperadas, recebidas, ausentes, lacunas de sequencia, throughput e latencia estimada;
+- `campaign-summary.csv`: uma linha por intervalo da campanha, pronta para graficos;
 - `experiment-summary.json`: configuracao, metricas e notas de interpretacao para o TCC.
 
-O dashboard baixa automaticamente esses tres arquivos quando voce clica em **Exportar**.
+O dashboard baixa automaticamente esses arquivos quando voce clica em **Exportar**.
 
 ## Metricas coletadas
 
 - total de mensagens validas;
 - total de mensagens invalidas;
-- total e percentual de mensagens perdidas;
+- mensagens esperadas;
+- mensagens ausentes (`missing_messages`) calculadas por esperado menos recebido;
+- lacunas de sequencia (`sequence_gap_messages`) como diagnostico auxiliar;
+- throughput percentual;
 - percentual de mensagens invalidas;
 - amostras por segundo;
-- media, minimo, maximo e desvio padrao do tempo local de processamento;
+- media, minimo, maximo, desvio padrao e p95 da latencia relativa estimada. Ela usa offset entre `send_ms`/`millis()` e `performance.now()` no frontend, nao sincronizacao absoluta de relogios;
+- media do tempo local de processamento;
 - media, minimo, maximo e desvio padrao da frequencia cardiaca;
 - media, minimo, maximo e desvio padrao da magnitude da aceleracao.
 
@@ -194,7 +196,7 @@ O script registra mensagens por segundo, perdas detectadas por cliente, erros e 
 
 Use os arquivos exportados para comparar:
 
-- qual modo teve menor tempo local de processamento;
+- qual modo teve menor latencia fim a fim estimada;
 - qual modo sustentou maior taxa de mensagens por segundo;
 - se houve perdas detectadas por salto de `seq`;
 - se houve mensagens invalidas;
@@ -205,7 +207,7 @@ Use os arquivos exportados para comparar:
 
 - As metricas ficam em memoria e sao perdidas ao reiniciar o processo.
 - Nao ha banco de dados, autenticacao, TLS ou nuvem por decisao de escopo.
-- A medida de tempo nao e latencia fim a fim, pois o Arduino e o computador nao compartilham relogio sincronizado.
+- A latencia fim a fim e uma estimativa relativa por offset inicial, pois o Arduino e o computador nao compartilham relogio sincronizado.
 - O simulador interno ajuda a repetir testes, mas nao substitui completamente as caracteristicas de uma porta serial real.
 - WebBluetooth, WebUSB, serverless e nuvem ficam como trabalhos futuros.
 

@@ -64,14 +64,19 @@
             </label>
             <label>
               <span>Intervalo (ms)</span>
-              <input type="number" id="sendIntervalMs" value="100" min="10" step="10" />
+              <input type="number" id="sendIntervalMs" value="100" min="1" step="1" />
             </label>
             <label>
               <span>Duração (s)</span>
               <input type="number" id="durationSeconds" value="60" min="1" step="1" />
             </label>
+            <label>
+              <span>Repetição</span>
+              <input type="number" id="replicationNumber" value="1" min="1" step="1" />
+            </label>
             <div class="actions">
               <button type="button" id="startExperiment">Iniciar</button>
+              <button type="button" id="startCampaign">Campanha stress</button>
               <button type="button" class="secondary" id="stopExperiment">Parar</button>
               <button type="button" class="secondary" id="resetExperiment">Zerar</button>
               <button type="button" id="exportExperiment">Exportar</button>
@@ -100,11 +105,11 @@
               <dd id="messagesPerSecond">0</dd>
             </div>
             <div>
-              <dt>Tempo proc. local</dt>
+              <dt>Latencia ponta a ponta</dt>
               <dd id="latency">--</dd>
             </div>
             <div>
-              <dt>Tempo proc. médio</dt>
+              <dt>Proc. local medio</dt>
               <dd id="averageLatency">--</dd>
             </div>
             <div>

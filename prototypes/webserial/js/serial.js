@@ -66,19 +66,30 @@ export async function disconnectSerial() {
 }
 
 export async function sendSerialIntervalCommand(intervalMs) {
+  const nextIntervalMs = Math.max(1, Number(intervalMs) || 100);
+  const sent = await writeSerialCommand(`INTERVAL_MS=${nextIntervalMs}`);
+
+  if (sent) {
+    appendLog(`Comando enviado ao Arduino: INTERVAL_MS=${nextIntervalMs}`);
+  } else {
+    appendLog("Falha ao enviar intervalo ao Arduino.");
+  }
+
+  return sent;
+}
+
+export async function writeSerialCommand(command) {
   if (!serialState.port?.writable) {
     return false;
   }
 
-  const nextIntervalMs = Math.max(10, Number(intervalMs) || 100);
   const writer = serialState.port.writable.getWriter();
 
   try {
-    await writer.write(new TextEncoder().encode(`INTERVAL_MS=${nextIntervalMs}\n`));
-    appendLog(`Comando enviado ao Arduino: INTERVAL_MS=${nextIntervalMs}`);
+    await writer.write(new TextEncoder().encode(`${command}\n`));
     return true;
   } catch (error) {
-    appendLog(`Falha ao enviar intervalo ao Arduino: ${error.message}`);
+    appendLog(`Falha ao enviar comando serial: ${error.message}`);
     return false;
   } finally {
     writer.releaseLock();

@@ -1,7 +1,8 @@
 import { performance } from "node:perf_hooks";
 import { ExperimentService } from "./experimentService";
 import { MetricsService } from "./metricsService";
-import { ProcessedSensorMessage, SensorPayload } from "../types";
+import { ClockSyncMetadata, ProcessedSensorMessage, SensorPayload } from "../types";
+import { detectSendUnit, remoteSendToHostMs } from "../utils/clockSyncMath";
 
 type MessageListener = (message: ProcessedSensorMessage) => void;
 
@@ -13,7 +14,8 @@ export class SensorDataService {
 
   constructor(
     private readonly metricsService: MetricsService,
-    private readonly experimentService?: ExperimentService
+    private readonly experimentService?: ExperimentService,
+    private readonly clockSyncProvider?: () => ClockSyncMetadata | null
   ) {}
 
   onMessage(listener: MessageListener): void {
@@ -41,10 +43,30 @@ export class SensorDataService {
       return;
     }
 
+    const backendReceiveMs = performance.now();
+    const clockSync = this.clockSyncProvider?.() ?? null;
+    const arduinoOffset =
+      clockSync?.arduinoToBackendOffsetMs ?? clockSync?.arduinoHostOffsetMs ?? null;
+    const backendArduinoClockOffsetMs =
+      clockSync && !clockSync.syncFailed && Number.isFinite(arduinoOffset) ? arduinoOffset : null;
+    const sendUnit = detectSendUnit(sensorPayload.sendUs, clockSync?.arduinoRemoteUnit);
+    const estimatedBackendSendTimeMs =
+      backendArduinoClockOffsetMs === null
+        ? null
+        : remoteSendToHostMs(sensorPayload.sendUs, sendUnit, backendArduinoClockOffsetMs);
     const processingLatencyMs = Number((performance.now() - startedAt).toFixed(3));
     const message: ProcessedSensorMessage = {
       sensor: sensorPayload,
       receivedAt: new Date().toISOString(),
+      backendReceiveMs: Number(backendReceiveMs.toFixed(3)),
+      arduinoSendUs: sensorPayload.sendUs,
+      estimatedBackendSendTimeMs:
+        estimatedBackendSendTimeMs === null ? null : Number(estimatedBackendSendTimeMs.toFixed(3)),
+      backendArduinoClockOffsetMs,
+      backendArduinoClockUncertaintyMs:
+        clockSync?.arduinoToBackendUncertaintyMs ??
+        clockSync?.arduinoHostUncertaintyMs ??
+        null,
       processingLatencyMs
     };
 
@@ -67,9 +89,9 @@ export class SensorDataService {
       return null;
     }
 
-    const [seqRaw, sendMsRaw, heartRateRaw, axRaw, ayRaw, azRaw] = fields;
+    const [seqRaw, sendRaw, heartRateRaw, axRaw, ayRaw, azRaw] = fields;
     const id = Number(seqRaw);
-    const timestamp = Number(sendMsRaw);
+    const sendUs = Number(sendRaw);
     const heartRate = Number(heartRateRaw);
     const x = Number(axRaw);
     const y = Number(ayRaw);
@@ -77,7 +99,7 @@ export class SensorDataService {
 
     const hasRequiredNumbers =
       this.isPositiveInteger(id) &&
-      this.isNonNegativeNumber(timestamp) &&
+      this.isNonNegativeNumber(sendUs) &&
       this.isNumberInRange(heartRate, 40, 220) &&
       this.isNumberInRange(x, -16, 16) &&
       this.isNumberInRange(y, -16, 16) &&
@@ -88,10 +110,12 @@ export class SensorDataService {
     }
 
     const magnitude = Number(Math.sqrt(x ** 2 + y ** 2 + z ** 2).toFixed(4));
+    const sendUnit = detectSendUnit(sendUs, null);
 
     return {
       id,
-      timestamp,
+      sendUs,
+      timestamp: sendUnit === "us" ? sendUs / 1000 : sendUs,
       heartRate,
       acceleration: {
         x,

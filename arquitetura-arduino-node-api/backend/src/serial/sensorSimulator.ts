@@ -51,6 +51,7 @@ export class SensorSimulator {
 
   private createCsvLine(): string {
     const elapsedMs = Date.now() - this.startedAtMs;
+    const sendUs = elapsedMs * 1000;
     const t = elapsedMs / 1000;
     const heartRate = Math.round(70 + 15 * Math.sin(t * 1.2));
     const ax = 0.02 * Math.sin(t * 3.0) + this.randomBetween(-0.005, 0.005);
@@ -58,7 +59,7 @@ export class SensorSimulator {
     const az = 1.0 + 0.1 * Math.sin(t * 2.0) + this.randomBetween(-0.01, 0.01);
     const line = [
       this.nextMessageId,
-      elapsedMs,
+      sendUs,
       heartRate,
       ax.toFixed(4),
       ay.toFixed(4),
