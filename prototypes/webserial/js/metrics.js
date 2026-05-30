@@ -1,5 +1,5 @@
 import { els } from "./dom.js";
-import { MAX_SAMPLES, metricsState } from "./state.js";
+import { MAX_DISPLAY_STATS_SAMPLES, MAX_SAMPLES, metricsState } from "./state.js";
 import { createLatencyCalibrator, numericStats } from "./scientific.js";
 
 export function pushInterArrival(now) {
@@ -52,6 +52,8 @@ export function resetMetrics() {
   metricsState.processingLatencies.length = 0;
   metricsState.heartRates.length = 0;
   metricsState.accelerationMagnitudes.length = 0;
+  metricsState.lastDisplay = null;
+  metricsState.lastThroughput = 0;
   els.throughput.textContent = "--";
   els.totalMessages.textContent = "0";
   els.invalidMessages.textContent = "0";
@@ -63,11 +65,21 @@ export function resetMetrics() {
   els.invalidPercent.textContent = "0%";
 }
 
+function tail(arr, n) {
+  return arr.length > n ? arr.slice(-n) : arr;
+}
+
 export function applySystemMetrics(messagesPerSecond, latencyMs) {
   const expectedMessages =
     metricsState.totalMessages + metricsState.invalidMessages + metricsState.sequenceGapMessages;
-  const latencyStats = stats(metricsState.processingLatencies);
-  const endToEndStats = numericStats(metricsState.endToEndLatencies);
+  // Stats em tempo real usam apenas a janela final dos arrays. O calculo
+  // completo (todas as N amostras) e feito apenas no fim do experimento em
+  // createMetricsSnapshot, evitando trabalho O(N^2) por mensagem que
+  // afogava o renderer no intervalo de 1 ms.
+  const latencyStats = stats(tail(metricsState.processingLatencies, MAX_DISPLAY_STATS_SAMPLES));
+  const endToEndStats = numericStats(
+    tail(metricsState.endToEndLatencies, MAX_DISPLAY_STATS_SAMPLES)
+  );
   const missingMessages = Math.max(0, expectedMessages - metricsState.totalMessages);
 
   els.totalMessages.textContent = String(metricsState.totalMessages);
@@ -82,6 +94,21 @@ export function applySystemMetrics(messagesPerSecond, latencyMs) {
   els.invalidPercent.textContent = `${percent(metricsState.invalidMessages, expectedMessages).toFixed(
     3
   )}%`;
+}
+
+// Atualiza tudo que vai para o DOM em uma unica passada, a partir do snapshot
+// gravado pelo parser. Chamado pelo display ticker (10 Hz). Em alta taxa
+// (1 ms / ~280 msg/s) reduz reflows de ~1.120/s para ~50/s.
+export function applyDisplayUpdate() {
+  const snap = metricsState.lastDisplay;
+  if (snap) {
+    const { seq, sendUs, hr, ax, ay, az } = snap;
+    els.lastLine.textContent = `${seq},${sendUs},${hr},${ax},${ay},${az}`;
+    els.hr.textContent = String(hr);
+    els.accel.textContent = `${ax.toFixed(2)}, ${ay.toFixed(2)}, ${az.toFixed(2)}`;
+    els.throughput.textContent = metricsState.lastThroughput.toFixed(1);
+  }
+  applySystemMetrics(metricsState.lastThroughput, 0);
 }
 
 export function serializeStats(value) {

@@ -6,7 +6,7 @@ import {
   remoteSendToHostMs
 } from "./clockSyncMath.js";
 import { recordExperimentInvalid, recordExperimentSample } from "./experiment.js";
-import { applySystemMetrics, pushInterArrival, stats } from "./metrics.js";
+import { pushInterArrival, stats } from "./metrics.js";
 import { metricsState, serialState } from "./state.js";
 
 export function parseCsvPayload(line) {
@@ -64,7 +64,6 @@ export function parseAndConsumeLines(chunk, receiveTime) {
       if (line.trim()) {
         metricsState.invalidMessages += 1;
         recordExperimentInvalid(line);
-        els.invalidMessages.textContent = String(metricsState.invalidMessages);
       }
       continue;
     }
@@ -81,18 +80,31 @@ function consumeSyncReply(line, receiveTime) {
 
   const payload = trimmed.slice("SYNC_REPLY,".length);
   const fields = payload.split(",").map((field) => field.trim());
-  const pending = serialState.pendingSyncReplies.shift();
 
-  if (!pending) {
+  if (fields.length === 0) {
     return true;
   }
 
+  const replySyncId = Number(fields[0]);
+  if (!Number.isFinite(replySyncId)) {
+    return true;
+  }
+
+  const pending = serialState.pendingSyncReplies.get(replySyncId);
+  if (!pending) {
+    // Reply atrasado de uma tentativa que ja expirou — ignora para nao
+    // corromper os dados de outra tentativa em voo.
+    return true;
+  }
+
+  window.clearTimeout(pending.timer);
+  serialState.pendingSyncReplies.delete(replySyncId);
+
   if (fields.length >= 3) {
-    const clientT0 = Number(fields[0]);
     const arduinoT1Us = Number(fields[1]);
     const arduinoT2Us = Number(fields[2]);
     pending.resolve({
-      clientT0,
+      syncId: replySyncId,
       arduinoT1Us,
       arduinoT2Us,
       receivedAtMs: receiveTime,
@@ -106,12 +118,13 @@ function consumeSyncReply(line, receiveTime) {
     return true;
   }
 
-  const arduinoMillis = Number(fields[0]);
+  // Sketch legado (1 campo: arduinoMillis). Mantido por compatibilidade,
+  // mas o sketch canonico do TCC sempre devolve 3 campos.
   pending.resolve({
-    arduinoMillis,
+    arduinoMillis: replySyncId,
     receivedAtMs: receiveTime,
     legacy: true,
-    valid: Number.isFinite(arduinoMillis) && arduinoMillis >= 0
+    valid: Number.isFinite(replySyncId) && replySyncId >= 0
   });
   return true;
 }
@@ -147,17 +160,15 @@ function handleParsedLine({ seq, sendValue, hr, ax, ay, az }, receiveTime) {
   }
   metricsState.lastSeq = seq;
 
-  els.lastLine.textContent = `${seq},${sendUs},${hr},${ax},${ay},${az}`;
-  els.hr.textContent = String(hr);
-  els.accel.textContent = `${ax.toFixed(2)}, ${ay.toFixed(2)}, ${az.toFixed(2)}`;
-  els.throughput.textContent = throughput.toFixed(1);
-
   const processingLatencyMs = performance.now() - processingStartedAt;
   const magnitude = Math.sqrt(ax ** 2 + ay ** 2 + az ** 2);
   metricsState.endToEndLatencies.push(endToEndLatencyMs);
   metricsState.processingLatencies.push(processingLatencyMs);
   metricsState.heartRates.push(hr);
   metricsState.accelerationMagnitudes.push(magnitude);
+  // Snapshot p/ ticker de display (10 Hz). Evita ~280 reflows/s no 1 ms.
+  metricsState.lastDisplay = { seq, sendUs, hr, ax, ay, az };
+  metricsState.lastThroughput = throughput;
   recordExperimentSample({
     receivedAt: new Date().toISOString(),
     frontendReceiveMs: receiveTime,
@@ -183,5 +194,4 @@ function handleParsedLine({ seq, sendValue, hr, ax, ay, az }, receiveTime) {
     latencyMethod,
     localProcessingLatencyMs: processingLatencyMs
   });
-  applySystemMetrics(throughput, processingLatencyMs);
 }

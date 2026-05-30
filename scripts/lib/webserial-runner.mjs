@@ -199,6 +199,7 @@ export async function runWebserialCampaign({
   reps = 3,
   durationSeconds = 60,
   intervalsMs = [100, 50, 20, 10, 5, 1],
+  campaignType = "official",
   resultsDir = "resultados",
   userDataDir,
   resume = true,
@@ -221,7 +222,8 @@ export async function runWebserialCampaign({
         communicationMode: "webserial",
         source,
         lastIntervalMs,
-        rep
+        rep,
+        campaignType
       });
       if (alreadyDone) {
         console.log(
@@ -258,6 +260,7 @@ export async function runWebserialCampaign({
         reps,
         durationSeconds,
         intervalsMs,
+        campaignType,
         absoluteResultsDir,
         heartbeatIntervalMs
       });
@@ -291,6 +294,7 @@ async function runSingleWebserialRep({
   reps,
   durationSeconds,
   intervalsMs,
+  campaignType,
   absoluteResultsDir,
   heartbeatIntervalMs
 }) {
@@ -302,6 +306,15 @@ async function runSingleWebserialRep({
   await setNumberInput(page, "#durationSeconds", durationSeconds);
   await setNumberInput(page, "#replicationNumber", rep);
   await setNumberInput(page, "#intervalMs", intervalsMs[0]);
+  await page.evaluate(
+    ({ type, intervals }) => {
+      window.__PFC_EXPERIMENT_CAMPAIGN = {
+        type,
+        intervalsMs: intervals
+      };
+    },
+    { type: campaignType, intervals: intervalsMs }
+  );
 
   if (source === "serial") {
     const portCount = await page.evaluate(async () => {
@@ -324,7 +337,7 @@ async function runSingleWebserialRep({
   }
 
   console.log(
-    `[orchestrator] Iniciando campanha stress (${intervalsMs.length} intervalos x ${durationSeconds}s).`
+    `[orchestrator] Iniciando campanha ${campaignType} (${intervalsMs.length} intervalos x ${durationSeconds}s).`
   );
   await page.click("#experimentCampaign");
 
@@ -354,7 +367,10 @@ async function runSingleWebserialRep({
 
   heartbeat.start();
   try {
-    const campaignTimeoutMs = intervalsMs.length * durationSeconds * 1000 + 120_000;
+    // A automacao injeta a matriz da campanha antes de clicar em
+    // #experimentCampaign, entao o timeout acompanha esses intervalos.
+    const effectiveIntervalsCount = intervalsMs.length;
+    const campaignTimeoutMs = effectiveIntervalsCount * durationSeconds * 1000 + 120_000;
     await waitForCampaignDone(page, campaignTimeoutMs);
   } finally {
     heartbeat.stop();

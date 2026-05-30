@@ -514,6 +514,7 @@ export async function runBackendCampaign({
   reps = 3,
   durationSeconds = 60,
   intervalsMs = [100, 50, 20, 10, 5, 1],
+  campaignType = "official",
   resultsDir = "resultados",
   resume = true,
   continueOnError = true,
@@ -534,7 +535,8 @@ export async function runBackendCampaign({
         communicationMode: mode,
         source,
         lastIntervalMs,
-        rep
+        rep,
+        campaignType
       });
       if (alreadyDone) {
         console.log(
@@ -553,6 +555,7 @@ export async function runBackendCampaign({
         reps,
         durationSeconds,
         intervalsMs,
+        campaignType,
         resultsDir,
         heartbeatIntervalMs,
         continueOnError
@@ -576,6 +579,7 @@ async function runSingleRep({
   reps,
   durationSeconds,
   intervalsMs,
+  campaignType,
   resultsDir,
   heartbeatIntervalMs,
   continueOnError
@@ -602,6 +606,7 @@ async function runSingleRep({
         intervalMs,
         durationSeconds,
         intervalsMs,
+        campaignType,
         campaignId,
         heartbeatIntervalMs
       });
@@ -635,6 +640,7 @@ async function runSingleRep({
     architecture: "backend-node",
     communicationMode: mode,
     source,
+    type: campaignType,
     intervalsMs: [...intervalsMs],
     replicationNumber: rep,
     startedAt: campaignStartedAt,
@@ -646,6 +652,7 @@ async function runSingleRep({
     completedRuns,
     lastExperiment,
     campaign,
+    campaignType,
     clockSync: lastClockSync,
     replicationNumber: rep
   });
@@ -660,6 +667,7 @@ async function runSingleInterval({
   intervalMs,
   durationSeconds,
   intervalsMs,
+  campaignType,
   campaignId,
   heartbeatIntervalMs
 }) {
@@ -670,7 +678,8 @@ async function runSingleInterval({
     communicationMode: mode,
     sendIntervalMs: intervalMs,
     durationSeconds,
-    replicationNumber: rep
+    replicationNumber: rep,
+    campaignType
   };
 
   const experimentResponse = await startExperiment({ baseUrl, payload });
@@ -683,7 +692,8 @@ async function runSingleInterval({
     architecture: "backend-node",
     communicationMode: mode,
     source,
-    intervalMs
+    intervalMs,
+    campaignType
   });
 
   const experiment = {
@@ -691,7 +701,8 @@ async function runSingleInterval({
     clockSync: mergedClockSync,
     environment,
     environmentText: environmentToCsv(environment),
-    replicationNumber: rep
+    replicationNumber: rep,
+    campaignType
   };
 
   const state = {
@@ -755,6 +766,7 @@ async function runSingleInterval({
   const observation = {
     experimentId: experiment.id,
     campaignId,
+    campaignType,
     replicationNumber: rep,
     environment,
     samples: state.samples,
@@ -787,6 +799,7 @@ async function writeCampaignFiles({
   completedRuns,
   lastExperiment,
   campaign,
+  campaignType,
   clockSync,
   replicationNumber
 }) {
@@ -825,7 +838,8 @@ async function writeCampaignFiles({
     },
     "sensor-data",
     "csv",
-    replicationNumber
+    replicationNumber,
+    { campaignType }
   );
 
   await fs.writeFile(path.join(resultsDir, baseFilename), sensorCsv, "utf8");
@@ -837,11 +851,13 @@ async function writeCampaignFiles({
           architecture: lastExperiment.architecture,
           communicationMode: lastExperiment.communicationMode,
           source: lastExperiment.source,
-          sendIntervalMs: lastExperiment.sendIntervalMs
+          sendIntervalMs: lastExperiment.sendIntervalMs,
+          campaignType
         },
         "metrics",
         "csv",
-        replicationNumber
+        replicationNumber,
+        { campaignType }
       )
     ),
     metricsCsv,
@@ -855,11 +871,13 @@ async function writeCampaignFiles({
           architecture: lastExperiment.architecture,
           communicationMode: lastExperiment.communicationMode,
           source: lastExperiment.source,
-          sendIntervalMs: lastExperiment.sendIntervalMs
+          sendIntervalMs: lastExperiment.sendIntervalMs,
+          campaignType
         },
         "campaign-summary",
         "csv",
-        replicationNumber
+        replicationNumber,
+        { campaignType }
       )
     ),
     campaignSummaryCsv,
@@ -873,11 +891,13 @@ async function writeCampaignFiles({
           architecture: lastExperiment.architecture,
           communicationMode: lastExperiment.communicationMode,
           source: lastExperiment.source,
-          sendIntervalMs: lastExperiment.sendIntervalMs
+          sendIntervalMs: lastExperiment.sendIntervalMs,
+          campaignType
         },
         "experiment-summary",
         "json",
-        replicationNumber
+        replicationNumber,
+        { campaignType }
       )
     ),
     summaryJson,

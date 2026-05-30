@@ -10,8 +10,16 @@ interface SerialReaderOptions {
   onLine: (line: string) => void;
 }
 
+interface PendingSync {
+  syncId: number;
+  t0: number;
+  resolve: (reply: SyncReply) => void;
+  reject: (error: Error) => void;
+  timer: NodeJS.Timeout;
+}
+
 interface SyncReply {
-  clientT0?: number;
+  syncId: number;
   arduinoT1Us?: number;
   arduinoT2Us?: number;
   arduinoMillis?: number;
@@ -19,11 +27,18 @@ interface SyncReply {
   receivedAtMs: number;
 }
 
+const SYNC_TIMEOUT_MS = 2000;
+const SYNC_INTER_ATTEMPT_MS = 50;
+const SYNC_SAFE_INTERVAL_MS = 100;
+const SYNC_DRAIN_MS = 250;
+const SYNC_ID_LIMIT = 1_000_000_000;
+
 export class SerialReader {
   private serialPort: SerialPort | null = null;
   private connected = false;
   private lastError: string | null = null;
-  private readonly pendingSyncReplies: Array<(reply: SyncReply) => void> = [];
+  private readonly pendingSyncReplies = new Map<number, PendingSync>();
+  private nextSyncId = 1;
 
   constructor(private readonly options: SerialReaderOptions) {}
 
@@ -58,6 +73,7 @@ export class SerialReader {
     this.serialPort.on("close", () => {
       this.connected = false;
       console.warn("[serial] Porta serial fechada.");
+      this.rejectAllPending(new Error("serial port closed"));
     });
 
     this.serialPort.open((error) => {
@@ -97,10 +113,23 @@ export class SerialReader {
     });
   }
 
-  async synchronizeClock(attempts = 10): Promise<ClockSyncMetadata> {
+  /**
+   * Sincroniza o relogio com o Arduino em estado *idle* (intervalo seguro = 100 ms),
+   * para evitar contencao do TX serial em altas frequencias. Apos o SYNC, o chamador
+   * deve aplicar o intervalo experimental real.
+   */
+  async synchronizeClock(
+    attempts = 10,
+    targetIntervalMs?: number
+  ): Promise<ClockSyncMetadata> {
     if (!this.serialPort?.writable) {
       return this.createSyncFailure("serial_port_not_writable", 0);
     }
+
+    // 1) Forca Arduino para 100 ms (idle) antes do SYNC, para a serial nao
+    //    estar saturada por amostras pendentes.
+    this.setIntervalMs(SYNC_SAFE_INTERVAL_MS);
+    await this.sleep(SYNC_DRAIN_MS);
 
     const samples: Array<{
       offsetMs: number;
@@ -115,10 +144,20 @@ export class SerialReader {
         if (sample) {
           samples.push(sample);
         }
-        await this.sleep(20);
       } catch (error) {
         console.warn(`[serial] Tentativa SYNC falhou: ${(error as Error).message}`);
       }
+      await this.sleep(SYNC_INTER_ATTEMPT_MS);
+    }
+
+    // 2) Aplica o intervalo experimental requisitado depois do SYNC.
+    if (
+      typeof targetIntervalMs === "number" &&
+      Number.isFinite(targetIntervalMs) &&
+      targetIntervalMs > 0 &&
+      targetIntervalMs !== SYNC_SAFE_INTERVAL_MS
+    ) {
+      this.setIntervalMs(targetIntervalMs);
     }
 
     if (!samples.length) {
@@ -159,33 +198,54 @@ export class SerialReader {
   private consumeSyncReply(line: string): void {
     const payload = line.slice("SYNC_REPLY,".length);
     const fields = payload.split(",").map((field) => field.trim());
-    const resolve = this.pendingSyncReplies.shift();
 
-    if (!resolve) {
+    if (fields.length === 0) {
       return;
     }
+
+    const replySyncId = Number(fields[0]);
+    if (!Number.isFinite(replySyncId)) {
+      return;
+    }
+
+    const pending = this.pendingSyncReplies.get(replySyncId);
+    if (!pending) {
+      // Resposta atrasada de uma tentativa que ja expirou (ou sync legacy
+      // com payload de 1 campo, que so e suportado quando o Arduino e quem
+      // dispara o SYNC sem id) — descarta para nao corromper outra atribuicao.
+      return;
+    }
+
+    clearTimeout(pending.timer);
+    this.pendingSyncReplies.delete(replySyncId);
 
     if (fields.length >= 3) {
       const arduinoT1Us = Number(fields[1]);
       const arduinoT2Us = Number(fields[2]);
 
       if (Number.isFinite(arduinoT1Us) && Number.isFinite(arduinoT2Us)) {
-        resolve({
-          clientT0: Number(fields[0]),
+        pending.resolve({
+          syncId: replySyncId,
           arduinoT1Us,
           arduinoT2Us,
           legacy: false,
           receivedAtMs: performance.now()
         });
+        return;
       }
 
+      pending.reject(
+        new Error(`SYNC_REPLY com campos invalidos: ${JSON.stringify(fields)}`)
+      );
       return;
     }
 
-    const arduinoMillis = Number(fields[0]);
-    if (Number.isFinite(arduinoMillis) && arduinoMillis >= 0) {
-      resolve({ arduinoMillis, legacy: true, receivedAtMs: performance.now() });
-    }
+    pending.resolve({
+      syncId: replySyncId,
+      arduinoMillis: replySyncId,
+      legacy: true,
+      receivedAtMs: performance.now()
+    });
   }
 
   private async runSyncAttempt(): Promise<{
@@ -194,11 +254,14 @@ export class SerialReader {
     uncertaintyMs: number;
     remoteUnit: "us" | "ms";
   } | null> {
+    const syncId = this.nextSyncId++;
+    if (this.nextSyncId > SYNC_ID_LIMIT) {
+      // protege Arduino String.toInt() (long signed 32-bit) de overflow.
+      this.nextSyncId = 1;
+    }
+
     const t0 = performance.now();
-    const clientT0 = Math.round(t0 * 1000);
-    const replyPromise = this.waitForSyncReply();
-    this.serialPort?.write(`SYNC,${clientT0}\n`);
-    const reply = await this.withTimeout(replyPromise, 500);
+    const reply = await this.requestSync(syncId, t0);
     const t3 = reply.receivedAtMs;
 
     if (reply.legacy && reply.arduinoMillis !== undefined) {
@@ -231,29 +294,40 @@ export class SerialReader {
     };
   }
 
-  private waitForSyncReply(): Promise<SyncReply> {
-    return new Promise((resolve) => {
-      this.pendingSyncReplies.push(resolve);
+  private requestSync(syncId: number, t0: number): Promise<SyncReply> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const stillPending = this.pendingSyncReplies.get(syncId);
+        if (stillPending) {
+          this.pendingSyncReplies.delete(syncId);
+          reject(new Error("timeout aguardando SYNC_REPLY"));
+        }
+      }, SYNC_TIMEOUT_MS);
+
+      this.pendingSyncReplies.set(syncId, { syncId, t0, resolve, reject, timer });
+
+      try {
+        this.serialPort?.write(`SYNC,${syncId}\n`, (writeErr) => {
+          if (writeErr) {
+            clearTimeout(timer);
+            this.pendingSyncReplies.delete(syncId);
+            reject(writeErr);
+          }
+        });
+      } catch (writeError) {
+        clearTimeout(timer);
+        this.pendingSyncReplies.delete(syncId);
+        reject(writeError as Error);
+      }
     });
   }
 
-  private withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingSyncReplies.shift();
-        reject(new Error("timeout aguardando SYNC_REPLY"));
-      }, timeoutMs);
-
-      promise
-        .then((value) => {
-          clearTimeout(timer);
-          resolve(value);
-        })
-        .catch((error) => {
-          clearTimeout(timer);
-          reject(error);
-        });
-    });
+  private rejectAllPending(error: Error): void {
+    for (const pending of this.pendingSyncReplies.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    this.pendingSyncReplies.clear();
   }
 
   private sleep(ms: number): Promise<void> {

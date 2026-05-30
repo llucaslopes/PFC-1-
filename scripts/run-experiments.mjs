@@ -14,6 +14,28 @@ import {
 } from "./lib/webserial-runner.mjs";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const CAMPAIGNS = {
+  official: {
+    type: "official",
+    description: "campanha oficial ampla",
+    defaultIntervalsMs: [100, 50, 20, 10, 5, 1],
+    scenarioIntervalsMs: {
+      c1: [100, 50, 20, 10, 5, 1],
+      c2: [100, 50, 20, 10, 5, 1],
+      c3: [100, 50, 20, 10, 5, 1]
+    }
+  },
+  refinement: {
+    type: "saturation-refinement",
+    description: "campanha complementar de refinamento",
+    defaultIntervalsMs: [4, 3, 2],
+    scenarioIntervalsMs: {
+      c1: [4, 3, 2],
+      c2: [4, 3, 2],
+      c3: [200, 500, 1000]
+    }
+  }
+};
 
 function parseArgs(argv) {
   const args = {};
@@ -50,16 +72,27 @@ function parsePositiveInt(value, fallback) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseNonNegativeInt(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 function printHelp() {
   console.log(`Uso: node scripts/run-experiments.mjs [opcoes]
 
-Opcoes (todas tem default sensato; rodar sem nada ja executa a campanha completa):
-  --sources serial,simulator    fontes a rodar em sequencia (default: serial,simulator)
+Opcoes (todas tem default sensato; rodar sem nada ja executa a campanha completa
+com o Arduino real):
+  --sources serial,simulator    fontes a rodar em sequencia (default: serial)
   --source serial|simulator     atalho para uma unica fonte (sobrescreve --sources)
+                                Use 'simulator' apenas para sanity-check sem hardware;
+                                ele nao substitui dados oficiais do TCC.
   --serial-port COM3|auto       (default: auto; usa env SERIAL_PORT se definida)
+  --campaign official|refinement
+                                official = 100,50,20,10,5,1 (default)
+                                refinement = C1/C2: 4,3,2; C3: 200,500,1000
   --reps 3                      numero de repeticoes
   --duration 60                 segundos por intervalo
-  --intervals 100,50,20,10,5,1  campanha stress
+  --intervals 100,50,20,10,5,1  override manual da matriz da campanha
   --scenarios c1,c2,c3          quais cenarios executar
   --results-dir resultados      diretorio dos CSV/JSON
   --port-backend 3000
@@ -76,10 +109,12 @@ Opcoes (todas tem default sensato; rodar sem nada ja executa a campanha completa
   --help
 
 Exemplos:
-  node scripts/run-experiments.mjs                                 # tudo automatico
-  node scripts/run-experiments.mjs --sources simulator              # so simulador
-  node scripts/run-experiments.mjs --scenarios c2,c3 --reps 5       # backend, 5 reps
-  node scripts/run-experiments.mjs --bootstrap-webserial            # so autoriza a porta
+  node scripts/run-experiments.mjs                                 # campanha oficial (Arduino)
+  node scripts/run-experiments.mjs --sources serial,simulator      # Arduino + sanity-check simulador
+  node scripts/run-experiments.mjs --source simulator              # so simulador (sanity-check)
+  node scripts/run-experiments.mjs --scenarios c2,c3 --reps 5      # backend, 5 reps
+  node scripts/run-experiments.mjs --campaign refinement           # campanha complementar
+  node scripts/run-experiments.mjs --bootstrap-webserial           # so autoriza a porta
 `);
 }
 
@@ -102,10 +137,28 @@ function normalizeSources(args) {
   if (args.source) {
     return [args.source === "simulator" ? "simulator" : "serial"];
   }
-  const list = parseList(args.sources, ["serial", "simulator"]).map((s) =>
+  // Default: somente Arduino (serial). O simulador e auxiliar e so e rodado se
+  // pedido explicitamente via --source simulator ou --sources ...,simulator.
+  // Toda metrica oficial do TCC vem de hardware real.
+  const list = parseList(args.sources, ["serial"]).map((s) =>
     s === "simulator" ? "simulator" : "serial"
   );
   return [...new Set(list)];
+}
+
+function resolveCampaign(args) {
+  const requested = String(args.campaign ?? "official").toLowerCase();
+  if (requested === "refinement" || requested === "saturation-refinement") {
+    return CAMPAIGNS.refinement;
+  }
+  return CAMPAIGNS.official;
+}
+
+function resolveScenarioIntervals({ args, campaign, scenario }) {
+  if (args.intervals !== undefined) {
+    return parseIntervals(args.intervals, campaign.defaultIntervalsMs);
+  }
+  return [...(campaign.scenarioIntervalsMs[scenario] ?? campaign.defaultIntervalsMs)];
 }
 
 async function runCampaignForSource({
@@ -113,7 +166,8 @@ async function runCampaignForSource({
   scenarios,
   reps,
   durationSeconds,
-  intervalsMs,
+  campaign,
+  scenarioIntervalsMs,
   resultsDir,
   backendPort,
   webserialPort,
@@ -165,7 +219,8 @@ async function runCampaignForSource({
           source,
           reps,
           durationSeconds,
-          intervalsMs,
+          intervalsMs: scenarioIntervalsMs.c1,
+          campaignType: campaign.type,
           resultsDir,
           userDataDir,
           resume,
@@ -200,7 +255,8 @@ async function runCampaignForSource({
             source,
             reps,
             durationSeconds,
-            intervalsMs,
+            intervalsMs: scenarioIntervalsMs.c2,
+            campaignType: campaign.type,
             resultsDir,
             resume,
             continueOnError,
@@ -215,7 +271,8 @@ async function runCampaignForSource({
             source,
             reps,
             durationSeconds,
-            intervalsMs,
+            intervalsMs: scenarioIntervalsMs.c3,
+            campaignType: campaign.type,
             resultsDir,
             resume,
             continueOnError,
@@ -247,12 +304,17 @@ async function main() {
   }
 
   const sources = normalizeSources(args);
+  const campaign = resolveCampaign(args);
   const serialPortConfigured =
     args["serial-port"] ?? process.env.SERIAL_PORT ?? "auto";
   const reps = parsePositiveInt(args.reps, 3);
   const durationSeconds = parsePositiveInt(args.duration, 60);
-  const intervalsMs = parseIntervals(args.intervals, [100, 50, 20, 10, 5, 1]);
   const scenarios = parseList(args.scenarios, ["c1", "c2", "c3"]).map((s) => s.toLowerCase());
+  const scenarioIntervalsMs = {
+    c1: resolveScenarioIntervals({ args, campaign, scenario: "c1" }),
+    c2: resolveScenarioIntervals({ args, campaign, scenario: "c2" }),
+    c3: resolveScenarioIntervals({ args, campaign, scenario: "c3" })
+  };
   const resultsDir = resolve(rootDir, args["results-dir"] ?? "resultados");
   const backendPort = parsePositiveInt(args["port-backend"], 3000);
   const webserialPort = parsePositiveInt(args["port-webserial"], 8765);
@@ -265,7 +327,7 @@ async function main() {
   const continueOnError = !args["no-continue-on-error"];
   const keepAwakeEnabled = !args["no-keep-awake"];
   const autoBootstrap = !args["no-auto-bootstrap"];
-  const heartbeatIntervalMs = Math.max(0, parsePositiveInt(args["heartbeat-ms"], 10_000));
+  const heartbeatIntervalMs = parseNonNegativeInt(args["heartbeat-ms"], 10_000);
 
   if (args["bootstrap-webserial"]) {
     const webserial = await startWebserial({ port: webserialPort });
@@ -282,11 +344,14 @@ async function main() {
 
   console.log(`[orchestrator] Configuracao:`);
   console.log(`  sources            = ${sources.join(", ")}`);
+  console.log(`  campaign           = ${campaign.type} (${campaign.description})`);
   console.log(`  serialPort         = ${serialPortConfigured} (resolvido por fonte)`);
   console.log(`  reps               = ${reps}`);
   console.log(`  duration           = ${durationSeconds}s`);
-  console.log(`  intervals          = ${intervalsMs.join(", ")} ms`);
   console.log(`  scenarios          = ${scenarios.join(", ")}`);
+  console.log(`  intervals[c1]      = ${scenarioIntervalsMs.c1.join(", ")} ms`);
+  console.log(`  intervals[c2]      = ${scenarioIntervalsMs.c2.join(", ")} ms`);
+  console.log(`  intervals[c3]      = ${scenarioIntervalsMs.c3.join(", ")} ms`);
   console.log(`  resultsDir         = ${resultsDir}`);
   console.log(`  userDataDir        = ${userDataDir}`);
   console.log(`  resume             = ${resume}`);
@@ -308,7 +373,8 @@ async function main() {
           scenarios,
           reps,
           durationSeconds,
-          intervalsMs,
+          campaign,
+          scenarioIntervalsMs,
           resultsDir,
           backendPort,
           webserialPort,

@@ -1,5 +1,5 @@
 import { appendLog, downloadText, els } from "./dom.js";
-import { percent, resetMetrics, serializeStats, stats } from "./metrics.js";
+import { applyDisplayUpdate, percent, resetMetrics, serializeStats, stats } from "./metrics.js";
 import {
   SCIENTIFIC_CONFIG,
   addSaturationIndicators,
@@ -16,8 +16,13 @@ import {
 import { sendSerialIntervalCommand } from "./serial.js";
 import { setSimulatorInterval } from "./simulator.js";
 import { toCsv } from "./csv.js";
-import { createRelativeFallbackClockSync, synchronizeArduinoClock } from "./clockSync.js";
-import { experiment, metricsState, serialState } from "./state.js";
+import {
+  SYNC_DRAIN_MS,
+  SYNC_SAFE_INTERVAL_MS,
+  createRelativeFallbackClockSync,
+  synchronizeArduinoClock
+} from "./clockSync.js";
+import { DISPLAY_TICK_MS, experiment, metricsState, serialState } from "./state.js";
 
 export async function startExperiment() {
   experiment.completedRuns = [];
@@ -31,13 +36,17 @@ export async function startCampaign() {
     return;
   }
 
+  const campaignConfig = readCampaignConfig();
+  const campaignIntervalsMs = campaignConfig.intervalsMs;
+
   experiment.completedRuns = [];
   experiment.campaign = {
     id: `campaign-${new Date().toISOString().replace(/[:.]/g, "-")}`,
+    type: campaignConfig.type,
     architecture: "webserial",
     communicationMode: "webserial",
     source: serialState.port ? "serial" : "simulator",
-    intervalsMs: [...SCIENTIFIC_CONFIG.stressIntervalsMs],
+    intervalsMs: [...campaignIntervalsMs],
     replicationNumber: readReplicationNumber(),
     startedAt: new Date().toISOString(),
     stoppedAt: null
@@ -45,7 +54,7 @@ export async function startCampaign() {
 
   const originalInterval = els.intervalMs.value;
 
-  for (const intervalMs of SCIENTIFIC_CONFIG.stressIntervalsMs) {
+  for (const intervalMs of campaignIntervalsMs) {
     els.intervalMs.value = String(intervalMs);
     appendLog(`Campanha: iniciando intervalo ${intervalMs} ms.`);
     const current = await startSingleExperiment();
@@ -77,12 +86,28 @@ async function startSingleExperiment() {
     Number(els.intervalMs.value) || 100
   );
 
+  let clockSync;
   if (source === "simulator") {
     const updated = setSimulatorInterval(sendIntervalMs);
     if (!updated) {
       appendLog("Simulador offline; inicie a simulacao antes do experimento.");
     }
+    clockSync = createRelativeFallbackClockSync("simulator_source", 0);
   } else {
+    // Ordem importante: o Arduino precisa estar em estado idle (intervalo
+    // seguro de 100 ms) durante o SYNC. Isso evita que o SYNC_REPLY fique
+    // enfileirado atras de amostras pendentes em alta frequencia, o que
+    // causava "syncFailed: true" / fallback `relative_offset_*`.
+    if (sendIntervalMs !== SYNC_SAFE_INTERVAL_MS) {
+      const safeApplied = await sendSerialIntervalCommand(SYNC_SAFE_INTERVAL_MS);
+      if (!safeApplied) {
+        appendLog("Falha ao colocar Arduino em 100 ms para SYNC.");
+      }
+      await sleep(SYNC_DRAIN_MS);
+    }
+
+    clockSync = await synchronizeArduinoClock();
+
     const commandSent = await sendSerialIntervalCommand(sendIntervalMs);
     if (!commandSent) {
       appendLog(
@@ -90,11 +115,6 @@ async function startSingleExperiment() {
       );
     }
   }
-
-  const clockSync =
-    source === "serial"
-      ? await synchronizeArduinoClock()
-      : createRelativeFallbackClockSync("simulator_source", 0);
   metricsState.clockSync = clockSync;
 
   experiment.current = {
@@ -105,6 +125,7 @@ async function startSingleExperiment() {
     sendIntervalMs,
     durationSeconds,
     replicationNumber: readReplicationNumber(),
+    campaignType: experiment.campaign?.type ?? "official",
     clockSync,
     status: "running",
     startedAt: new Date().toISOString(),
@@ -116,6 +137,10 @@ async function startSingleExperiment() {
   experiment.timer = setTimeout(() => stopExperiment(true), durationSeconds * 1000);
   updateRunningExperimentUi();
   experiment.ticker = setInterval(updateRunningExperimentUi, 1000);
+  // Atualizacoes do DOM (last sample, hr, accel, throughput, stats live) sao
+  // throttled a 10 Hz. O parser apenas grava o ultimo snapshot em
+  // metricsState.lastDisplay; este ticker e quem materializa no DOM.
+  experiment.displayTicker = setInterval(applyDisplayUpdate, DISPLAY_TICK_MS);
   appendLog("Experimento iniciado.");
   return experiment.current;
 }
@@ -156,6 +181,14 @@ function stopExperimentTimers() {
   if (experiment.ticker) {
     clearInterval(experiment.ticker);
     experiment.ticker = null;
+  }
+
+  if (experiment.displayTicker) {
+    clearInterval(experiment.displayTicker);
+    experiment.displayTicker = null;
+    // Drena uma ultima atualizacao para o DOM refletir os ultimos numeros
+    // (caso o ticker tenha sido derrubado entre frames).
+    applyDisplayUpdate();
   }
 }
 
@@ -240,24 +273,32 @@ export function exportExperiment() {
 
   const replicationNumber = current.replicationNumber ?? readReplicationNumber();
   downloadText(
-    createDownloadFilename(current, "sensor-data", "csv", replicationNumber),
+    createDownloadFilename(current, "sensor-data", "csv", replicationNumber, {
+      campaignType: current.campaignType
+    }),
     createSensorCsv(current),
     "text/csv"
   );
   downloadText(
-    createDownloadFilename(current, "metrics", "csv", replicationNumber),
+    createDownloadFilename(current, "metrics", "csv", replicationNumber, {
+      campaignType: current.campaignType
+    }),
     createMetricsCsv(current),
     "text/csv"
   );
   if (experiment.completedRuns.length) {
     downloadText(
-      createDownloadFilename(current, "campaign-summary", "csv", replicationNumber),
+      createDownloadFilename(current, "campaign-summary", "csv", replicationNumber, {
+        campaignType: current.campaignType
+      }),
       createCampaignSummaryCsv(),
       "text/csv"
     );
   }
   downloadText(
-    createDownloadFilename(current, "experiment-summary", "json", replicationNumber),
+    createDownloadFilename(current, "experiment-summary", "json", replicationNumber, {
+      campaignType: current.campaignType
+    }),
     JSON.stringify(createSummary(current), null, 2),
     "application/json"
   );
@@ -460,12 +501,25 @@ function readReplicationNumber() {
   return Math.max(1, Number(els.replicationNumber?.value) || 1);
 }
 
+function readCampaignConfig() {
+  const automatedConfig = window.__PFC_EXPERIMENT_CAMPAIGN;
+  const intervalsMs = Array.isArray(automatedConfig?.intervalsMs)
+    ? automatedConfig.intervalsMs.filter((value) => Number.isFinite(value) && value > 0)
+    : [];
+
+  return {
+    type: typeof automatedConfig?.type === "string" ? automatedConfig.type : "official",
+    intervalsMs: intervalsMs.length ? intervalsMs : [...SCIENTIFIC_CONFIG.stressIntervalsMs]
+  };
+}
+
 function collectExperimentEnvironment(current) {
   return collectEnvironment({
     architecture: current?.architecture ?? "webserial",
     communicationMode: "webserial",
     source: current?.source ?? (serialState.port ? "serial" : "simulator"),
     intervalMs: current?.sendIntervalMs ?? (Number(els.intervalMs.value) || 100),
+    campaignType: current?.campaignType ?? experiment.campaign?.type ?? "official",
     baudRate: Number(els.baud.value) || 115200
   });
 }

@@ -338,9 +338,17 @@ export function environmentToCsv(environment) {
     .join("; ");
 }
 
-export function createDownloadFilename(experiment, kind, extension, replicationNumber = 1) {
+export function createDownloadFilename(
+  experiment,
+  kind,
+  extension,
+  replicationNumber = 1,
+  options = {}
+) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const interval = experiment?.sendIntervalMs ?? experiment?.intervalMs ?? "campaign";
+  const campaignType = options.campaignType ?? experiment?.campaignType ?? null;
+  const campaignPart = campaignType && campaignType !== "official" ? [sanitizeFilenamePart(campaignType)] : [];
   return [
     experiment?.architecture ?? "unknown",
     experiment?.communicationMode ?? "unknown",
@@ -348,6 +356,7 @@ export function createDownloadFilename(experiment, kind, extension, replicationN
     `${interval}ms`,
     `rep${replicationNumber}`,
     timestamp,
+    ...campaignPart,
     kind
   ].join("_") + `.${extension}`;
 }
@@ -366,4 +375,8 @@ export function round(value, digits = 3) {
 
 function roundNullable(value, digits = 3) {
   return Number.isFinite(value) ? round(value, digits) : "";
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value).replace(/[^a-zA-Z0-9-]+/g, "-");
 }

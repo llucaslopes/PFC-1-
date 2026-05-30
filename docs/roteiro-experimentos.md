@@ -66,6 +66,21 @@ Execute cada cenario 3 vezes, sempre com duracao de 60 segundos. Use a opcao **C
 
 Total principal esperado: 3 arquiteturas/modos x 6 intervalos x 3 repeticoes = 54 execucoes por fonte.
 
+### Campanha complementar de refinamento
+
+A campanha `saturation-refinement` nao substitui a matriz principal. Ela deve
+gerar novos arquivos em `resultados/`, com timestamp proprio e
+`saturation-refinement` no nome, preservando a campanha ja coletada.
+
+| Cenario | Arquitetura | Modo | Fonte | Intervalo | Duracao |
+| --- | --- | --- | --- | --- | --- |
+| C1 | WebSerial | direto | Arduino principal / simulador auxiliar | 4, 3, 2 ms | 60 s |
+| C2 | Backend Node.js | WebSocket | Arduino principal / simulador auxiliar | 4, 3, 2 ms | 60 s |
+| C3 | Backend Node.js | REST polling | Arduino principal / simulador auxiliar | 200, 500, 1000 ms | 60 s |
+
+Use essa matriz para refinar onde C1/C2 degradam entre `5 ms` e `1 ms` e
+identificar em que faixa C3 passa a ter perdas aceitaveis acima de `100 ms`.
+
 ## 5. Execucao
 
 Para cada repeticao:
@@ -101,6 +116,15 @@ Como Arduino, backend e navegador usam relogios independentes, o sistema executa
 2. **Backend + frontend:** cadeia em dois elos — Arduino↔backend (serial) e backend↔frontend (`POST /clock/sync`).
 3. **REST polling:** mesma estimativa no frontend, mas `frontend_receive_ms` e o instante da **primeira** observacao de cada `seq` (deduplicacao evita inflar latencia ao repetir a ultima amostra).
 
+> **Ordem de execucao do SYNC com o Arduino:** WebSerial e backend forcam o
+> Arduino para o intervalo seguro de 100 ms (idle), aguardam ~250 ms para
+> drenar o TX, executam as 10 tentativas SYNC e so entao aplicam o intervalo
+> experimental real. Isso evita que o `SYNC_REPLY` fique enfileirado atras
+> de amostras pendentes em alta frequencia (1 ms / 5 ms), o que causaria
+> `syncFailed: true` e fallback para `latency_method = relative_offset_*`.
+> Cada `SYNC_REPLY` e correlacionado por `syncId` monotonico, descartando
+> respostas atrasadas que chegariam apos o timeout (2 s).
+
 **Convencao de offset:** `hostMs = remoteMs + offsetMs`. A latencia estimada por amostra e:
 
 ```text
@@ -116,6 +140,17 @@ end_to_end_latency_ms = frontend_receive_ms - estimated_frontend_send_ms
 - Intervalo de envio nao tao agressivo que cause fila serial ou perdas (`throughput_percent` proximo de 100%).
 
 **Fallback:** sem SYNC valido, o sistema marca `latency_method` como baseline relativo e nao deve ser comparado numericamente entre maquinas diferentes.
+
+**Diagnostico rapido se o SYNC falhar:** rode
+
+```powershell
+npm run diag:sync -- COM3
+```
+
+O script abre a porta serial diretamente, envia 5 SYNCs e conta as respostas.
+- `0 SYNC_REPLY recebidos` mas mensagens CSV chegando → o firmware do Arduino esta desatualizado, sem o handler `SYNC,<id>`. Reuploade `arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino` via Arduino IDE.
+- `< 5 SYNC_REPLY recebidos` → o canal funciona com perdas; ainda da para o backend escolher a melhor entre as 10 tentativas, mas vale investigar ruido/cabo USB.
+- `5 SYNC_REPLY recebidos` → SYNC operacional; se mesmo assim a campanha cai em fallback, abra um issue.
 
 **Validacao fisica absoluta:** exigiria instrumentacao externa (analiseador logico, osciloscopio) acoplada ao pino de envio serial e ao evento de recebimento no host.
 
@@ -212,7 +247,7 @@ Como alternativa a execucao manual, ha um orquestrador em `scripts/run-experimen
 
 1. Detecta a porta COM do Arduino sozinho (procura dispositivos PnP do tipo Arduino / CH340 / CP210x / FTDI).
 2. Impede o Windows de dormir pelo `SetThreadExecutionState` (via processo filho de PowerShell que e morto no fim).
-3. Para cada fonte (`serial` e depois `simulator`), e para cada cenario (`c1`, `c2`, `c3`):
+3. Para cada fonte configurada (por default apenas `serial` — Arduino real; `simulator` pode ser adicionado com `--sources serial,simulator` para sanity-check) e para cada cenario (`c1`, `c2`, `c3`):
    - Sobe o servidor correspondente (WebSerial em `:8765` ou backend em `:3000`).
    - Para C1, abre um Chromium controlado por Playwright; se a porta serial ainda nao foi autorizada no perfil persistente, faz o bootstrap automaticamente e segue assim que detectar a permissao. Depois clica em **Conectar serial**/**Iniciar simulacao**, **Campanha stress** e **Exportar**, salvando os 4 arquivos em `resultados/`.
    - Para C2 (WebSocket) e C3 (REST polling), age como um cliente Node: sincroniza o relogio (`POST /clock/sync` x 10), inicia o experimento, observa via WebSocket ou polling, envia as observacoes e grava os 4 arquivos por repeticao.
@@ -239,16 +274,24 @@ Plugue o Arduino e rode:
 node scripts/run-experiments.mjs
 ```
 
-Equivale a `--sources serial,simulator --reps 3 --duration 60 --scenarios c1,c2,c3`. Se for a primeira execucao da maquina, o Chromium abre durante o C1/serial e voce so precisa clicar em **Conectar serial** uma unica vez — o script detecta a permissao e segue. Nas execucoes seguintes nem isso e necessario.
+Equivale a `--sources serial --reps 3 --duration 60 --scenarios c1,c2,c3`. **Apenas dados do Arduino real** são coletados nesse modo — é a campanha oficial do TCC. Se for a primeira execucao da maquina, o Chromium abre durante o C1/serial e voce so precisa clicar em **Conectar serial** uma unica vez — o script detecta a permissao e segue. Nas execucoes seguintes nem isso e necessario.
+
+> Se quiser também rodar a fonte `simulator` como sanity-check (não é dado oficial do TCC), use `--sources serial,simulator` explicitamente.
 
 ### Variacoes comuns
 
 ```powershell
-# So simulador (nao precisa de Arduino plugado)
-node scripts/run-experiments.mjs --sources simulator --reps 3
+# Arduino real + simulador como sanity-check (so o serial vale como dado oficial)
+node scripts/run-experiments.mjs --sources serial,simulator --reps 3
+
+# So simulador (sanity-check sem Arduino plugado; nao usar para o TCC)
+node scripts/run-experiments.mjs --source simulator --reps 3
 
 # So backend (C2 e C3) com 5 reps
 node scripts/run-experiments.mjs --scenarios c2,c3 --reps 5
+
+# Campanha complementar de refinamento, preservando resultados anteriores
+npm run experiment:refinement
 
 # Porta serial fixa em vez de auto
 node scripts/run-experiments.mjs --serial-port COM3
@@ -261,12 +304,13 @@ node scripts/run-experiments.mjs --bootstrap-webserial
 
 | Flag | Default | Descricao |
 | --- | --- | --- |
-| `--sources` | `serial,simulator` | Lista de fontes a rodar em sequencia. |
-| `--source` | (vazio) | Atalho para uma unica fonte (sobrescreve `--sources`). |
+| `--sources` | `serial` | Lista de fontes a rodar em sequencia. Por default, só o Arduino real. Use `serial,simulator` para incluir o sanity-check. |
+| `--source` | (vazio) | Atalho para uma unica fonte (sobrescreve `--sources`). `simulator` é só sanity-check, não vale como dado do TCC. |
 | `--serial-port` | `auto` (env `SERIAL_PORT`) | Porta COM do Arduino; `auto` detecta sozinho. |
+| `--campaign` | `official` | `official` roda `100,50,20,10,5,1`; `refinement` roda C1/C2 em `4,3,2` e C3 em `200,500,1000`. |
 | `--reps` | `3` | Numero de repeticoes por cenario. |
 | `--duration` | `60` | Duracao em segundos por intervalo. |
-| `--intervals` | `100,50,20,10,5,1` | Intervalos da campanha stress (ms). |
+| `--intervals` | matriz da campanha | Override manual da matriz escolhida por `--campaign`. |
 | `--scenarios` | `c1,c2,c3` | Quais cenarios executar (subset separado por virgula). |
 | `--results-dir` | `resultados` | Diretorio de saida dos CSV/JSON. |
 | `--port-backend` | `3000` | Porta do backend Node.js. |
@@ -289,6 +333,7 @@ Os nomes dos arquivos seguem exatamente o mesmo padrao do export manual:
 backend-node_websocket_serial_100ms_rep1_<timestamp>_metrics.csv
 backend-node_websocket_serial_1ms_rep1_<timestamp>_campaign-summary.csv
 webserial_webserial_serial_1ms_rep2_<timestamp>_experiment-summary.json
+webserial_webserial_serial_2ms_rep1_<timestamp>_saturation-refinement_metrics.csv
 ```
 
 ### Estimativa de duracao
@@ -320,4 +365,4 @@ mkdir logs -ErrorAction SilentlyContinue
 node scripts/run-experiments.mjs --log-file logs/overnight.log
 ```
 
-Pronto. Ele detecta a porta, autoriza o WebSerial se precisar, roda C1+C2+C3 com Arduino, depois roda C1+C2+C3 com simulador, gera o consolidado e os graficos. Se travar em algum ponto, basta rodar o mesmo comando de novo: o resume pula tudo que ja deu certo. Para forcar refazer, use `--no-resume`.
+Pronto. Ele detecta a porta, autoriza o WebSerial se precisar, roda C1+C2+C3 apenas com Arduino real, gera o consolidado e os graficos. Essa e a campanha oficial do TCC. O simulador so roda quando solicitado explicitamente com `--source simulator` ou `--sources serial,simulator`, e seus resultados servem apenas como sanity-check auxiliar; nao devem entrar no artigo como dados oficiais. Se travar em algum ponto, basta rodar o mesmo comando de novo: o resume pula tudo que ja deu certo. Para forcar refazer, use `--no-resume`.

@@ -86,7 +86,7 @@ Regras de validação:
 
 Em cada execução, o sistema produz métricas alinhadas às variáveis de interesse do TCC:
 
-- **Latência ponta a ponta estimada** (média, mínimo, máximo, desvio padrão e p95) — calculada via sincronização estilo NTP/Cristian (Arduino ↔ backend ↔ frontend), com incerteza limitada por `RTT_sync / 2` por elo. Sem SYNC válido, é marcada explicitamente como `latency_method = relative_offset_*`.
+- **Latência ponta a ponta estimada** (média, mínimo, máximo, desvio padrão e p95) — calculada via sincronização estilo NTP/Cristian (Arduino ↔ backend ↔ frontend), com incerteza limitada por `RTT_sync / 2` por elo. O SYNC com o Arduino é executado com a placa em estado idle (intervalo seguro de 100 ms) antes de aplicar o intervalo experimental, e cada resposta `SYNC_REPLY` é correlacionada por `syncId` monotônico para evitar respostas atrasadas resolverem a tentativa errada. Sem SYNC válido, a latência é marcada explicitamente como `latency_method = relative_offset_*`.
 - **Throughput**: mensagens por segundo e percentual em relação ao esperado.
 - **Perdas**: `missing_messages` (esperadas − recebidas) e `sequence_gap_messages` (saltos de `seq`).
 - **Mensagens inválidas** (linhas fora do contrato).
@@ -151,17 +151,35 @@ Bootstrap único da permissão Web Serial (apenas na primeira vez por máquina):
 node scripts/run-experiments.mjs --bootstrap-webserial --serial-port COM3
 ```
 
-Campanha principal com Arduino:
+Campanha principal com Arduino (default — todos os dados vêm do hardware real):
 
 ```powershell
-node scripts/run-experiments.mjs --source serial --serial-port COM3 --reps 3
+node scripts/run-experiments.mjs --serial-port COM3 --reps 3
 ```
 
-Campanha auxiliar com simulador (sem Arduino):
+Sem `--source`, o orquestrador roda apenas a fonte `serial`. Os arquivos saem com sufixo `_serial_` e os JSONs trazem `"source": "serial"`.
+
+Campanha complementar de refinamento, sem substituir a campanha principal:
+
+```powershell
+npm run experiment:refinement
+```
+
+Essa campanha usa `campaign.type = "saturation-refinement"` nos JSONs e inclui
+`saturation-refinement` nos nomes dos novos arquivos. A matriz e especifica por
+cenario: WebSerial/C1 e WebSocket/C2 rodam `4, 3, 2 ms`; REST polling/C3 roda
+`200, 500, 1000 ms`. Use-a para refinar o ponto de degradacao entre `5 ms` e
+`1 ms` em C1/C2 e para procurar a faixa aceitavel de REST polling acima de
+`100 ms`. Nao remova nem sobrescreva os arquivos antigos em `resultados/`;
+novas execucoes devem gerar timestamps proprios.
+
+Campanha auxiliar com simulador (apenas sanity-check, sem valor experimental):
 
 ```powershell
 node scripts/run-experiments.mjs --source simulator --reps 3
 ```
+
+> O simulador é uma fonte auxiliar para validar a pipeline quando o Arduino não está disponível (ex.: testar mudanças no dashboard offline). Ele **não substitui** a campanha oficial e seus resultados não devem aparecer no artigo do TCC.
 
 Saídas em `resultados/` (formato: `<arquitetura>_<modo>_<fonte>_<intervalo>ms_rep<n>_<timestamp>_<tipo>.<ext>`):
 
@@ -181,6 +199,16 @@ npm run test:scale
 ```
 
 Executa REST polling e WebSocket com 1, 5 e 10 clientes simulados e gera um CSV com mensagens/s, perdas detectadas e estabilidade por cliente.
+
+## Diagnóstico do canal SYNC
+
+Se uma campanha sair com `syncFailed: true` / `fallbackReason: "no_valid_sync_reply"` em todos os intervalos, rode o diagnóstico direto da porta serial:
+
+```powershell
+npm run diag:sync -- COM3
+```
+
+O script abre `COM3`, envia 5 comandos `SYNC,<id>` ao Arduino e conta as respostas. **Causa mais comum:** o sketch carregado é anterior ao commit que adicionou o handler `SYNC,<id>` — basta reuploadar `arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino` pela Arduino IDE. O próprio script imprime o diagnóstico ao final.
 
 ## Análise dos resultados
 

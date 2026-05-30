@@ -45,7 +45,8 @@ export async function isRepComplete({
   communicationMode,
   source,
   lastIntervalMs,
-  rep
+  rep,
+  campaignType = "official"
 }) {
   let entries;
   try {
@@ -55,8 +56,15 @@ export async function isRepComplete({
   }
 
   const prefix = `${architecture}_${communicationMode}_${source}_${lastIntervalMs}ms_rep${rep}_`;
+  const suffix = "_experiment-summary.json";
+  const campaignToken = sanitizeFilenamePart(campaignType);
   return entries.some(
-    (name) => name.startsWith(prefix) && name.endsWith("_experiment-summary.json")
+    (name) =>
+      name.startsWith(prefix) &&
+      name.endsWith(suffix) &&
+      (campaignType === "official"
+        ? !name.includes("_saturation-refinement_")
+        : name.includes(`_${campaignToken}${suffix}`))
   );
 }
 
@@ -65,6 +73,13 @@ export async function isRepComplete({
  * `getStatus()` deve retornar um objeto livre que sera incluido na linha.
  */
 export function createHeartbeat({ label, intervalMs = 10_000, getStatus }) {
+  if (intervalMs <= 0) {
+    return {
+      start() {},
+      stop() {}
+    };
+  }
+
   let timer = null;
   let busy = false;
 
@@ -98,4 +113,8 @@ export function createHeartbeat({ label, intervalMs = 10_000, getStatus }) {
       }
     }
   };
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value).replace(/[^a-zA-Z0-9-]+/g, "-");
 }

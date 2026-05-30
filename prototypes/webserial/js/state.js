@@ -3,7 +3,11 @@ export const serialState = {
   reader: null,
   readLoopAbort: false,
   lineBuffer: "",
-  pendingSyncReplies: []
+  // Map<syncId, { resolve, reject, timer, t0 }> — casa SYNC_REPLY pelo
+  // id ecoado pelo Arduino, evitando que respostas atrasadas resolvam a
+  // tentativa errada.
+  pendingSyncReplies: new Map(),
+  nextSyncId: 1
 };
 
 export const simulatorState = {
@@ -24,7 +28,12 @@ export const metricsState = {
   endToEndLatencies: [],
   processingLatencies: [],
   heartRates: [],
-  accelerationMagnitudes: []
+  accelerationMagnitudes: [],
+  // Snapshot do ultimo sample/throughput observado pelo parser. O ticker de
+  // display (10 Hz) le isso e atualiza o DOM, evitando reflow por mensagem
+  // que afogava o renderer em intervalos altos (1 ms / ~280 msg/s).
+  lastDisplay: null,
+  lastThroughput: 0
 };
 
 export const experiment = {
@@ -36,7 +45,13 @@ export const experiment = {
   completedRuns: [],
   campaign: null,
   timer: null,
-  ticker: null
+  ticker: null,
+  displayTicker: null
 };
 
 export const MAX_SAMPLES = 500;
+// Limite de janela usada nos stats *em tempo real* (display). Os arrays
+// completos seguem intactos para o export CSV final no fim de cada rep —
+// este teto so afeta o que e mostrado na tela durante a execucao.
+export const MAX_DISPLAY_STATS_SAMPLES = 1000;
+export const DISPLAY_TICK_MS = 100;

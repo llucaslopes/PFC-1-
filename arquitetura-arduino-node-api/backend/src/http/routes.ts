@@ -9,7 +9,10 @@ import { SerialStatus } from "../types";
 interface SensorInputStatusProvider {
   getStatus: () => SerialStatus;
   setIntervalMs?: (intervalMs: number) => void;
-  synchronizeClock?: (attempts?: number) => Promise<import("../types").ClockSyncMetadata>;
+  synchronizeClock?: (
+    attempts?: number,
+    targetIntervalMs?: number
+  ) => Promise<import("../types").ClockSyncMetadata>;
 }
 
 interface CreateRoutesOptions {
@@ -75,11 +78,18 @@ export function createRoutes(options: CreateRoutesOptions): Router {
     const requestedConfig = request.body ?? {};
     const requestedIntervalMs = Math.max(1, Number(requestedConfig.sendIntervalMs) || 100);
 
-    options.serialReader.setIntervalMs?.(requestedIntervalMs);
-    const clockSync =
-      requestedConfig.source === "serial" && options.serialReader.synchronizeClock
-        ? await options.serialReader.synchronizeClock(10)
-        : createRelativeFallbackClockSync("simulator_or_sync_not_available", 0);
+    // Ordem importante: o SYNC NTP/Cristian precisa rodar com o Arduino em
+    // 100 ms (idle) para nao colidir com a saturacao do TX serial em alta
+    // frequencia. O proprio synchronizeClock se encarrega de forcar 100 ms,
+    // executar as 10 tentativas, e depois aplicar `requestedIntervalMs`.
+    let clockSync;
+    if (requestedConfig.source === "serial" && options.serialReader.synchronizeClock) {
+      clockSync = await options.serialReader.synchronizeClock(10, requestedIntervalMs);
+    } else {
+      // Simulador: nao tem porta serial; aplica o intervalo direto.
+      options.serialReader.setIntervalMs?.(requestedIntervalMs);
+      clockSync = createRelativeFallbackClockSync("simulator_or_sync_not_available", 0);
+    }
     const experiment = options.experimentService.start(requestedConfig, clockSync);
 
     response.status(201).json(experiment);

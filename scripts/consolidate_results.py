@@ -8,7 +8,8 @@ import csv
 from pathlib import Path
 
 
-METRIC_MARKERS = ("metrics", "campaign-summary")
+CAMPAIGN_SUMMARY_SUFFIX = "_campaign-summary.csv"
+METRICS_SUFFIX = "_metrics.csv"
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,10 +29,18 @@ def parse_args() -> argparse.Namespace:
 
 
 def find_metric_files(results_dir: Path) -> list[Path]:
+    campaign_summary_files = sorted(
+        path
+        for path in results_dir.rglob("*.csv")
+        if path.name.endswith(CAMPAIGN_SUMMARY_SUFFIX)
+    )
+    if campaign_summary_files:
+        return campaign_summary_files
+
     return sorted(
         path
         for path in results_dir.rglob("*.csv")
-        if any(marker in path.name for marker in METRIC_MARKERS)
+        if path.name.endswith(METRICS_SUFFIX)
         and path.name != "consolidated_metrics.csv"
     )
 
