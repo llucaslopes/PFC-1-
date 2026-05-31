@@ -24,8 +24,22 @@ from collections import defaultdict
 from pathlib import Path
 
 CONSOLIDATED_CSV_NAME = "consolidated_metrics.csv"
+CONSOLIDATED_CORRECTED_CSV_NAME = "consolidated_metrics_corrected.csv"
 
 DEFAULT_DIR = Path("resultados/escalabilidade-clientes-2026-05")
+
+
+def resolve_consolidated_csv(campaign_dir: Path) -> Path:
+    """Prefere a versao corrigida (rollover neutralizado) quando presente.
+
+    Isso permite que `plot_multiclient.py` rode tanto na pasta original
+    (`escalabilidade-clientes-2026-05/`) quanto na corrigida
+    (`escalabilidade-clientes-2026-05-corrigido/`) sem alteracao de CLI.
+    """
+    corrected = campaign_dir / CONSOLIDATED_CORRECTED_CSV_NAME
+    if corrected.exists():
+        return corrected
+    return campaign_dir / CONSOLIDATED_CSV_NAME
 
 INTERVAL_COLORS = {
     100: "#1f77b4",
@@ -45,6 +59,46 @@ MODE_TITLES = {
 }
 
 
+INT_FIELDS = (
+    "interval_ms",
+    "client_count",
+    "replication",
+    "duration_seconds",
+    "expected_messages_per_client",
+    "messages_total_across_clients",
+    "unique_messages_across_clients",
+    "duplicate_deliveries_across_clients",
+)
+
+FLOAT_FIELDS = (
+    "throughput_aggregate_msgps",
+    "throughput_aggregate_all_clients",
+    "throughput_avg_per_client_msgps",
+    "throughput_per_client_avg",
+    "throughput_per_client_percent_expected",
+    "throughput_std_per_client_msgps",
+    "producer_rate_messages_per_second",
+    "fairness_cv",
+    "latency_avg_mean_across_clients_ms",
+    "latency_p95_worst_client_ms",
+    "unique_coverage_percent",
+    "duplicate_delivery_ratio",
+    "cpu_avg_percent",
+    "cpu_p95_percent",
+    "cpu_max_percent",
+    "mem_rss_avg_mb",
+    "mem_rss_max_mb",
+    "mem_heap_used_avg_mb",
+)
+
+
+def _parse_bool(value: str) -> bool:
+    if value in (None, ""):
+        return False
+    text = str(value).strip().lower()
+    return text in ("true", "1", "yes")
+
+
 def read_consolidated(path: Path) -> list[dict]:
     if not path.exists():
         print(f"[plot] Arquivo nao encontrado: {path}", file=sys.stderr)
@@ -54,34 +108,14 @@ def read_consolidated(path: Path) -> list[dict]:
         reader = csv.DictReader(fp)
         for raw in reader:
             row = dict(raw)
-            for key in (
-                "interval_ms",
-                "client_count",
-                "replication",
-                "duration_seconds",
-                "expected_messages_per_client",
-                "messages_total_across_clients",
-            ):
+            for key in INT_FIELDS:
                 if key in row and row[key] not in (None, ""):
                     try:
                         row[key] = int(float(row[key]))
                     except ValueError:
                         row[key] = None
             for key in list(row.keys()):
-                if key in (
-                    "throughput_aggregate_msgps",
-                    "throughput_avg_per_client_msgps",
-                    "throughput_std_per_client_msgps",
-                    "fairness_cv",
-                    "latency_avg_mean_across_clients_ms",
-                    "latency_p95_worst_client_ms",
-                    "cpu_avg_percent",
-                    "cpu_p95_percent",
-                    "cpu_max_percent",
-                    "mem_rss_avg_mb",
-                    "mem_rss_max_mb",
-                    "mem_heap_used_avg_mb",
-                ):
+                if key in FLOAT_FIELDS:
                     if row[key] in (None, ""):
                         row[key] = None
                     else:
@@ -89,14 +123,35 @@ def read_consolidated(path: Path) -> list[dict]:
                             row[key] = float(row[key])
                         except ValueError:
                             row[key] = None
+            # Boolean flags vindas do CSV
+            row["exclude_latency_from_analysis"] = _parse_bool(
+                row.get("exclude_latency_from_analysis", "")
+            )
+            row["exclude_throughput_from_analysis"] = _parse_bool(
+                row.get("exclude_throughput_from_analysis", "")
+            )
+            row["exclude_loss_from_analysis"] = _parse_bool(
+                row.get("exclude_loss_from_analysis", "")
+            )
             rows.append(row)
     return rows
 
 
-def aggregate_runs(rows: list[dict], value_key: str) -> dict:
-    """Retorna {(mode, interval_ms, clients): (mean, std)} sobre repeticoes."""
+def aggregate_runs(
+    rows: list[dict],
+    value_key: str,
+    *,
+    drop_excluded_latency: bool = False,
+) -> dict:
+    """Retorna {(mode, interval_ms, clients): (mean, std)} sobre repeticoes.
+
+    Se drop_excluded_latency=True, ignora execucoes com
+    exclude_latency_from_analysis=true (usado em plots de latencia).
+    """
     bucket: dict[tuple[str, int, int], list[float]] = defaultdict(list)
     for r in rows:
+        if drop_excluded_latency and r.get("exclude_latency_from_analysis"):
+            continue
         v = r.get(value_key)
         if v is None:
             continue
@@ -120,6 +175,7 @@ def plot_metric(
     output_path: Path,
     *,
     log_y: bool = False,
+    drop_excluded_latency: bool = False,
 ):
     try:
         import matplotlib.pyplot as plt
@@ -127,7 +183,9 @@ def plot_metric(
         print("[plot] matplotlib nao disponivel; instale com 'pip install matplotlib'.")
         return
 
-    aggregated = aggregate_runs(rows, value_key)
+    aggregated = aggregate_runs(
+        rows, value_key, drop_excluded_latency=drop_excluded_latency
+    )
     if not aggregated:
         print(f"[plot] Sem dados para '{value_key}'; pulando {output_path.name}.")
         return
@@ -196,11 +254,15 @@ def main():
     args = parser.parse_args()
 
     campaign_dir = args.campaign_dir.resolve()
-    csv_path = campaign_dir / CONSOLIDATED_CSV_NAME
+    csv_path = resolve_consolidated_csv(campaign_dir)
+    print(f"[plot] Lendo: {csv_path.name}")
     rows = read_consolidated(csv_path)
 
     plots_dir = campaign_dir / "plots"
 
+    # Plots de throughput e recursos: usam TODAS as execucoes, mesmo as
+    # com latencia anomala (rollover do micros() do Arduino), pois throughput
+    # e CPU/RAM sao preservados nessas execucoes.
     plot_metric(
         rows,
         value_key="throughput_aggregate_msgps",
@@ -209,12 +271,27 @@ def main():
         output_path=plots_dir / "throughput_por_clientes.png",
     )
 
+    # Plots de latencia: excluem execucoes marcadas como anomalas para nao
+    # contaminar a media com valores ~4.294.972 ms (~2^32/1000) causados pelo
+    # rollover do micros() do Arduino (~71,58 min).
     plot_metric(
         rows,
         value_key="latency_p95_worst_client_ms",
-        title="Latencia P95 do pior cliente vs numero de clientes",
+        title="Latencia P95 do pior cliente vs numero de clientes\n"
+        "(execucoes com anomalia de latencia excluidas)",
         y_label="Latencia P95 (ms) - cliente com maior P95",
         output_path=plots_dir / "latencia_p95_por_clientes.png",
+        drop_excluded_latency=True,
+    )
+
+    plot_metric(
+        rows,
+        value_key="latency_avg_mean_across_clients_ms",
+        title="Latencia media entre clientes vs numero de clientes\n"
+        "(execucoes com anomalia de latencia excluidas)",
+        y_label="Latencia media (ms) - media entre clientes",
+        output_path=plots_dir / "latencia_avg_por_clientes.png",
+        drop_excluded_latency=True,
     )
 
     plot_metric(
@@ -231,6 +308,35 @@ def main():
         title="Fairness entre clientes (CV do throughput) vs numero de clientes",
         y_label="Coef. de variacao (0 = perfeitamente justo)",
         output_path=plots_dir / "fairness_por_clientes.png",
+    )
+
+    # Novos plots (Problemas 3 e 4): cobertura unica, duplicacao e
+    # throughput por cliente vs agregado.
+    plot_metric(
+        rows,
+        value_key="unique_coverage_percent",
+        title="Cobertura unica entre clientes vs numero de clientes\n"
+        "(quantas mensagens do produtor sao vistas por pelo menos 1 cliente)",
+        y_label="Cobertura unica (% do esperado por cliente)",
+        output_path=plots_dir / "cobertura_unica_por_clientes.png",
+    )
+
+    plot_metric(
+        rows,
+        value_key="duplicate_delivery_ratio",
+        title="Duplicacao entre clientes vs numero de clientes\n"
+        "(WebSocket: ~ 1-1/N; REST polling: depende da concorrencia)",
+        y_label="Razao de entregas duplicadas (0 a 1)",
+        output_path=plots_dir / "duplicacao_por_clientes.png",
+    )
+
+    plot_metric(
+        rows,
+        value_key="throughput_per_client_avg",
+        title="Throughput por cliente vs numero de clientes\n"
+        "(comparar com throughput agregado para identificar broadcast vs polling)",
+        y_label="msg/s por cliente",
+        output_path=plots_dir / "throughput_por_cliente_vs_clientes.png",
     )
 
     print(f"[plot] Concluido. Plots em {plots_dir}.")

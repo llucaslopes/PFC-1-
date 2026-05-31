@@ -55,6 +55,38 @@ sensorDataService.onMessage((message) => {
   websocketServer.broadcastSensorMessage(message);
 });
 
+// Ressincronizacao de relogio automatica quando o backend detecta rollover
+// do micros() do Arduino (~71,58 min). Estrategia conservadora:
+//   - chamamos synchronizeClock para realinhar offset Arduino<->backend;
+//   - notificamos clientes via WebSocket (campo opcional do payload);
+//   - se o sketch nao for sincronizavel, pelo menos logamos para que a
+//     execucao em andamento possa ser tratada como contaminada na analise.
+sensorDataService.onRolloverDetected(async (event) => {
+  console.warn(
+    `[serial] [rollover] seq=${event.seq} prev=${event.previousSendUs}us cur=${event.currentSendUs}us. ` +
+      `Disparando ressincronizacao de relogio.`
+  );
+  if (typeof (sensorInput as { synchronizeClock?: unknown }).synchronizeClock === "function") {
+    try {
+      const reader = sensorInput as unknown as {
+        synchronizeClock: (attempts?: number) => Promise<unknown>;
+      };
+      await reader.synchronizeClock(5);
+      console.log("[serial] [rollover] ressincronizacao concluida.");
+    } catch (error) {
+      console.error(
+        `[serial] [rollover] ressincronizacao falhou: ${(error as Error).message}. ` +
+          `Execucao em andamento deve ser sinalizada como contaminada.`
+      );
+    }
+  } else {
+    console.warn(
+      "[serial] [rollover] fonte atual (simulador?) nao expoe synchronizeClock; " +
+        "execucao em andamento deve ser sinalizada como contaminada."
+    );
+  }
+});
+
 httpServer.listen(config.port, () => {
   console.log(`[http] Backend iniciado em http://localhost:${config.port}`);
   console.log("[http] Dashboard: GET /");

@@ -5,18 +5,47 @@ import { ClockSyncMetadata, ProcessedSensorMessage, SensorPayload } from "../typ
 import { detectSendUnit, remoteSendToHostMs } from "../utils/clockSyncMath";
 
 type MessageListener = (message: ProcessedSensorMessage) => void;
+type RolloverListener = (event: RolloverEvent) => void;
+
+export interface RolloverEvent {
+  seq: number;
+  previousSendUs: number;
+  currentSendUs: number;
+  deltaUs: number;
+  detectedAtMs: number;
+}
 
 const CSV_FIELD_COUNT = 6;
 
 export class SensorDataService {
   private latestMessage: ProcessedSensorMessage | null = null;
   private readonly listeners = new Set<MessageListener>();
+  private readonly rolloverListeners = new Set<RolloverListener>();
+  // Monotonicidade do micros() do Arduino: se cair, e rollover (~71,58 min).
+  // Resetado a cada novo experimento via `resetRolloverTracking()`.
+  private lastSendUs: number | null = null;
+  private lastSeq: number | null = null;
+  private rolloverDetectedCount = 0;
 
   constructor(
     private readonly metricsService: MetricsService,
     private readonly experimentService?: ExperimentService,
     private readonly clockSyncProvider?: () => ClockSyncMetadata | null
   ) {}
+
+  onRolloverDetected(listener: RolloverListener): void {
+    this.rolloverListeners.add(listener);
+  }
+
+  resetRolloverTracking(): void {
+    this.lastSendUs = null;
+    this.lastSeq = null;
+    this.rolloverDetectedCount = 0;
+  }
+
+  getRolloverDetectedCount(): number {
+    return this.rolloverDetectedCount;
+  }
 
   onMessage(listener: MessageListener): void {
     this.listeners.add(listener);
@@ -50,8 +79,46 @@ export class SensorDataService {
     const backendArduinoClockOffsetMs =
       clockSync && !clockSync.syncFailed && Number.isFinite(arduinoOffset) ? arduinoOffset : null;
     const sendUnit = detectSendUnit(sensorPayload.sendUs, clockSync?.arduinoRemoteUnit);
+
+    // Deteccao de rollover do micros() do Arduino. Como o sketch envia seq
+    // monotonico crescente, se o sendUs cair para um valor MENOR que o
+    // anterior estando seq > lastSeq, e quase certo que micros() deu volta.
+    // Marcamos a amostra como rolloverSuspected e nao computamos latencia
+    // a partir dela; throughput/perdas/recursos seguem normalmente.
+    const sendUsRollover =
+      this.lastSendUs !== null &&
+      this.lastSeq !== null &&
+      sensorPayload.id > this.lastSeq &&
+      sensorPayload.sendUs < this.lastSendUs;
+
+    if (sendUsRollover) {
+      this.rolloverDetectedCount += 1;
+      const event: RolloverEvent = {
+        seq: sensorPayload.id,
+        previousSendUs: this.lastSendUs as number,
+        currentSendUs: sensorPayload.sendUs,
+        deltaUs: sensorPayload.sendUs - (this.lastSendUs as number),
+        detectedAtMs: backendReceiveMs
+      };
+      console.warn(
+        `[serial] Rollover do micros() detectado: seq=${event.seq} ` +
+          `prev=${event.previousSendUs} cur=${event.currentSendUs} (delta=${event.deltaUs}us). ` +
+          `Latencia desta amostra ignorada. Recomendado: ressincronizar relogio.`
+      );
+      for (const listener of this.rolloverListeners) {
+        try {
+          listener(event);
+        } catch (error) {
+          console.error(`[serial] Listener de rollover falhou: ${(error as Error).message}`);
+        }
+      }
+    }
+
+    this.lastSendUs = sensorPayload.sendUs;
+    this.lastSeq = sensorPayload.id;
+
     const estimatedBackendSendTimeMs =
-      backendArduinoClockOffsetMs === null
+      backendArduinoClockOffsetMs === null || sendUsRollover
         ? null
         : remoteSendToHostMs(sensorPayload.sendUs, sendUnit, backendArduinoClockOffsetMs);
     const processingLatencyMs = Number((performance.now() - startedAt).toFixed(3));
@@ -67,7 +134,8 @@ export class SensorDataService {
         clockSync?.arduinoToBackendUncertaintyMs ??
         clockSync?.arduinoHostUncertaintyMs ??
         null,
-      processingLatencyMs
+      processingLatencyMs,
+      rolloverSuspected: sendUsRollover
     };
 
     this.latestMessage = message;

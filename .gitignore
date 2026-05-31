@@ -15,8 +15,26 @@ coverage/
 
 # Saídas de experimentos (geradas pelos scripts)
 logs/
-resultados/
 *.log
+
+# Resultados de experimentos: versionar apenas READMEs e gráficos.
+# Ignora todo o conteúdo dentro de resultados/ e subpastas
+# (CSVs, JSONs, etc.), mas mantém a estrutura de pastas,
+# READMEs e imagens em qualquer nível de profundidade.
+# Obs.: arquivos .rar/.zip na raiz do projeto (ex.: resultados.rar)
+# continuam versionados para envio ao orientador.
+resultados/**
+!resultados/
+!resultados/**/
+!resultados/**/README.md
+!resultados/**/README*.md
+!resultados/**/*.png
+!resultados/**/*.jpg
+!resultados/**/*.jpeg
+!resultados/**/*.svg
+!resultados/**/*.gif
+!resultados/**/*.webp
+!resultados/**/*.pdf
 
 # Python (scripts/consolidate_results.py, plot_results.py)
 __pycache__/

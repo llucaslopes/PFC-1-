@@ -137,15 +137,41 @@ function handleParsedLine({ seq, sendValue, hr, ax, ay, az }, receiveTime) {
   const sendUnit = detectSendUnit(sendValue, clockSync?.arduinoRemoteUnit);
   const sendUs = sendUnit === "us" ? sendValue : sendValue * 1000;
   const sendMs = sendUnit === "us" ? sendValue / 1000 : sendValue;
-  const relativeEstimatedLatencyMs =
-    metricsState.latencyCalibrator?.calculate(sendMs, receiveTime) ?? null;
-  const estimatedFrontendSendMs = hasSynchronizedClock
+
+  // Deteccao de rollover do micros() do Arduino: se sendUs caiu apesar de
+  // seq ter aumentado, marcamos a amostra como contaminada para nao poluir
+  // estatisticas de latencia. Throughput, perdas e demais metricas seguem
+  // contabilizadas normalmente.
+  const rolloverSuspected =
+    metricsState.lastSendUs !== null &&
+    metricsState.lastSeq !== null &&
+    seq > metricsState.lastSeq &&
+    sendUs < metricsState.lastSendUs;
+  if (rolloverSuspected) {
+    metricsState.rolloverDetectedCount += 1;
+    console.warn(
+      `[webserial] Rollover do micros() detectado: seq=${seq} ` +
+        `prev=${metricsState.lastSendUs}us cur=${sendUs}us. Latencia desta amostra invalidada.`
+    );
+  }
+  metricsState.lastSendUs = sendUs;
+
+  const relativeEstimatedLatencyMs = rolloverSuspected
+    ? null
+    : metricsState.latencyCalibrator?.calculate(sendMs, receiveTime) ?? null;
+  const estimatedFrontendSendMs = hasSynchronizedClock && !rolloverSuspected
     ? remoteSendToHostMs(sendValue, sendUnit, clockSync.arduinoToFrontendOffsetMs)
     : null;
-  const endToEndLatencyMs = hasSynchronizedClock
-    ? computeEndToEndLatency(receiveTime, sendValue, sendUnit, clockSync.arduinoToFrontendOffsetMs)
-    : relativeEstimatedLatencyMs;
-  const latencyMethod = hasSynchronizedClock ? LATENCY_METHOD_SYNC : LATENCY_METHOD_FALLBACK;
+  const endToEndLatencyMs = rolloverSuspected
+    ? null
+    : hasSynchronizedClock
+      ? computeEndToEndLatency(receiveTime, sendValue, sendUnit, clockSync.arduinoToFrontendOffsetMs)
+      : relativeEstimatedLatencyMs;
+  const latencyMethod = rolloverSuspected
+    ? `${hasSynchronizedClock ? LATENCY_METHOD_SYNC : LATENCY_METHOD_FALLBACK}__invalidated_arduino_micros_rollover`
+    : hasSynchronizedClock
+      ? LATENCY_METHOD_SYNC
+      : LATENCY_METHOD_FALLBACK;
   const clockUncertaintyMs = hasSynchronizedClock ? clockSync.arduinoToFrontendUncertaintyMs : null;
   const syncRttMs = hasSynchronizedClock ? clockSync.arduinoToFrontendRttMs : null;
 

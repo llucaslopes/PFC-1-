@@ -33,7 +33,12 @@ export const metricsState = {
   // display (10 Hz) le isso e atualiza o DOM, evitando reflow por mensagem
   // que afogava o renderer em intervalos altos (1 ms / ~280 msg/s).
   lastDisplay: null,
-  lastThroughput: 0
+  lastThroughput: 0,
+  // Deteccao de rollover do micros() do Arduino (~71,58 min). Se sendUs cair
+  // abaixo do anterior estando seq monotonicamente crescente, marcamos a
+  // amostra como rolloverSuspected e nao a contabilizamos na latencia.
+  lastSendUs: null,
+  rolloverDetectedCount: 0
 };
 
 export const experiment = {

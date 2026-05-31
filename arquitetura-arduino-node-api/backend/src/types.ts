@@ -22,6 +22,10 @@ export interface ProcessedSensorMessage {
   backendArduinoClockOffsetMs: number | null;
   backendArduinoClockUncertaintyMs: number | null;
   processingLatencyMs: number;
+  // Marcado quando o backend detecta que o sendUs caiu abaixo do anterior
+  // (rollover do micros() do Arduino a cada ~71,58 min). Latencia desta
+  // amostra fica indefinida e nao deve ser usada nas estatisticas.
+  rolloverSuspected?: boolean;
 }
 
 export type ExperimentArchitecture = "webserial" | "backend-node";

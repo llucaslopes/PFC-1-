@@ -9,6 +9,8 @@
     "dev:webserial": "npm --prefix prototypes/webserial start",
     "build:backend": "npm --prefix arquitetura-arduino-node-api/backend run build",
     "test:scale": "npm --prefix arquitetura-arduino-node-api/backend run test:scale",
+    "test:rollover": "node --test scripts/tests/rollover-detection.test.mjs",
+    "fix:rollover-anomalies": "node scripts/fix-rollover-anomalies.mjs",
     "test:experiments": "node scripts/run-experiments.mjs",
     "experiment:refinement": "node scripts/run-experiments.mjs --campaign refinement",
     "experiment:scalability": "node scripts/run-scalability-campaign.mjs",

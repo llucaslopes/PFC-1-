@@ -54,6 +54,8 @@ export function resetMetrics() {
   metricsState.accelerationMagnitudes.length = 0;
   metricsState.lastDisplay = null;
   metricsState.lastThroughput = 0;
+  metricsState.lastSendUs = null;
+  metricsState.rolloverDetectedCount = 0;
   els.throughput.textContent = "--";
   els.totalMessages.textContent = "0";
   els.invalidMessages.textContent = "0";

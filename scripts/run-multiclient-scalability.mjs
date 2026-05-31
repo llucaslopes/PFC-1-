@@ -36,6 +36,10 @@ import {
   mergeClockSync,
   synchronizeBackendClock
 } from "./lib/clock-sync.mjs";
+import {
+  LATENCY_ANOMALY_REASON,
+  detectLatencyAnomaly
+} from "./lib/rollover-detection.mjs";
 import { startKeepAwake } from "./lib/keep-awake.mjs";
 import { initLogFile } from "./lib/runtime-utils.mjs";
 import { resolveSerialPort } from "./lib/serial-detect.mjs";
@@ -567,11 +571,30 @@ function summarizePerClient(clientResults, durationSeconds) {
   });
 }
 
-function summarizeAggregate({ perClient, expectedMessages }) {
+function throughputAggregateType(mode) {
+  if (mode === "websocket") return "broadcast_deliveries";
+  if (mode === "rest-polling") return "polling_responses";
+  if (mode === "webserial") return "single_client_direct";
+  return "unknown";
+}
+
+function summarizeAggregate({ perClient, clientResults, expectedMessages, mode, intervalMs }) {
   const messagesTotal = perClient.reduce((acc, c) => acc + c.messagesReceived, 0);
-  const uniqueAcrossClients = new Set();
-  // (uniqueAcrossClients precisaria das samples cruas; e calculado abaixo
-  //  via overall throughput. mantem placeholder para clareza)
+
+  // BUGFIX (Problema 3): popula o Set global com TODOS os seq vistos por
+  // qualquer cliente. Antes ficava sempre vazio (size = 0) porque o Set era
+  // declarado mas nunca preenchido — resultava em uniqueAcrossClients = null
+  // em todos os arquivos da campanha.
+  const uniqueSeqsAcrossClients = new Set();
+  if (Array.isArray(clientResults)) {
+    for (const result of clientResults) {
+      const samples = Array.isArray(result?.samples) ? result.samples : [];
+      for (const sample of samples) {
+        const seq = Number(sample?.seq);
+        if (Number.isFinite(seq)) uniqueSeqsAcrossClients.add(seq);
+      }
+    }
+  }
 
   const throughputAggregate = perClient.reduce(
     (acc, c) => acc + (c.throughputMessagesPerSecond ?? 0),
@@ -597,18 +620,40 @@ function summarizeAggregate({ perClient, expectedMessages }) {
       ? throughputStats.std / throughputStats.avg
       : null;
 
+  // Campos adicionais (Problema 4 — clareza do throughput agregado).
+  const producerRate = intervalMs ? round(1000 / intervalMs, 3) : null;
+  const throughputPerClientPercentExpected =
+    producerRate && Number.isFinite(throughputStats.avg) && producerRate > 0
+      ? round((throughputStats.avg / producerRate) * 100, 3)
+      : null;
+  const uniqueAcrossClients = uniqueSeqsAcrossClients.size;
+  const uniqueCoveragePercent =
+    expectedMessages > 0 ? round((uniqueAcrossClients / expectedMessages) * 100, 3) : null;
+  const duplicateDeliveriesAcrossClients = Math.max(0, messagesTotal - uniqueAcrossClients);
+  const duplicateDeliveryRatio =
+    messagesTotal > 0 ? round(duplicateDeliveriesAcrossClients / messagesTotal, 4) : 0;
+
   return {
     messagesTotalAcrossClients: messagesTotal,
     expectedMessagesPerClient: expectedMessages,
+    producerRateMessagesPerSecond: producerRate,
     throughputAggregateMessagesPerSecond: round(throughputAggregate, 3),
+    throughputAggregateAllClients: round(throughputAggregate, 3),
+    throughputAggregateType: throughputAggregateType(mode),
     throughputAvgPerClient: round(throughputStats.avg, 3),
+    throughputPerClientAvg: round(throughputStats.avg, 3),
+    throughputPerClientPercentExpected,
     throughputStdPerClient: round(throughputStats.std, 3),
     throughputMinPerClient: round(throughputStats.min, 3),
     throughputMaxPerClient: round(throughputStats.max, 3),
     fairnessCoefficientOfVariation: round(cv, 4),
     latencyAvgMeanAcrossClients: round(latencyAvgAcross),
     latencyP95WorstClientMs: round(latencyP95WorstClient),
-    uniqueAcrossClients: uniqueAcrossClients.size || null
+    uniqueAcrossClients,
+    uniqueMessagesAcrossClients: uniqueAcrossClients,
+    uniqueCoveragePercent,
+    duplicateDeliveriesAcrossClients,
+    duplicateDeliveryRatio
   };
 }
 
@@ -695,9 +740,30 @@ async function runOneExecution({
   const expectedPerClient = Math.floor(durationMs / intervalMs);
 
   const perClient = summarizePerClient(clientResults, durationSeconds);
-  const aggregate = summarizeAggregate({ perClient, expectedMessages: expectedPerClient });
+  const aggregate = summarizeAggregate({
+    perClient,
+    clientResults,
+    expectedMessages: expectedPerClient,
+    mode,
+    intervalMs
+  });
   const resourceSamples = sampler.getSamples();
   const resourceStats = summarizeResources(resourceSamples);
+
+  // Deteccao em tempo real de anomalia de latencia (Problema 1).
+  // Throughput/perdas/recursos seguem intactos; latencia e marcada apenas
+  // para a analise final ignorar.
+  const anomaly = detectLatencyAnomaly({ aggregate, perClient });
+  aggregate.latencyAnomaly = anomaly.anomaly ? anomaly.reasonCode : null;
+  aggregate.excludeLatencyFromAnalysis = anomaly.anomaly;
+  aggregate.excludeThroughputFromAnalysis = false;
+  aggregate.excludeLossFromAnalysis = false;
+  if (anomaly.anomaly) {
+    console.warn(
+      `[multiclient]      LATENCY ANOMALY DETECTED (${anomaly.reasonCode}): ` +
+        `${anomaly.reasons.slice(0, 2).join("; ")}`
+    );
+  }
 
   const base = fileBase({ mode, intervalMs, clientCount, rep, timestamp });
 
@@ -956,19 +1022,39 @@ function convertWebserialSummaryToAggregates({
       }
     ];
 
+    const producerRate = intervalMs ? round(1000 / intervalMs, 3) : null;
+    // WebSerial e single-client por construcao; unique = recebidos pelo
+    // unico cliente. Duplicacao = 0 (porta serial e exclusiva, sem
+    // broadcast nem polling competidor).
     const aggregate = {
       messagesTotalAcrossClients: messagesReceived,
       expectedMessagesPerClient: expectedPerClient,
+      producerRateMessagesPerSecond: producerRate,
       throughputAggregateMessagesPerSecond: round(throughput, 3),
+      throughputAggregateAllClients: round(throughput, 3),
+      throughputAggregateType: throughputAggregateType("webserial"),
       throughputAvgPerClient: round(throughput, 3),
+      throughputPerClientAvg: round(throughput, 3),
+      throughputPerClientPercentExpected:
+        producerRate && producerRate > 0 ? round((throughput / producerRate) * 100, 3) : null,
       throughputStdPerClient: 0,
       throughputMinPerClient: round(throughput, 3),
       throughputMaxPerClient: round(throughput, 3),
       fairnessCoefficientOfVariation: 0,
       latencyAvgMeanAcrossClients: latencyValid ? round(run.estimatedLatencyAverageMs) : null,
       latencyP95WorstClientMs: latencyValid ? round(run.estimatedLatencyP95Ms) : null,
-      uniqueAcrossClients: null,
-      latencyMethod: latencyMethodLabel
+      uniqueAcrossClients: messagesReceived,
+      uniqueMessagesAcrossClients: messagesReceived,
+      uniqueCoveragePercent: expectedPerClient > 0
+        ? round((messagesReceived / expectedPerClient) * 100, 3)
+        : null,
+      duplicateDeliveriesAcrossClients: 0,
+      duplicateDeliveryRatio: 0,
+      latencyMethod: latencyMethodLabel,
+      latencyAnomaly: null,
+      excludeLatencyFromAnalysis: !latencyValid,
+      excludeThroughputFromAnalysis: false,
+      excludeLossFromAnalysis: false
     };
 
     const timestamp = nowIsoForFile();
@@ -1270,12 +1356,21 @@ function consolidateAll(campaignDir) {
     duration_seconds: data.config.durationSeconds,
     expected_messages_per_client: data.aggregate.expectedMessagesPerClient,
     messages_total_across_clients: data.aggregate.messagesTotalAcrossClients,
+    producer_rate_messages_per_second: data.aggregate.producerRateMessagesPerSecond ?? null,
     throughput_aggregate_msgps: data.aggregate.throughputAggregateMessagesPerSecond,
+    throughput_aggregate_all_clients: data.aggregate.throughputAggregateAllClients ?? null,
+    throughput_aggregate_type: data.aggregate.throughputAggregateType ?? null,
     throughput_avg_per_client_msgps: data.aggregate.throughputAvgPerClient,
+    throughput_per_client_avg: data.aggregate.throughputPerClientAvg ?? null,
+    throughput_per_client_percent_expected: data.aggregate.throughputPerClientPercentExpected ?? null,
     throughput_std_per_client_msgps: data.aggregate.throughputStdPerClient,
     fairness_cv: data.aggregate.fairnessCoefficientOfVariation,
     latency_avg_mean_across_clients_ms: data.aggregate.latencyAvgMeanAcrossClients,
     latency_p95_worst_client_ms: data.aggregate.latencyP95WorstClientMs,
+    unique_messages_across_clients: data.aggregate.uniqueMessagesAcrossClients ?? data.aggregate.uniqueAcrossClients ?? null,
+    unique_coverage_percent: data.aggregate.uniqueCoveragePercent ?? null,
+    duplicate_deliveries_across_clients: data.aggregate.duplicateDeliveriesAcrossClients ?? null,
+    duplicate_delivery_ratio: data.aggregate.duplicateDeliveryRatio ?? null,
     cpu_avg_percent: data.resources?.cpuUsagePercent?.avg ?? null,
     cpu_p95_percent: data.resources?.cpuUsagePercent?.p95 ?? null,
     cpu_max_percent: data.resources?.cpuUsagePercent?.max ?? null,
@@ -1283,6 +1378,10 @@ function consolidateAll(campaignDir) {
     mem_rss_max_mb: data.resources?.memRssMb?.max ?? null,
     mem_heap_used_avg_mb: data.resources?.memHeapUsedMb?.avg ?? null,
     latency_method: data.aggregate.latencyMethod,
+    latency_anomaly: data.aggregate.latencyAnomaly ?? null,
+    exclude_latency_from_analysis: data.aggregate.excludeLatencyFromAnalysis === true,
+    exclude_throughput_from_analysis: data.aggregate.excludeThroughputFromAnalysis === true,
+    exclude_loss_from_analysis: data.aggregate.excludeLossFromAnalysis === true,
     sync_failed: data.clockSync?.syncFailed ?? null
   }));
 

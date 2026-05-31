@@ -99,7 +99,10 @@ export function createRoutes(options: CreateRoutesOptions): Router {
         arrayBuffersBytes: memory.arrayBuffers,
         arrayBuffersMb: Number((memory.arrayBuffers / 1024 / 1024).toFixed(3))
       },
-      websocketClients: options.websocketServer.getConnectedClients()
+      websocketClients: options.websocketServer.getConnectedClients(),
+      // Contador de rollovers do micros() detectados nesta execucao do
+      // backend. Util para orquestradores marcarem campanhas contaminadas.
+      arduinoMicrosRolloverCount: options.sensorDataService.getRolloverDetectedCount()
     });
   });
 
@@ -138,6 +141,9 @@ export function createRoutes(options: CreateRoutesOptions): Router {
       options.serialReader.setIntervalMs?.(requestedIntervalMs);
       clockSync = createRelativeFallbackClockSync("simulator_or_sync_not_available", 0);
     }
+    // Antes de iniciar uma nova execucao, zera o tracking de rollover para
+    // que rollovers de execucoes anteriores nao "vazem" para esta.
+    options.sensorDataService.resetRolloverTracking();
     const experiment = options.experimentService.start(requestedConfig, clockSync);
 
     response.status(201).json(experiment);
