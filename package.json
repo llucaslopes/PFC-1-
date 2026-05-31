@@ -12,6 +12,7 @@
     "test:experiments": "node scripts/run-experiments.mjs",
     "experiment:refinement": "node scripts/run-experiments.mjs --campaign refinement",
     "experiment:scalability": "node scripts/run-scalability-campaign.mjs",
+    "experiment:multiclient": "node scripts/run-multiclient-scalability.mjs",
     "diag:sync": "node scripts/debug-sync.mjs",
     "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix prototypes/webserial install"
   },

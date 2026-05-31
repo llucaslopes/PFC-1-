@@ -192,13 +192,53 @@ O orquestrador suporta retomada automática (pula reps já completas), continua�
 
 ## Avaliação de escalabilidade
 
-Com o backend rodando:
+A escalabilidade é avaliada em dois eixos complementares.
+
+### Escalabilidade vertical (taxa por cliente único)
+
+Campanha dedicada `escalabilidade-2026-05`, com matriz progressiva de
+intervalos (100, 50, 20, 10, 5, 4, 3, 2, 1 ms) × 3 repetições × 60 s × 3
+arquiteturas. Identifica o ponto de stress de cada arquitetura sob carga
+crescente em um único consumidor:
+
+```powershell
+npm run experiment:scalability
+```
+
+Saídas em `resultados/escalabilidade-2026-05/`.
+
+### Escalabilidade horizontal (múltiplos clientes simultâneos)
+
+Campanha dedicada `escalabilidade-clientes-2026-05`, com matriz de
+intervalos do produtor (100, 50, 20, 10, 5 ms) × número de clientes
+(1, 2, 5, 10, 20) × 3 repetições × 60 s × 3 arquiteturas (WebSocket,
+REST polling e WebSerial). WebSerial entra **apenas em N=1** (limite
+arquitetural da Web Serial API: porta serial é exclusiva por aba do
+navegador), servindo de baseline para o comparativo dos 3 cenários em
+N=1. WebSocket e REST polling cobrem a curva multi-cliente completa.
+Mede latência por cliente, fairness e CPU/RAM do backend sob N
+consumidores simultâneos:
+
+```powershell
+npm run experiment:multiclient
+```
+
+Saídas em `resultados/escalabilidade-clientes-2026-05/`. O fato de
+WebSerial não suportar N>1 é, em si, um achado da análise e está
+documentado nas Limitações do artigo, não como lacuna.
+
+### Sanity-check legado
+
+Com o backend rodando, o script original de smoke test ainda está
+disponível:
 
 ```powershell
 npm run test:scale
 ```
 
-Executa REST polling e WebSocket com 1, 5 e 10 clientes simulados e gera um CSV com mensagens/s, perdas detectadas e estabilidade por cliente.
+Executa REST polling e WebSocket com 1, 5 e 10 clientes simulados (sem
+métricas de latência/recursos — substituído pela campanha
+`experiment:multiclient` para análise oficial).
 
 ## Diagnóstico do canal SYNC
 
