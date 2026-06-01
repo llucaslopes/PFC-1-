@@ -1,0 +1,516 @@
+openapi: 3.0.3
+info:
+  title: TCC Arduino-Node Backend API
+  version: 0.1.0
+  description: |
+    REST API do backend intermediado (Express) usado nos experimentos
+    do TCC. Cobre os endpoints consumidos por:
+      - `backend-node` (frontend HTTP/polling e WebSocket em
+        `arquitetura-arduino-node-api/backend/public`);
+      - orquestrador Node.js
+        (`scripts/run-experiments.mjs`, `scripts/run-multiclient-scalability.mjs`)
+        para configurar/iniciar/parar runs e coletar telemetria de
+        recursos (`/health/process`).
+
+    Existe tambem um endpoint WebSocket em `ws://<host>:<port>/`
+    que faz broadcast das mensagens processadas (`processed-sensor`),
+    documentado informalmente abaixo (OpenAPI 3.0 nao modela WS).
+
+    Este documento eh o contrato congelado para fins de paridade
+    bit-a-bit dos testes (`scripts/tests/test_backend_api_baseline.test.mjs`).
+servers:
+  - url: http://localhost:3000
+    description: Backend local (porta padrao)
+tags:
+  - name: health
+    description: Saude do processo e do canal serial.
+  - name: clock
+    description: Endpoints de sincronizacao de relogio (Cristian/NTP simplificado).
+  - name: data
+    description: Acesso a ultima mensagem de sensor processada.
+  - name: metrics
+    description: Snapshot agregado de metricas de throughput/latencia.
+  - name: experiments
+    description: Controle do ciclo de vida de experimentos.
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Saude geral do backend.
+      description: Retorna status do canal serial (ou simulador) e numero de clientes WebSocket conectados.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /health/process:
+    get:
+      tags: [health]
+      summary: Snapshot de CPU/memoria do processo.
+      description: |
+        Telemetria de recursos do processo Node.js, usada por
+        `scripts/run-multiclient-scalability.mjs` para correlacionar
+        consumo com carga (msg/s e numero de clientes). O campo
+        `cpu.usagePercent` mede CPU consumida desde a chamada anterior.
+        Tambem expoe `arduinoMicrosRolloverCount` (rollovers do
+        `micros()` do Arduino detectados na execucao corrente).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthProcessResponse"
+  /clock:
+    get:
+      tags: [clock]
+      summary: Relogio monotonico do backend.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [backendNowMs]
+                properties:
+                  backendNowMs:
+                    type: number
+                    description: "performance.now() do backend em ms."
+  /clock/sync:
+    post:
+      tags: [clock]
+      summary: Calibracao de relogio frontend<->backend (Cristian).
+      description: |
+        O frontend manda seu `clientT0` (ms) e recebe `backendT1Ms` e
+        `backendT2Ms` (entry/exit time do handler). O frontend completa
+        com `clientT3` localmente e calcula offset/RTT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clientT0:
+                  type: number
+                  nullable: true
+                  description: Relogio do cliente no inicio do request.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [clientT0, backendT1Ms, backendT2Ms]
+                properties:
+                  clientT0:
+                    type: number
+                    nullable: true
+                  backendT1Ms:
+                    type: number
+                  backendT2Ms:
+                    type: number
+  /data/latest:
+    get:
+      tags: [data]
+      summary: Ultima mensagem de sensor processada.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProcessedSensorMessage"
+        "404":
+          description: Nenhuma mensagem valida recebida ainda.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /metrics:
+    get:
+      tags: [metrics]
+      summary: Snapshot agregado de metricas.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricsSnapshot"
+  /experiments/start:
+    post:
+      tags: [experiments]
+      summary: Inicia um experimento.
+      description: |
+        Aplica `sendIntervalMs` ao Arduino (ou simulador) e cria um
+        registro de experimento. Quando `source=serial`, executa a
+        sincronizacao Cristian/NTP em modo idle (100 ms) antes de
+        aplicar o intervalo solicitado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExperimentConfig"
+      responses:
+        "201":
+          description: Experimento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExperimentState"
+  /experiments/stop:
+    post:
+      tags: [experiments]
+      summary: Para o experimento em andamento.
+      responses:
+        "200":
+          description: Experimento parado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExperimentState"
+        "404":
+          description: Nenhum experimento iniciado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /experiments/reset:
+    post:
+      tags: [experiments]
+      summary: Reseta o estado de experimento (idempotente).
+      responses:
+        "204":
+          description: Reset concluido.
+  /experiments/current:
+    get:
+      tags: [experiments]
+      summary: Recupera o experimento em andamento (ou ultimo parado).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExperimentState"
+        "404":
+          description: Nenhum experimento.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+  /experiments/observations:
+    post:
+      tags: [experiments]
+      summary: Registra observacoes do frontend (amostras adicionais).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "204":
+          description: Observacao registrada.
+  /experiments/export:
+    get:
+      tags: [experiments]
+      summary: Exporta o experimento completo (config + metricas + amostras).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Nenhum experimento disponivel para exportar.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMessage"
+components:
+  schemas:
+    ErrorMessage:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+    SerialStatus:
+      type: object
+      required: [source, configuredPort, baudRate, connected, lastError]
+      properties:
+        source:
+          type: string
+          enum: [serial, simulator]
+        configuredPort:
+          type: string
+          nullable: true
+        baudRate:
+          type: integer
+        connected:
+          type: boolean
+        lastError:
+          type: string
+          nullable: true
+    HealthResponse:
+      type: object
+      required: [status, serial, websocketClients]
+      properties:
+        status:
+          type: string
+          example: ok
+        serial:
+          $ref: "#/components/schemas/SerialStatus"
+        websocketClients:
+          type: integer
+    HealthProcessResponse:
+      type: object
+      required:
+        - sampledAt
+        - backendNowMs
+        - uptimeSeconds
+        - cpu
+        - memory
+        - websocketClients
+        - arduinoMicrosRolloverCount
+      properties:
+        sampledAt:
+          type: string
+          format: date-time
+        backendNowMs:
+          type: number
+        uptimeSeconds:
+          type: number
+        cpu:
+          type: object
+          required: [deltaUserMs, deltaSystemMs, deltaTotalMs, wallElapsedMs, usagePercent]
+          properties:
+            deltaUserMs: { type: number }
+            deltaSystemMs: { type: number }
+            deltaTotalMs: { type: number }
+            wallElapsedMs: { type: number }
+            usagePercent:
+              type: number
+              nullable: true
+        memory:
+          type: object
+          required:
+            - rssBytes
+            - rssMb
+            - heapUsedBytes
+            - heapUsedMb
+            - heapTotalBytes
+            - heapTotalMb
+            - externalBytes
+            - externalMb
+            - arrayBuffersBytes
+            - arrayBuffersMb
+          properties:
+            rssBytes: { type: integer }
+            rssMb: { type: number }
+            heapUsedBytes: { type: integer }
+            heapUsedMb: { type: number }
+            heapTotalBytes: { type: integer }
+            heapTotalMb: { type: number }
+            externalBytes: { type: integer }
+            externalMb: { type: number }
+            arrayBuffersBytes: { type: integer }
+            arrayBuffersMb: { type: number }
+        websocketClients:
+          type: integer
+        arduinoMicrosRolloverCount:
+          type: integer
+    NumericStats:
+      type: object
+      required: [samples, average, min, max, standardDeviation]
+      properties:
+        samples: { type: integer }
+        average: { type: number, nullable: true }
+        min: { type: number, nullable: true }
+        max: { type: number, nullable: true }
+        standardDeviation: { type: number, nullable: true }
+        p95: { type: number, nullable: true }
+    AccelerationPayload:
+      type: object
+      required: [x, y, z, magnitude]
+      properties:
+        x: { type: number }
+        y: { type: number }
+        z: { type: number }
+        magnitude: { type: number }
+    SensorPayload:
+      type: object
+      required: [id, sendUs, timestamp, heartRate, acceleration]
+      properties:
+        id: { type: integer }
+        sendUs: { type: integer }
+        timestamp: { type: number }
+        heartRate: { type: integer }
+        acceleration:
+          $ref: "#/components/schemas/AccelerationPayload"
+    ProcessedSensorMessage:
+      type: object
+      required:
+        - sensor
+        - receivedAt
+        - backendReceiveMs
+        - arduinoSendUs
+        - estimatedBackendSendTimeMs
+        - backendArduinoClockOffsetMs
+        - backendArduinoClockUncertaintyMs
+        - processingLatencyMs
+      properties:
+        sensor:
+          $ref: "#/components/schemas/SensorPayload"
+        receivedAt: { type: string, format: date-time }
+        backendReceiveMs: { type: number }
+        arduinoSendUs: { type: integer }
+        estimatedBackendSendTimeMs: { type: number, nullable: true }
+        backendArduinoClockOffsetMs: { type: number, nullable: true }
+        backendArduinoClockUncertaintyMs: { type: number, nullable: true }
+        processingLatencyMs: { type: number }
+        rolloverSuspected: { type: boolean }
+    MetricsSnapshot:
+      type: object
+      required:
+        - startedAt
+        - elapsedSeconds
+        - totalMessagesReceived
+        - totalInvalidMessages
+        - lostMessages
+        - sequenceGapMessages
+        - totalSamples
+        - lastMessageAt
+        - lastMessage
+        - messagesPerSecond
+        - averageMessagesPerSecond
+        - lostMessagesPercent
+        - invalidMessagesPercent
+        - lastProcessingLatencyMs
+        - processingLatencyMs
+        - heartRate
+        - accelerationMagnitude
+        - serialConnected
+      properties:
+        startedAt: { type: string, format: date-time }
+        elapsedSeconds: { type: number }
+        totalMessagesReceived: { type: integer }
+        totalInvalidMessages: { type: integer }
+        lostMessages: { type: integer }
+        sequenceGapMessages: { type: integer }
+        totalSamples: { type: integer }
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastMessage:
+          oneOf:
+            - $ref: "#/components/schemas/ProcessedSensorMessage"
+            - type: "null"
+        messagesPerSecond: { type: number }
+        averageMessagesPerSecond: { type: number }
+        lostMessagesPercent: { type: number }
+        invalidMessagesPercent: { type: number }
+        lastProcessingLatencyMs: { type: number, nullable: true }
+        processingLatencyMs: { $ref: "#/components/schemas/NumericStats" }
+        heartRate: { $ref: "#/components/schemas/NumericStats" }
+        accelerationMagnitude: { $ref: "#/components/schemas/NumericStats" }
+        serialConnected: { type: boolean }
+    ExperimentConfig:
+      type: object
+      required:
+        - architecture
+        - source
+        - communicationMode
+        - sendIntervalMs
+        - durationSeconds
+        - replicationNumber
+      properties:
+        architecture:
+          type: string
+          enum: [webserial, backend-node]
+        source:
+          type: string
+          enum: [serial, simulator]
+        communicationMode:
+          type: string
+          enum: [webserial, rest-polling, websocket]
+        sendIntervalMs: { type: integer, minimum: 1 }
+        durationSeconds: { type: number }
+        replicationNumber: { type: integer }
+    ClockSyncMetadata:
+      type: object
+      required:
+        - arduinoHostOffsetMs
+        - arduinoHostRttMs
+        - arduinoHostUncertaintyMs
+        - frontendBackendOffsetMs
+        - frontendBackendRttMs
+        - frontendBackendUncertaintyMs
+        - syncAttempts
+        - selectedBy
+        - syncedAt
+        - syncFailed
+      properties:
+        arduinoToBackendOffsetMs: { type: number, nullable: true }
+        arduinoToBackendRttMs: { type: number, nullable: true }
+        arduinoToBackendUncertaintyMs: { type: number, nullable: true }
+        arduinoHostOffsetMs: { type: number, nullable: true }
+        arduinoHostRttMs: { type: number, nullable: true }
+        arduinoHostUncertaintyMs: { type: number, nullable: true }
+        arduinoRemoteUnit:
+          type: string
+          enum: [us, ms]
+          nullable: true
+        backendToFrontendOffsetMs: { type: number, nullable: true }
+        backendToFrontendRttMs: { type: number, nullable: true }
+        backendToFrontendUncertaintyMs: { type: number, nullable: true }
+        frontendBackendOffsetMs: { type: number, nullable: true }
+        frontendBackendRttMs: { type: number, nullable: true }
+        frontendBackendUncertaintyMs: { type: number, nullable: true }
+        arduinoToFrontendOffsetMs: { type: number, nullable: true }
+        arduinoToFrontendUncertaintyMs: { type: number, nullable: true }
+        syncAttempts: { type: integer }
+        selectedBy:
+          type: string
+          enum: [lowest_rtt]
+        syncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        syncFailed: { type: boolean }
+        fallbackReason: { type: string }
+    ExperimentState:
+      allOf:
+        - $ref: "#/components/schemas/ExperimentConfig"
+        - type: object
+          required: [id, status, startedAt, stoppedAt]
+          properties:
+            id: { type: string }
+            status:
+              type: string
+              enum: [idle, running, stopped]
+            startedAt: { type: string, format: date-time }
+            stoppedAt:
+              type: string
+              format: date-time
+              nullable: true
+            clockSync:
+              oneOf:
+                - $ref: "#/components/schemas/ClockSyncMetadata"
+                - type: "null"
+  # NOTE WebSocket:
+  # ws://<host>:<port>/   -> mensagens push em formato JSON:
+  #   { "type": "processed-sensor", "payload": ProcessedSensorMessage }
+  # Anuncio inicial:
+  #   { "type": "welcome", "message": "..." }
