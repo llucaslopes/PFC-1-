@@ -1,7 +1,7 @@
 import { appendLog, els, formatSerialSource, setStatus } from "./dom.js";
-import { resetMetrics } from "./metrics.js";
+import { ensureDisplayTicker, resetMetrics, stopDisplayTicker } from "./metrics.js";
 import { parseAndConsumeLines } from "./parser.js";
-import { serialState } from "./state.js";
+import { serialState, simulatorState } from "./state.js";
 
 export function initializeSerialSupport() {
   if (!("serial" in navigator)) {
@@ -26,10 +26,20 @@ export async function connectSerial() {
   try {
     serialState.port = await navigator.serial.requestPort();
     await serialState.port.open({ baudRate: Number(els.baud.value) || 115200 });
+    // Web Serial NAO asserta DTR/RTS por padrao. Sem isso, placas com USB-CDC
+    // nativa (Leonardo, Micro, Zero, MKR, ESP32-S2/S3, RP2040, varios clones)
+    // ficam presas em `while (!Serial)` no setup() e nenhum byte e enviado.
+    // Asserta apos open() pra liberar a porta CDC ACM no lado do firmware.
+    await assertSerialControlLines();
     resetMetrics();
     els.source.textContent = formatSerialSource(serialState.port);
     setStatus("Serial aberta. Recebendo...", true);
     appendLog(`Aberto a ${els.baud.value} baud`);
+    // Garante que o display ticker (10 Hz) esta rodando para que os contadores
+    // (Mensagens, Por segundo, Batimento, etc.) atualizem mesmo no modo
+    // "so conectado" — antes da refatoracao o ticker so existia durante
+    // experimento ativo, deixando a UI eternamente em "--" sem experimento.
+    ensureDisplayTicker();
     readSerialLoop();
   } catch (error) {
     if (error.name === "NotFoundError") {
@@ -38,6 +48,24 @@ export async function connectSerial() {
       appendLog(`Falha ao abrir: ${error.message}`);
       setStatus("Falha ao abrir serial.", false);
     }
+  }
+}
+
+async function assertSerialControlLines() {
+  if (typeof serialState.port?.setSignals !== "function") {
+    appendLog("Aviso: setSignals indisponivel neste navegador (DTR/RTS nao assertados).");
+    return;
+  }
+
+  try {
+    await serialState.port.setSignals({
+      dataTerminalReady: true,
+      requestToSend: true
+    });
+  } catch (error) {
+    // Algumas portas USB-CDC retornam NotSupportedError. Nao e fatal: drivers
+    // FT232/CH340 entregam bytes sem DTR. So registramos pra ajudar debug.
+    appendLog(`Aviso: nao foi possivel assertar DTR/RTS (${error.name}).`);
   }
 }
 
@@ -52,6 +80,17 @@ export async function disconnectSerial() {
   }
 
   try {
+    if (typeof serialState.port?.setSignals === "function") {
+      await serialState.port.setSignals({
+        dataTerminalReady: false,
+        requestToSend: false
+      });
+    }
+  } catch (_) {
+    /* desassertar e best-effort; se falhar, ainda fechamos a porta abaixo */
+  }
+
+  try {
     if (serialState.port) {
       await serialState.port.close();
     }
@@ -63,6 +102,11 @@ export async function disconnectSerial() {
   els.source.textContent = "Serial offline";
   setStatus("Serial fechada.", true);
   appendLog("Porta fechada.");
+  // So derruba o ticker se nao houver outra fonte ativa (simulador). Assim
+  // o usuario pode alternar serial -> simulador sem perder a UI viva.
+  if (!simulatorState.timer) {
+    stopDisplayTicker();
+  }
 }
 
 export async function sendSerialIntervalCommand(intervalMs) {

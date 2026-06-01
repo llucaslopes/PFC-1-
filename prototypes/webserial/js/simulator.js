@@ -1,7 +1,7 @@
 import { appendLog, els, setStatus } from "./dom.js";
-import { resetMetrics } from "./metrics.js";
+import { ensureDisplayTicker, resetMetrics, stopDisplayTicker } from "./metrics.js";
 import { parseAndConsumeLines } from "./parser.js";
-import { simulatorState } from "./state.js";
+import { serialState, simulatorState } from "./state.js";
 
 export function startSimulator() {
   if (simulatorState.timer) {
@@ -15,6 +15,7 @@ export function startSimulator() {
   simulatorState.timer = setInterval(simTick, intervalMs);
   setStatus(`Simulacao a cada ${intervalMs} ms`, true);
   appendLog(`Simulacao iniciada (${intervalMs} ms).`);
+  ensureDisplayTicker();
 }
 
 export function setSimulatorInterval(intervalMs) {
@@ -40,6 +41,9 @@ export function stopSimulator() {
   appendLog("Simulacao parada.");
   els.source.textContent = "Simulador offline";
   setStatus("Simulacao parada.", true);
+  if (!serialState.port) {
+    stopDisplayTicker();
+  }
 }
 
 export function cleanupSimulator() {

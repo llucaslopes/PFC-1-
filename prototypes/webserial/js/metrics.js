@@ -1,6 +1,14 @@
 import { els } from "./dom.js";
-import { MAX_DISPLAY_STATS_SAMPLES, MAX_SAMPLES, metricsState } from "./state.js";
+import { DISPLAY_TICK_MS, MAX_DISPLAY_STATS_SAMPLES, MAX_SAMPLES, metricsState } from "./state.js";
 import { createLatencyCalibrator, numericStats } from "./scientific.js";
+
+// Ticker UNICO de display (10 Hz). Idempotente: pode ser chamado por qualquer
+// produtor de dados (serial connect, simulador start, experimento) sem
+// duplicar intervals. Vive enquanto houver uma fonte ativa — o parser apenas
+// grava snapshots em metricsState.lastDisplay e este ticker materializa no
+// DOM. Antes desta refatoracao, o ticker so existia durante experimento,
+// entao a UI ficava em "--" no modo "so conectado, sem experimento ativo".
+let displayTickerId = null;
 
 export function pushInterArrival(now) {
   if (metricsState.lastArrival != null) {
@@ -111,6 +119,27 @@ export function applyDisplayUpdate() {
     els.throughput.textContent = metricsState.lastThroughput.toFixed(1);
   }
   applySystemMetrics(metricsState.lastThroughput, 0);
+}
+
+export function ensureDisplayTicker() {
+  if (displayTickerId !== null) {
+    return;
+  }
+  displayTickerId = setInterval(applyDisplayUpdate, DISPLAY_TICK_MS);
+}
+
+export function stopDisplayTicker() {
+  if (displayTickerId === null) {
+    return;
+  }
+  clearInterval(displayTickerId);
+  displayTickerId = null;
+  // Drena uma ultima passada para o DOM refletir os ultimos numeros.
+  applyDisplayUpdate();
+}
+
+export function isDisplayTickerRunning() {
+  return displayTickerId !== null;
 }
 
 export function serializeStats(value) {

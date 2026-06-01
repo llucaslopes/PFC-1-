@@ -50,8 +50,9 @@ export const experiment = {
   completedRuns: [],
   campaign: null,
   timer: null,
-  ticker: null,
-  displayTicker: null
+  ticker: null
+  // displayTicker foi removido: o ticker de display agora vive em metrics.js
+  // e e gerenciado por connectSerial/startSimulator (ensureDisplayTicker).
 };
 
 export const MAX_SAMPLES = 500;
