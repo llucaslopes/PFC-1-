@@ -36,6 +36,28 @@ resultados/**
 !resultados/**/*.webp
 !resultados/**/*.pdf
 
+# Entregáveis do TCC (figuras, tabelas, diagramas e textos academicos)
+# em resultados/figuras_tcc/. Aqui versionamos TUDO, inclusive .csv,
+# .xlsx, .md e .mmd, porque sao os artefatos finais do trabalho.
+!resultados/figuras_tcc/**/*.md
+!resultados/figuras_tcc/**/*.mmd
+!resultados/figuras_tcc/**/*.csv
+!resultados/figuras_tcc/**/*.xlsx
+
+# Consolidados das campanhas (sao a entrada dos scripts de plotagem
+# e tabelas; sem eles o repo nao regenera as figuras do TCC).
+!resultados/**/consolidated_metrics.csv
+!resultados/**/consolidated_metrics.json
+!resultados/**/consolidated_metrics_corrected.csv
+!resultados/**/consolidated_metrics_corrected.json
+
+# Audit trail das correcoes (rollover micros() do Arduino, etc.).
+!resultados/**/correction_report.json
+
+# Resumos finais utilizados pelo artigo (graficos-artigo/*.csv).
+# Os PNGs ja sao versionados; aqui liberamos as fontes de dados.
+!resultados/graficos-artigo/*.csv
+
 # Python (scripts/consolidate_results.py, plot_results.py)
 __pycache__/
 *.py[cod]

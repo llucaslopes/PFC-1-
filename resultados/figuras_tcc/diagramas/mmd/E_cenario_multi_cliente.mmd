@@ -1,0 +1,38 @@
+%% Figura E - Cenario multi-cliente (escalabilidade horizontal)
+flowchart TB
+    classDef hardware fill:#fde7c8,stroke:#cc8a3a,color:#222
+    classDef backend  fill:#ffe1e1,stroke:#b04040,color:#222
+    classDef browser  fill:#cfe5ff,stroke:#3672bd,color:#222
+    classDef tooling  fill:#eee5ff,stroke:#6a4ea3,color:#222
+
+    Arduino["Arduino Uno<br/>(envia CSV via serial)"]:::hardware
+    Backend["Backend Node<br/>WebSocket OU REST<br/>process.cpuUsage / RSS"]:::backend
+
+    subgraph C ["N clientes simultaneos: N in {1, 2, 5, 10, 20}"]
+        direction LR
+        Ca["Cliente 1"]:::browser
+        Cb["Cliente 2"]:::browser
+        Cc["..."]:::browser
+        Cd["Cliente N"]:::browser
+    end
+
+    Orch["scripts/run-multiclient-scalability.mjs<br/>(orquestrador)<br/>- inicia backend<br/>- abre N clientes em paralelo<br/>- amostra /health/process a cada 500 ms"]:::tooling
+    Out[("resultados/escalabilidade-clientes-2026-05-corrigido/<br/>aggregate.json + per-client.csv + resources.csv")]:::tooling
+
+    Arduino --> Backend
+    Orch -- spawn --> Backend
+    Orch -- spawn --> Ca
+    Orch -- spawn --> Cb
+    Orch -- spawn --> Cc
+    Orch -- spawn --> Cd
+
+    Backend -- "WS broadcast<br/>OU<br/>REST: cada cliente faz<br/>GET /data/latest" --> Ca
+    Backend -- "WS broadcast / REST" --> Cb
+    Backend -- "WS broadcast / REST" --> Cc
+    Backend -- "WS broadcast / REST" --> Cd
+
+    Backend -. "GET /health/process" .-> Orch
+    Ca --> Out
+    Cb --> Out
+    Cc --> Out
+    Cd --> Out

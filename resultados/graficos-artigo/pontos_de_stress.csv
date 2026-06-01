@@ -1,0 +1,4 @@
+arch_label,healthy_interval_ms,first_compromised_interval_ms,first_compromised_reasons,baseline_latency_avg_ms,baseline_latency_p95_ms
+WebSerial,4.0,3,throughput<95%; perdas>1.0%; lat. media>2x baseline; lat. P95>2x baseline,3.662333333333333,4.511333333333333
+WebSocket,4.0,3,throughput<95%; perdas>1.0%; lat. media>2x baseline,4.091,4.897666666666667
+REST Polling,,100,throughput<95%; perdas>1.0%,53.99133333333333,98.524
