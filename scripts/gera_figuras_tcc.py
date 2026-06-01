@@ -22,298 +22,98 @@ Reproducao:
 
 Dependencias minimas:
     pandas, numpy, matplotlib, openpyxl
-    (opcional) requests   -> render Mermaid via mermaid.ink
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
-import csv
-import json
 import math
 import sys
-import urllib.request
-import urllib.error
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 import numpy as np
-import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Rectangle
-from matplotlib.lines import Line2D
+
+# Helpers compartilhados (`scripts/lib_py/`).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from lib_py.aggregations import (  # noqa: E402
+    StressPoint,
+    aggregate_horizontal_df,
+    aggregate_vertical_df,
+    compute_stress_points_df,
+)
+from lib_py.plotting import apply_rcparams, save_dual  # noqa: E402
+from lib_py.results_io import load_horizontal_df, load_vertical_df  # noqa: E402
+from lib_py.scenarios import (  # noqa: E402
+    ARCH_LABEL_REST,
+    ARCH_LABEL_WEBSERIAL,
+    ARCH_LABEL_WEBSOCKET,
+    ARCH_ORDER,
+    CANONICAL_ARCH_COLORS as ARCH_COLORS,
+    CANONICAL_ARCH_LINESTYLES as ARCH_LINESTYLES,
+    CANONICAL_ARCH_MARKERS as ARCH_MARKERS,
+)
+
+# Submodulos especificos do TCC (tabelas, diagramas, textos).
+from tcc_report import diagramas_mpl, mermaid, tabelas, textos  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Configuracao global de estilo (qualidade de publicacao)
+# Configuracoes especificas das figuras do TCC
 # ---------------------------------------------------------------------------
 
-ARCH_COLORS = {
-    "WebSerial":     "#1f77b4",
-    "WebSocket":     "#2ca02c",
-    "REST Polling":  "#d62728",
-}
-ARCH_MARKERS = {
-    "WebSerial":     "o",
-    "WebSocket":     "s",
-    "REST Polling":  "^",
-}
-ARCH_LINESTYLES = {
-    "WebSerial":     "-",
-    "WebSocket":     "--",
-    "REST Polling":  ":",
-}
-ARCH_ORDER = ["WebSerial", "WebSocket", "REST Polling"]
-
-# Intervalos das campanhas
+# Intervalos das campanhas (ordem decrescente = eixo X "menor intervalo a direita").
 INTERVALS_VERTICAL = [100, 50, 20, 10, 5, 4, 3, 2, 1]
 INTERVALS_HORIZONTAL = [100, 50, 20, 10, 5]
 CLIENTS_HORIZONTAL = [1, 2, 5, 10, 20]
 
-# Intervalo do produtor para os graficos horizontais (regime saudavel base)
+# Intervalo do produtor para os graficos horizontais (regime saudavel base).
 DEFAULT_HORIZONTAL_INTERVAL_MS = 100
 
-plt.rcParams.update({
-    "font.family": "DejaVu Sans",
-    "font.size": 11,
-    "axes.titlesize": 12.5,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 11,
-    "axes.labelweight": "bold",
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "axes.grid": True,
-    "grid.alpha": 0.30,
-    "grid.linestyle": "--",
-    "grid.linewidth": 0.6,
-    "legend.frameon": True,
-    "legend.framealpha": 0.92,
-    "legend.fontsize": 9.5,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
-    "figure.dpi": 110,
-    "savefig.dpi": 300,
-    "savefig.bbox": "tight",
-    "lines.linewidth": 1.9,
-    "lines.markersize": 7,
-})
+# Subconjuntos exatos de metricas usadas pelas figuras do TCC. As listas
+# foram extraidas da versao monolitica anterior e preservam a ordem das
+# colunas no DataFrame agregado, para nao mudar a serializacao das
+# tabelas Markdown/CSV (paridade bit-a-bit dos entregaveis).
+TCC_VERTICAL_METRICS: tuple[str, ...] = (
+    "throughput_messages_per_second",
+    "throughput_percent",
+    "loss_rate_percent",
+    "latency_avg_ms",
+    "latency_std_ms",
+    "latency_p95_ms",
+    "expected_messages",
+    "received_messages",
+    "missing_messages",
+    "invalid_messages",
+)
+
+TCC_HORIZONTAL_METRICS: tuple[str, ...] = (
+    "throughput_aggregate_msgps",
+    "throughput_avg_per_client_msgps",
+    "throughput_per_client_avg",
+    "latency_avg_mean_across_clients_ms",
+    "latency_p95_worst_client_ms",
+    "cpu_avg_percent",
+    "cpu_p95_percent",
+    "cpu_max_percent",
+    "mem_rss_avg_mb",
+    "mem_rss_max_mb",
+    "mem_heap_used_avg_mb",
+    "fairness_cv",
+    "unique_coverage_percent",
+    "duplicate_delivery_ratio",
+    "producer_rate_messages_per_second",
+)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def normalize_arch(architecture: str, communication_mode: str) -> str:
-    arch = (architecture or "").strip().lower()
-    mode = (communication_mode or "").strip().lower()
-    if arch == "webserial" or mode == "webserial":
-        return "WebSerial"
-    if mode == "websocket":
-        return "WebSocket"
-    if mode in ("rest-polling", "rest_polling", "rest"):
-        return "REST Polling"
-    return f"{architecture}/{communication_mode}"
-
-
-def normalize_mode_clients(mode: str) -> str:
-    m = (mode or "").strip().lower()
-    if m == "webserial":
-        return "WebSerial"
-    if m == "websocket":
-        return "WebSocket"
-    if m in ("rest-polling", "rest_polling", "rest"):
-        return "REST Polling"
-    return mode
-
-
-def save_dual(fig: plt.Figure, png_path: Path, svg_path: Path) -> None:
-    """Salva a figura em PNG (300 dpi) e SVG (vetorial), preservando margens."""
-    png_path.parent.mkdir(parents=True, exist_ok=True)
-    svg_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(png_path, dpi=300, format="png",
-                bbox_inches="tight", pad_inches=0.25)
-    fig.savefig(svg_path, format="svg",
-                bbox_inches="tight", pad_inches=0.25)
-    plt.close(fig)
-
-
-def setup_axes(ax, title, xlabel, ylabel):
+def setup_axes(ax, title: str, xlabel: str, ylabel: str) -> None:
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-
-
-# ---------------------------------------------------------------------------
-# Carregamento de dados
-# ---------------------------------------------------------------------------
-
-def load_vertical(results_root: Path) -> pd.DataFrame:
-    p = results_root / "escalabilidade-2026-05" / "consolidated_metrics.csv"
-    if not p.is_file():
-        raise FileNotFoundError(f"Nao encontrei {p}")
-    df = pd.read_csv(p)
-    df["arch_label"] = df.apply(
-        lambda r: normalize_arch(r.get("architecture", ""),
-                                 r.get("communication_mode", "")), axis=1)
-    df["interval_ms"] = df["interval_ms"].astype(int)
-    df["repetition"] = df["repetition"].astype(int)
-    return df
-
-
-def load_horizontal(results_root: Path) -> pd.DataFrame:
-    p = (results_root
-         / "escalabilidade-clientes-2026-05-corrigido"
-         / "consolidated_metrics_corrected.csv")
-    if not p.is_file():
-        raise FileNotFoundError(f"Nao encontrei {p}")
-    df = pd.read_csv(p)
-    df["arch_label"] = df["mode"].apply(normalize_mode_clients)
-    df["interval_ms"] = df["interval_ms"].astype(int)
-    df["client_count"] = df["client_count"].astype(int)
-    df["replication"] = df["replication"].astype(int)
-    for col in ("exclude_latency_from_analysis",
-                "exclude_throughput_from_analysis",
-                "exclude_loss_from_analysis"):
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.lower().isin(["true", "1", "yes"])
-    return df
-
-
-# ---------------------------------------------------------------------------
-# Agregacoes
-# ---------------------------------------------------------------------------
-
-def agg_vertical(df: pd.DataFrame) -> pd.DataFrame:
-    metrics = [
-        "throughput_messages_per_second", "throughput_percent",
-        "loss_rate_percent",
-        "latency_avg_ms", "latency_std_ms", "latency_p95_ms",
-        "expected_messages", "received_messages", "missing_messages",
-        "invalid_messages",
-    ]
-    agg = df.groupby(["arch_label", "interval_ms"], as_index=False).agg(
-        **{f"{m}_mean": (m, "mean") for m in metrics},
-        **{f"{m}_std": (m, "std") for m in metrics},
-        n_reps=("repetition", "nunique"),
-    )
-    return agg
-
-
-def agg_horizontal(df: pd.DataFrame, interval_ms: Optional[int] = None) -> pd.DataFrame:
-    work = df.copy()
-    if interval_ms is not None:
-        work = work[work["interval_ms"] == interval_ms]
-
-    if "exclude_latency_from_analysis" in work.columns:
-        mask = work["exclude_latency_from_analysis"].fillna(False)
-        # mascarar latencia (mas manter throughput/recursos)
-        for col in ("latency_avg_mean_across_clients_ms",
-                    "latency_p95_worst_client_ms"):
-            if col in work.columns:
-                work.loc[mask, col] = np.nan
-
-    metrics_mean = [
-        "throughput_aggregate_msgps",
-        "throughput_avg_per_client_msgps",
-        "throughput_per_client_avg",
-        "latency_avg_mean_across_clients_ms",
-        "latency_p95_worst_client_ms",
-        "cpu_avg_percent", "cpu_p95_percent", "cpu_max_percent",
-        "mem_rss_avg_mb", "mem_rss_max_mb", "mem_heap_used_avg_mb",
-        "fairness_cv",
-        "unique_coverage_percent",
-        "duplicate_delivery_ratio",
-        "producer_rate_messages_per_second",
-    ]
-    metrics_mean = [m for m in metrics_mean if m in work.columns]
-
-    agg = work.groupby(["arch_label", "interval_ms", "client_count"],
-                       as_index=False).agg(
-        **{f"{m}_mean": (m, "mean") for m in metrics_mean},
-        **{f"{m}_std": (m, "std") for m in metrics_mean},
-        n_reps=("replication", "nunique"),
-        throughput_aggregate_type=("throughput_aggregate_type", "first"),
-    )
-    return agg
-
-
-# ---------------------------------------------------------------------------
-# Stress points (criterio padronizado)
-# ---------------------------------------------------------------------------
-
-@dataclass
-class StressPoint:
-    arch_label: str
-    baseline_interval_ms: int
-    baseline_throughput_pct: float
-    baseline_loss_pct: float
-    baseline_latency_avg: float
-    baseline_latency_p95: float
-    healthy_smallest_ms: Optional[int]
-    first_stress_ms: Optional[int]
-    first_stress_reasons: list[str]
-
-
-def compute_stress_points(agg: pd.DataFrame,
-                          *, baseline_ms: int = 100,
-                          min_throughput_pct: float = 95.0,
-                          max_loss_pct: float = 1.0,
-                          lat_growth: float = 2.0) -> list[StressPoint]:
-    out: list[StressPoint] = []
-    for arch in agg["arch_label"].unique():
-        sub = agg[agg["arch_label"] == arch].sort_values(
-            "interval_ms", ascending=False)
-        base = sub[sub["interval_ms"] == baseline_ms]
-        if base.empty:
-            continue
-        base_thr = float(base["throughput_percent_mean"].iloc[0])
-        base_loss = float(base["loss_rate_percent_mean"].iloc[0])
-        base_lat = float(base["latency_avg_ms_mean"].iloc[0])
-        base_p95 = float(base["latency_p95_ms_mean"].iloc[0])
-
-        healthy = None
-        first_bad = None
-        first_bad_reasons: list[str] = []
-        for _, r in sub.iterrows():
-            reasons = []
-            if r["throughput_percent_mean"] < min_throughput_pct:
-                reasons.append(
-                    f"throughput {r['throughput_percent_mean']:.2f}% < {min_throughput_pct:.0f}%")
-            if r["loss_rate_percent_mean"] > max_loss_pct:
-                reasons.append(
-                    f"perdas {r['loss_rate_percent_mean']:.2f}% > {max_loss_pct:.1f}%")
-            if r["latency_avg_ms_mean"] > lat_growth * base_lat:
-                reasons.append(
-                    f"latencia media {r['latency_avg_ms_mean']:.2f} ms > 2x baseline {base_lat:.2f} ms")
-            if r["latency_p95_ms_mean"] > lat_growth * base_p95:
-                reasons.append(
-                    f"P95 {r['latency_p95_ms_mean']:.2f} ms > 2x baseline {base_p95:.2f} ms")
-            if reasons:
-                if first_bad is None:
-                    first_bad = int(r["interval_ms"])
-                    first_bad_reasons = reasons
-            else:
-                if first_bad is None:
-                    healthy = int(r["interval_ms"])
-
-        out.append(StressPoint(
-            arch_label=arch,
-            baseline_interval_ms=baseline_ms,
-            baseline_throughput_pct=base_thr,
-            baseline_loss_pct=base_loss,
-            baseline_latency_avg=base_lat,
-            baseline_latency_p95=base_p95,
-            healthy_smallest_ms=healthy,
-            first_stress_ms=first_bad,
-            first_stress_reasons=first_bad_reasons,
-        ))
-    out.sort(key=lambda x: ARCH_ORDER.index(x.arch_label)
-             if x.arch_label in ARCH_ORDER else 99)
-    return out
 
 
 # ---------------------------------------------------------------------------
@@ -326,7 +126,7 @@ def _stress_marker_x_for_interval(intervals: list[int], target: Optional[int]) -
     return float(intervals.index(target))
 
 
-def _plot_lines_intervals(agg: pd.DataFrame,
+def _plot_lines_intervals(agg,
                           value_mean: str, value_std: str,
                           title: str, ylabel: str,
                           out_png: Path, out_svg: Path,
@@ -334,7 +134,7 @@ def _plot_lines_intervals(agg: pd.DataFrame,
                           ylim: Optional[tuple] = None,
                           add_health_threshold: Optional[tuple] = None,
                           stress_points: Optional[list[StressPoint]] = None,
-                          note: Optional[str] = None):
+                          note: Optional[str] = None) -> None:
     arches = [a for a in ARCH_ORDER if a in agg["arch_label"].unique()]
     intervals = [i for i in INTERVALS_VERTICAL if i in agg["interval_ms"].unique()]
 
@@ -389,7 +189,7 @@ def _plot_lines_intervals(agg: pd.DataFrame,
     save_dual(fig, out_png, out_svg)
 
 
-def _plot_lines_clients(agg: pd.DataFrame,
+def _plot_lines_clients(agg,
                         value_mean: str, value_std: str,
                         title: str, ylabel: str,
                         out_png: Path, out_svg: Path,
@@ -398,7 +198,7 @@ def _plot_lines_clients(agg: pd.DataFrame,
                         webserial_as_marker: bool = True,
                         log_y: bool = False,
                         note: Optional[str] = None,
-                        only_arch: Optional[str] = None):
+                        only_arch: Optional[str] = None) -> None:
     if archs is None:
         archs = [a for a in ARCH_ORDER if a in agg["arch_label"].unique()]
     if only_arch is not None:
@@ -415,7 +215,7 @@ def _plot_lines_clients(agg: pd.DataFrame,
             errs.append(float(row[value_std].iloc[0])
                         if (not row.empty and value_std in row.columns) else 0.0)
 
-        if webserial_as_marker and arch == "WebSerial":
+        if webserial_as_marker and arch == ARCH_LABEL_WEBSERIAL:
             n1 = [(c, y) for c, y in zip(clients, ys)
                   if c == 1 and not (isinstance(y, float) and math.isnan(y))]
             if n1:
@@ -450,7 +250,7 @@ def _plot_lines_clients(agg: pd.DataFrame,
 
 
 # ---------------------------------------------------------------------------
-# PARTE 1 — Figuras 01 a 04 (escalabilidade VERTICAL)
+# PARTE 1 - Figuras 01 a 04 (escalabilidade VERTICAL)
 # ---------------------------------------------------------------------------
 
 def fig01_throughput_vs_intervalo(agg, sps, out_png, out_svg):
@@ -509,8 +309,12 @@ def fig04_latencia_p95_vs_intervalo(agg, sps, out_png, out_svg):
 
 
 # ---------------------------------------------------------------------------
-# PARTE 2 — Figuras 05 a 11 (escalabilidade HORIZONTAL, intervalo padrao 100 ms)
+# PARTE 2 - Figuras 05 a 11 (escalabilidade HORIZONTAL, intervalo padrao 100 ms)
 # ---------------------------------------------------------------------------
+
+_ALL_ARCHS = [ARCH_LABEL_WEBSERIAL, ARCH_LABEL_WEBSOCKET, ARCH_LABEL_REST]
+_BACKEND_ARCHS = [ARCH_LABEL_WEBSOCKET, ARCH_LABEL_REST]
+
 
 def fig05_throughput_por_clientes(agg, out_png, out_svg, interval_ms):
     _plot_lines_clients(
@@ -519,8 +323,7 @@ def fig05_throughput_por_clientes(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Throughput agregado (msg/s)",
         out_png, out_svg,
-        archs=[a for a in ["WebSerial", "WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _ALL_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=True,
         note=("WebSocket: entregas por broadcast (~ produtor x N). "
               "REST Polling: respostas HTTP (pode haver duplicacao entre clientes). "
@@ -535,8 +338,7 @@ def fig06_throughput_por_cliente(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Throughput medio por cliente (msg/s)",
         out_png, out_svg,
-        archs=[a for a in ["WebSerial", "WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _ALL_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=True,
         ylim=(0, None),
         note=("Em WebSocket cada cliente recebe a mensagem completa por broadcast; "
@@ -551,8 +353,7 @@ def fig07_cpu_por_clientes(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "CPU media do processo Node (%)",
         out_png, out_svg,
-        archs=[a for a in ["WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _BACKEND_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=False,
         ylim=(0, None),
         note=("Amostragem via /health/process (process.cpuUsage). "
@@ -567,8 +368,7 @@ def fig08_memoria_por_clientes(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Memoria RSS media do processo Node (MB)",
         out_png, out_svg,
-        archs=[a for a in ["WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _BACKEND_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=False,
         ylim=(0, None),
         note=("RSS = Resident Set Size, soma de memoria fisica residente "
@@ -584,8 +384,7 @@ def fig09_latencia_media_por_clientes(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Latencia media (ms)",
         out_png, out_svg,
-        archs=[a for a in ["WebSerial", "WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _ALL_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=True,
         ylim=(0, None),
         note=("Linhas com anomalia de rollover do micros() do Arduino "
@@ -601,8 +400,7 @@ def fig10_latencia_p95_por_clientes(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Latencia P95 do pior cliente (ms)",
         out_png, out_svg,
-        archs=[a for a in ["WebSerial", "WebSocket", "REST Polling"]
-               if a in agg["arch_label"].unique()],
+        archs=[a for a in _ALL_ARCHS if a in agg["arch_label"].unique()],
         webserial_as_marker=True,
         ylim=(0, None),
         note=("P95 escolhido entre clientes da mesma execucao (worst-case). "
@@ -618,7 +416,7 @@ def fig11_cobertura_unica_websocket(agg, out_png, out_svg, interval_ms):
         f"(produtor a {interval_ms} ms)",
         "Cobertura unica (% do esperado)",
         out_png, out_svg,
-        archs=["WebSocket"],
+        archs=[ARCH_LABEL_WEBSOCKET],
         webserial_as_marker=False,
         ylim=(0, 105),
         note=("Cobertura unica = |uniao dos seq vistos| / esperado. 100% indica que "
@@ -629,21 +427,93 @@ def fig11_cobertura_unica_websocket(agg, out_png, out_svg, interval_ms):
 
 
 # ---------------------------------------------------------------------------
-# main()
+# Orquestracao
 # ---------------------------------------------------------------------------
 
-# importa modulos auxiliares (mesma pasta scripts/)
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _gera_tabelas_diagramas import (   # noqa: E402
-    tabela1_resumo_vertical, tabela2_pontos_de_stress,
-    tabela3_resumo_horizontal, tabela4_uso_recursos,
-    tabela5_comparacao_final,
-    save_mermaid_sources, try_render_mermaid_diagrams,
+_MERMAID_DIAGRAM_NAMES = (
+    "A_arquitetura_webserial",
+    "B_arquitetura_websocket",
+    "C_arquitetura_rest_polling",
+    "D_fluxo_medicao_latencia",
+    "E_cenario_multi_cliente",
+    "F_ambiente_experimental",
 )
-from _gera_diagramas_mpl import render_all_mpl_diagrams  # noqa: E402
-from _gera_textos import (                # noqa: E402
-    write_legendas, write_revisao_final, write_readme,
-)
+
+
+def _render_vertical_figs(agg_v, sps, png_dir: Path, svg_dir: Path) -> None:
+    fig01_throughput_vs_intervalo(
+        agg_v, sps,
+        png_dir / "fig01_throughput_vs_intervalo.png",
+        svg_dir / "fig01_throughput_vs_intervalo.svg")
+    fig02_perda_vs_intervalo(
+        agg_v, sps,
+        png_dir / "fig02_perda_vs_intervalo.png",
+        svg_dir / "fig02_perda_vs_intervalo.svg")
+    fig03_latencia_media_vs_intervalo(
+        agg_v, sps,
+        png_dir / "fig03_latencia_media_vs_intervalo.png",
+        svg_dir / "fig03_latencia_media_vs_intervalo.svg")
+    fig04_latencia_p95_vs_intervalo(
+        agg_v, sps,
+        png_dir / "fig04_latencia_p95_vs_intervalo.png",
+        svg_dir / "fig04_latencia_p95_vs_intervalo.svg")
+
+
+def _render_horizontal_figs(agg_h, png_dir: Path, svg_dir: Path, interval_ms: int) -> None:
+    fig05_throughput_por_clientes(
+        agg_h,
+        png_dir / "fig05_throughput_por_clientes.png",
+        svg_dir / "fig05_throughput_por_clientes.svg",
+        interval_ms)
+    fig06_throughput_por_cliente(
+        agg_h,
+        png_dir / "fig06_throughput_por_cliente.png",
+        svg_dir / "fig06_throughput_por_cliente.svg",
+        interval_ms)
+    fig07_cpu_por_clientes(
+        agg_h,
+        png_dir / "fig07_cpu_por_clientes.png",
+        svg_dir / "fig07_cpu_por_clientes.svg",
+        interval_ms)
+    fig08_memoria_por_clientes(
+        agg_h,
+        png_dir / "fig08_memoria_por_clientes.png",
+        svg_dir / "fig08_memoria_por_clientes.svg",
+        interval_ms)
+    fig09_latencia_media_por_clientes(
+        agg_h,
+        png_dir / "fig09_latencia_media_por_clientes.png",
+        svg_dir / "fig09_latencia_media_por_clientes.svg",
+        interval_ms)
+    fig10_latencia_p95_por_clientes(
+        agg_h,
+        png_dir / "fig10_latencia_p95_por_clientes.png",
+        svg_dir / "fig10_latencia_p95_por_clientes.svg",
+        interval_ms)
+    fig11_cobertura_unica_websocket(
+        agg_h,
+        png_dir / "fig11_cobertura_unica_websocket.png",
+        svg_dir / "fig11_cobertura_unica_websocket.svg",
+        interval_ms)
+
+
+def _render_tables(agg_v, agg_h, sps, tab_dir: Path, interval_ms: int) -> None:
+    tabelas.tabela1_resumo_vertical(agg_v, tab_dir)
+    tabelas.tabela2_pontos_de_stress(sps, tab_dir)
+    tabelas.tabela3_resumo_horizontal(agg_h, tab_dir, interval_ms)
+    tabelas.tabela4_uso_recursos(agg_h, tab_dir, interval_ms)
+    tabelas.tabela5_comparacao_final(agg_v, agg_h, sps, tab_dir, interval_ms)
+
+
+def _render_diagrams(diag_dir: Path, mmd_dir: Path,
+                     *, allow_online: bool) -> dict[str, dict[str, bool]]:
+    mermaid.save_mermaid_sources(mmd_dir)
+    diagramas_mpl.render_all_mpl_diagrams(diag_dir)
+    if not allow_online:
+        print("[skip] render online (mermaid.ink) desativado por --no-mermaid-online")
+        return {name: {"png_inkapi": False, "svg_inkapi": False}
+                for name in _MERMAID_DIAGRAM_NAMES}
+    return mermaid.try_render_mermaid_diagrams(diag_dir)
 
 
 def main(argv=None) -> int:
@@ -662,15 +532,17 @@ def main(argv=None) -> int:
                              "(somente .mmd + matplotlib).")
     args = parser.parse_args(argv)
 
+    apply_rcparams("tcc")
+
     results_root = Path(args.results_root).resolve()
     out_dir = Path(args.out).resolve() if args.out else (
         results_root / "figuras_tcc")
 
-    png_dir   = out_dir / "png"
-    svg_dir   = out_dir / "svg"
-    diag_dir  = out_dir / "diagramas"
-    mmd_dir   = diag_dir / "mmd"
-    tab_dir   = out_dir / "tabelas"
+    png_dir = out_dir / "png"
+    svg_dir = out_dir / "svg"
+    diag_dir = out_dir / "diagramas"
+    mmd_dir = diag_dir / "mmd"
+    tab_dir = out_dir / "tabelas"
     for d in (out_dir, png_dir, svg_dir, diag_dir, mmd_dir, tab_dir):
         d.mkdir(parents=True, exist_ok=True)
 
@@ -678,105 +550,34 @@ def main(argv=None) -> int:
     print(f"[gera_figuras_tcc] out_dir           = {out_dir}")
     print(f"[gera_figuras_tcc] horizontal interv = {args.client_interval} ms")
 
-    # 1) Carregar dados
-    df_v = load_vertical(results_root)
-    df_h = load_horizontal(results_root)
+    df_v = load_vertical_df(results_root)
+    df_h = load_horizontal_df(results_root)
     print(f"[ok] vertical: {len(df_v)} linhas | horizontal: {len(df_h)} linhas")
 
-    # 2) Agregar
-    agg_v = agg_vertical(df_v)
-    agg_h_def = agg_horizontal(df_h, interval_ms=args.client_interval)
+    agg_v = aggregate_vertical_df(df_v, metrics=TCC_VERTICAL_METRICS)
+    agg_h_def = aggregate_horizontal_df(
+        df_h,
+        interval_ms=args.client_interval,
+        metrics=TCC_HORIZONTAL_METRICS,
+    )
 
-    # 3) Stress points
-    sps = compute_stress_points(agg_v)
+    sps = compute_stress_points_df(agg_v)
 
-    # 4) Figuras 01-04 (escalabilidade vertical)
-    fig01_throughput_vs_intervalo(
-        agg_v, sps,
-        png_dir / "fig01_throughput_vs_intervalo.png",
-        svg_dir / "fig01_throughput_vs_intervalo.svg")
-    fig02_perda_vs_intervalo(
-        agg_v, sps,
-        png_dir / "fig02_perda_vs_intervalo.png",
-        svg_dir / "fig02_perda_vs_intervalo.svg")
-    fig03_latencia_media_vs_intervalo(
-        agg_v, sps,
-        png_dir / "fig03_latencia_media_vs_intervalo.png",
-        svg_dir / "fig03_latencia_media_vs_intervalo.svg")
-    fig04_latencia_p95_vs_intervalo(
-        agg_v, sps,
-        png_dir / "fig04_latencia_p95_vs_intervalo.png",
-        svg_dir / "fig04_latencia_p95_vs_intervalo.svg")
-
-    # 5) Figuras 05-11 (escalabilidade horizontal)
-    fig05_throughput_por_clientes(
-        agg_h_def,
-        png_dir / "fig05_throughput_por_clientes.png",
-        svg_dir / "fig05_throughput_por_clientes.svg",
-        args.client_interval)
-    fig06_throughput_por_cliente(
-        agg_h_def,
-        png_dir / "fig06_throughput_por_cliente.png",
-        svg_dir / "fig06_throughput_por_cliente.svg",
-        args.client_interval)
-    fig07_cpu_por_clientes(
-        agg_h_def,
-        png_dir / "fig07_cpu_por_clientes.png",
-        svg_dir / "fig07_cpu_por_clientes.svg",
-        args.client_interval)
-    fig08_memoria_por_clientes(
-        agg_h_def,
-        png_dir / "fig08_memoria_por_clientes.png",
-        svg_dir / "fig08_memoria_por_clientes.svg",
-        args.client_interval)
-    fig09_latencia_media_por_clientes(
-        agg_h_def,
-        png_dir / "fig09_latencia_media_por_clientes.png",
-        svg_dir / "fig09_latencia_media_por_clientes.svg",
-        args.client_interval)
-    fig10_latencia_p95_por_clientes(
-        agg_h_def,
-        png_dir / "fig10_latencia_p95_por_clientes.png",
-        svg_dir / "fig10_latencia_p95_por_clientes.svg",
-        args.client_interval)
-    fig11_cobertura_unica_websocket(
-        agg_h_def,
-        png_dir / "fig11_cobertura_unica_websocket.png",
-        svg_dir / "fig11_cobertura_unica_websocket.svg",
-        args.client_interval)
+    _render_vertical_figs(agg_v, sps, png_dir, svg_dir)
+    _render_horizontal_figs(agg_h_def, png_dir, svg_dir, args.client_interval)
     print("[ok] 11 figuras (PNG+SVG) geradas em png/ e svg/")
 
-    # 6) Tabelas (PARTE 3)
-    tabela1_resumo_vertical(agg_v, tab_dir)
-    tabela2_pontos_de_stress(sps, tab_dir)
-    tabela3_resumo_horizontal(agg_h_def, tab_dir, args.client_interval)
-    tabela4_uso_recursos(agg_h_def, tab_dir, args.client_interval)
-    tabela5_comparacao_final(agg_v, agg_h_def, sps, tab_dir,
-                             args.client_interval)
+    _render_tables(agg_v, agg_h_def, sps, tab_dir, args.client_interval)
     print("[ok] 5 tabelas (CSV+XLSX+MD) geradas em tabelas/")
 
-    # 7) Diagramas Mermaid (.mmd) + render matplotlib + tentativa mermaid.ink
-    save_mermaid_sources(mmd_dir)
-    render_all_mpl_diagrams(diag_dir)
+    mermaid_status = _render_diagrams(
+        diag_dir, mmd_dir, allow_online=not args.no_mermaid_online,
+    )
     print("[ok] 6 diagramas (matplotlib PNG+SVG) geradas em diagramas/")
-    if args.no_mermaid_online:
-        mermaid_status = {n: {"png_inkapi": False, "svg_inkapi": False}
-                          for n in (
-                              "A_arquitetura_webserial",
-                              "B_arquitetura_websocket",
-                              "C_arquitetura_rest_polling",
-                              "D_fluxo_medicao_latencia",
-                              "E_cenario_multi_cliente",
-                              "F_ambiente_experimental",
-                          )}
-        print("[skip] render online (mermaid.ink) desativado por --no-mermaid-online")
-    else:
-        mermaid_status = try_render_mermaid_diagrams(diag_dir)
 
-    # 8) Textos (PARTE 5 e 6)
-    write_legendas(out_dir, default_horizontal_interval_ms=args.client_interval)
-    write_revisao_final(out_dir, default_horizontal_interval_ms=args.client_interval)
-    write_readme(out_dir, mermaid_status)
+    textos.write_legendas(out_dir, default_horizontal_interval_ms=args.client_interval)
+    textos.write_revisao_final(out_dir, default_horizontal_interval_ms=args.client_interval)
+    textos.write_readme(out_dir, mermaid_status)
     print("[ok] legendas.md, revisao_final.md e README.md gerados")
 
     print()

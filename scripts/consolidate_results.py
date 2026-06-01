@@ -1,68 +1,61 @@
 #!/usr/bin/env python3
-"""Consolidate experiment metrics CSV files into one table."""
+"""Consolida arquivos CSV de metricas do experimento em uma so tabela.
+
+Suporta dois formatos de entrada (heuristica via `lib_py.results_io`):
+
+- `*_campaign-summary.csv` (novo, preferido)
+- `*_metrics.csv` (legado, usado quando nao ha nenhum summary)
+
+A coluna `source_file` eh adicionada para rastreabilidade da origem de cada
+linha. Saida default: `<results_dir>/consolidated_metrics.csv`.
+"""
 
 from __future__ import annotations
 
 import argparse
 import csv
+import sys
 from pathlib import Path
 
-
-CAMPAIGN_SUMMARY_SUFFIX = "_campaign-summary.csv"
-METRICS_SUFFIX = "_metrics.csv"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib_py.results_io import (  # noqa: E402
+    CONSOLIDATED_CSV_NAME,
+    find_metric_files_with_fallback,
+)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Consolidate TCC experiment CSV files.")
+    parser = argparse.ArgumentParser(description="Consolida CSVs de experimentos TCC em uma tabela unica.")
     parser.add_argument(
         "results_dir",
         nargs="?",
         default="resultados",
-        help="Directory containing exported CSV files.",
+        help="Pasta contendo os CSVs exportados.",
     )
     parser.add_argument(
         "--output",
         default=None,
-        help="Output CSV path. Defaults to <results_dir>/consolidated_metrics.csv.",
+        help=f"Caminho do CSV de saida (default: <results_dir>/{CONSOLIDATED_CSV_NAME}).",
     )
     return parser.parse_args()
-
-
-def find_metric_files(results_dir: Path) -> list[Path]:
-    campaign_summary_files = sorted(
-        path
-        for path in results_dir.rglob("*.csv")
-        if path.name.endswith(CAMPAIGN_SUMMARY_SUFFIX)
-    )
-    if campaign_summary_files:
-        return campaign_summary_files
-
-    return sorted(
-        path
-        for path in results_dir.rglob("*.csv")
-        if path.name.endswith(METRICS_SUFFIX)
-        and path.name != "consolidated_metrics.csv"
-    )
 
 
 def main() -> int:
     args = parse_args()
     results_dir = Path(args.results_dir)
-    output = Path(args.output) if args.output else results_dir / "consolidated_metrics.csv"
+    output = Path(args.output) if args.output else results_dir / CONSOLIDATED_CSV_NAME
 
     rows: list[dict[str, str]] = []
     fieldnames: list[str] = []
 
-    for csv_path in find_metric_files(results_dir):
+    for csv_path in find_metric_files_with_fallback(results_dir):
         with csv_path.open("r", newline="", encoding="utf-8-sig") as handle:
             reader = csv.DictReader(handle)
             if not reader.fieldnames:
                 continue
-
             for field in ["source_file", *reader.fieldnames]:
                 if field not in fieldnames:
                     fieldnames.append(field)
-
             for row in reader:
                 row["source_file"] = str(csv_path.relative_to(results_dir))
                 rows.append(row)

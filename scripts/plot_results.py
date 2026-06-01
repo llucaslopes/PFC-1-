@@ -1,54 +1,46 @@
 #!/usr/bin/env python3
-"""Generate comparison plots from consolidated experiment metrics."""
+"""Gera graficos comparativos a partir do `consolidated_metrics.csv`.
+
+Diferente de `plot_scalability.py`, este script trabalha sobre o
+consolidado *generico* produzido por `consolidate_results.py` (concatena
+`*_campaign-summary.csv` / `*_metrics.csv` brutos), e cobre as metricas
+do schema antigo do runtime (`messages_per_second`, `estimated_latency_*`,
+etc.). Algumas figuras so sao geradas quando essas colunas existem.
+"""
 
 from __future__ import annotations
 
 import argparse
-import csv
-import math
-import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-
-# Per-series visual style. Markers + linestyles distinguish the curves even when
-# values overlap (webserial and websocket end up almost identical for most
-# intervals, so just color is not enough).
-SERIES_STYLES: dict[tuple[str, str, str], dict[str, str]] = {
-    ("backend-node", "rest-polling", "serial"): {
-        "label": "Backend Node + REST polling",
-        "color": "#1f77b4",
-        "marker": "o",
-        "linestyle": "-",
-    },
-    ("backend-node", "websocket", "serial"): {
-        "label": "Backend Node + WebSocket",
-        "color": "#d62728",
-        "marker": "s",
-        "linestyle": "--",
-    },
-    ("webserial", "webserial", "serial"): {
-        "label": "Web Serial (navegador)",
-        "color": "#2ca02c",
-        "marker": "^",
-        "linestyle": ":",
-    },
-}
-
-DEFAULT_STYLE = {
-    "color": "#7f7f7f",
-    "marker": "x",
-    "linestyle": "-.",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib_py.results_io import (  # noqa: E402
+    CONSOLIDATED_CSV_NAME,
+    ensure_consolidated_via_subprocess,
+    find_per_run_metric_files,
+    read_rows_dict,
+    should_regenerate,
+)
+from lib_py.scenarios import (  # noqa: E402
+    LEGACY_SERIES_STYLES_3KEY,
+    style_for_legacy_3key,
+)
+from lib_py.stats import (  # noqa: E402
+    format_interval,
+    mean,
+    sample_stddev,
+    to_float,
+)
 
 
 PlotSpec = dict[str, object]
 
-# Each spec describes one plot: which metric to show, axis treatment, and the
-# title/filename. Latency plots intentionally also have a zoomed variant because
-# REST polling at large intervals shows a polling-induced latency floor that
-# crushes the y-axis for the other transports.
+# Cada spec descreve um plot: metrica, tratamento de eixos, titulo e nome do
+# arquivo. Plots de latencia tem uma variante com zoom porque REST polling em
+# intervalos grandes mostra um piso de latencia induzido pelo polling que
+# achata o eixo Y para os outros transportes.
 PLOTS: list[PlotSpec] = [
     {
         "metric": "throughput_percent",
@@ -112,8 +104,8 @@ PLOTS: list[PlotSpec] = [
         "metric": "missing_messages",
         "title": "Mensagens ausentes (contagem, escala log)",
         "ylabel": "Mensagens ausentes",
-        "filename": "missing_messages.png",
         "yscale": "log",
+        "filename": "missing_messages.png",
         "drop_zero_y": True,
         "legend_loc": "upper right",
     },
@@ -126,48 +118,29 @@ def parse_args() -> argparse.Namespace:
         "results_dir",
         nargs="?",
         default="resultados",
-        help="Directory containing consolidated_metrics.csv.",
+        help="Pasta contendo `consolidated_metrics.csv`.",
     )
     parser.add_argument(
         "--linear-x",
         action="store_true",
-        help="Use a linear x axis instead of the default logarithmic interval axis.",
+        help="Eixo X linear em vez do log default.",
     )
     parser.add_argument(
         "--no-saturation-markers",
         action="store_true",
-        help="Disable the vertical lines that mark each series' saturation interval.",
+        help="Desativa as linhas verticais que marcam o intervalo de saturacao.",
     )
     return parser.parse_args()
 
 
 def ensure_consolidated(results_dir: Path) -> Path:
-    consolidated = results_dir / "consolidated_metrics.csv"
-    source_files = [
-        path
-        for path in results_dir.rglob("*.csv")
-        if path.name.endswith(("_campaign-summary.csv", "_metrics.csv"))
-        and path.resolve() != consolidated.resolve()
-    ]
-    latest_source_mtime = max((path.stat().st_mtime for path in source_files), default=0.0)
-
-    if consolidated.exists() and consolidated.stat().st_mtime >= latest_source_mtime:
+    consolidated = results_dir / CONSOLIDATED_CSV_NAME
+    source_files = find_per_run_metric_files(results_dir, consolidated_path=consolidated)
+    if not should_regenerate(consolidated, source_files):
         return consolidated
-
-    subprocess.run(
-        [sys.executable, str(Path(__file__).with_name("consolidate_results.py")), str(results_dir)],
-        check=True,
-    )
+    consolidate_script = Path(__file__).with_name("consolidate_results.py")
+    ensure_consolidated_via_subprocess(consolidate_script, [str(results_dir)])
     return consolidated
-
-
-def to_float(value: str) -> float | None:
-    try:
-        if value == "":
-            return None
-        return float(value)
-    except ValueError:
-        return None
 
 
 def metric_value(row: dict[str, str], metric: str) -> float | None:
@@ -177,13 +150,7 @@ def metric_value(row: dict[str, str], metric: str) -> float | None:
         if missing is None or expected is None or expected <= 0:
             return None
         return (missing / expected) * 100
-
     return to_float(row.get(metric, ""))
-
-
-def load_rows(csv_path: Path) -> list[dict[str, str]]:
-    with csv_path.open("r", newline="", encoding="utf-8-sig") as handle:
-        return list(csv.DictReader(handle))
 
 
 def series_key(row: dict[str, str]) -> tuple[str, str, str]:
@@ -194,48 +161,26 @@ def series_key(row: dict[str, str]) -> tuple[str, str, str]:
     )
 
 
-def style_for(key: tuple[str, str, str]) -> dict[str, str]:
-    style = SERIES_STYLES.get(key)
-    if style is not None:
-        return style
-    label = " / ".join(part for part in key if part) or "experimento"
-    return {**DEFAULT_STYLE, "label": label}
-
-
 def group_points(
     rows: list[dict[str, str]], metric: str
 ) -> dict[tuple[str, str, str], dict[float, list[float]]]:
     grouped: dict[tuple[str, str, str], dict[float, list[float]]] = defaultdict(
         lambda: defaultdict(list)
     )
-
     for row in rows:
         interval = to_float(row.get("interval_ms", ""))
         value = metric_value(row, metric)
         if interval is None or value is None:
             continue
         grouped[series_key(row)][interval].append(value)
-
     return grouped
 
 
-def mean(values: list[float]) -> float:
-    return sum(values) / len(values)
-
-
-def sample_stddev(values: list[float]) -> float:
-    if len(values) < 2:
-        return 0.0
-    average = mean(values)
-    variance = sum((value - average) ** 2 for value in values) / (len(values) - 1)
-    return math.sqrt(variance)
-
-
 def saturation_intervals(rows: list[dict[str, str]]) -> dict[tuple[str, str, str], float]:
-    """Return, for each series, the smallest interval where throughput stays >= 95%.
+    """Para cada serie, devolve o menor intervalo cujo throughput >= 95%.
 
-    This matches the heuristic used by the experiment runner to flag saturation
-    in the campaign metadata.
+    Mesma heuristica que o runner usa para sinalizar saturacao no
+    `campaign-summary.json`.
     """
     aggregated: dict[tuple[str, str, str], dict[float, list[float]]] = defaultdict(
         lambda: defaultdict(list)
@@ -246,7 +191,6 @@ def saturation_intervals(rows: list[dict[str, str]]) -> dict[tuple[str, str, str
         if interval is None or throughput is None:
             continue
         aggregated[series_key(row)][interval].append(throughput)
-
     saturation: dict[tuple[str, str, str], float] = {}
     for key, by_interval in aggregated.items():
         healthy = sorted(
@@ -255,10 +199,6 @@ def saturation_intervals(rows: list[dict[str, str]]) -> dict[tuple[str, str, str
         if healthy:
             saturation[key] = healthy[0]
     return saturation
-
-
-def format_interval(value: float) -> str:
-    return str(int(value)) if float(value).is_integer() else f"{value:g}"
 
 
 def plot_spec(
@@ -281,10 +221,9 @@ def plot_spec(
     drop_zero_y = bool(spec.get("drop_zero_y"))
     all_intervals: set[float] = set()
 
-    # Plot each known series in a fixed order so legend/colour ordering is
-    # stable across runs.
-    ordered_keys = [key for key in SERIES_STYLES if key in grouped]
-    ordered_keys += [key for key in grouped if key not in SERIES_STYLES]
+    # Series conhecidas primeiro, em ordem fixa (estabilidade visual da legenda).
+    ordered_keys = [key for key in LEGACY_SERIES_STYLES_3KEY if key in grouped]
+    ordered_keys += [key for key in grouped if key not in LEGACY_SERIES_STYLES_3KEY]
 
     for key in ordered_keys:
         averaged = grouped[key]
@@ -304,7 +243,7 @@ def plot_spec(
         if not x_values:
             continue
 
-        style = style_for(key)
+        style = style_for_legacy_3key(key)
         ax.errorbar(
             x_values,
             y_values,
@@ -356,7 +295,6 @@ def plot_spec(
     fig.tight_layout()
 
     if spec.get("annotate_polling_bias"):
-        # Rendered as a figure caption so it never overlaps data points.
         fig.subplots_adjust(bottom=0.18)
         fig.text(
             0.5,
@@ -368,6 +306,7 @@ def plot_spec(
             color="#444",
             style="italic",
         )
+
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=160)
     plt.close(fig)
@@ -376,7 +315,7 @@ def plot_spec(
 def main() -> int:
     args = parse_args()
     results_dir = Path(args.results_dir)
-    rows = load_rows(ensure_consolidated(results_dir))
+    rows = read_rows_dict(ensure_consolidated(results_dir))
     plots_dir = results_dir / "plots"
     saturation = None if args.no_saturation_markers else saturation_intervals(rows)
 

@@ -12,51 +12,28 @@ Le `consolidated_metrics.csv` da pasta dada (default
 Cada serie traz media +/- desvio padrao das 3 repeticoes, eixo X em log
 (intervalos), e linha vertical marcando o stress point detectado por
 `scalability_metrics.py` (ou recalculado aqui se o JSON nao existir).
-
-Nao depende do plot_results.py existente; e um arquivo proprio para
-nao afetar a campanha oficial.
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import json
-import math
-import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-CONSOLIDATED_CSV_NAME = "consolidated_metrics.csv"
-CONSOLIDATED_JSON_NAME = "consolidated_metrics.json"
-
-SERIES_STYLES: dict[tuple[str, str], dict[str, object]] = {
-    ("webserial", "webserial"): {
-        "label": "C1 - WebSerial (navegador)",
-        "color": "#2ca02c",
-        "marker": "^",
-        "linestyle": "-",
-    },
-    ("backend-node", "websocket"): {
-        "label": "C2 - Backend Node + WebSocket",
-        "color": "#d62728",
-        "marker": "s",
-        "linestyle": "--",
-    },
-    ("backend-node", "rest-polling"): {
-        "label": "C3 - Backend Node + REST polling",
-        "color": "#1f77b4",
-        "marker": "o",
-        "linestyle": ":",
-    },
-}
-
-DEFAULT_STYLE = {
-    "color": "#7f7f7f",
-    "marker": "x",
-    "linestyle": "-.",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib_py.results_io import (  # noqa: E402
+    CONSOLIDATED_CSV_NAME,
+    CONSOLIDATED_JSON_NAME,
+    ensure_consolidated_via_subprocess,
+    read_rows_dict,
+)
+from lib_py.scenarios import (  # noqa: E402
+    LEGACY_SERIES_STYLES_2KEY,
+    style_for_legacy_2key,
+)
+from lib_py.stats import format_interval, mean, sample_stddev, to_float  # noqa: E402
 
 PLOTS = [
     {
@@ -106,11 +83,7 @@ def parse_args() -> argparse.Namespace:
         default="resultados/escalabilidade-2026-05",
         help="Pasta da campanha (default: resultados/escalabilidade-2026-05).",
     )
-    parser.add_argument(
-        "--linear-x",
-        action="store_true",
-        help="Eixo X linear em vez de log.",
-    )
+    parser.add_argument("--linear-x", action="store_true", help="Eixo X linear em vez de log.")
     parser.add_argument(
         "--no-saturation-markers",
         action="store_true",
@@ -119,48 +92,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def to_float(value) -> float | None:
-    if value is None or value == "":
-        return None
-    try:
-        result = float(value)
-    except (ValueError, TypeError):
-        return None
-    if math.isnan(result):
-        return None
-    return result
-
-
-def load_rows(csv_path: Path) -> list[dict[str, str]]:
-    with csv_path.open("r", newline="", encoding="utf-8-sig") as handle:
-        return list(csv.DictReader(handle))
-
-
 def ensure_consolidated(campaign_dir: Path) -> Path:
     csv_path = campaign_dir / CONSOLIDATED_CSV_NAME
     if csv_path.exists():
         return csv_path
-    # Tenta regenerar via scalability_metrics.py.
     metrics_script = Path(__file__).with_name("scalability_metrics.py")
     if metrics_script.exists():
-        subprocess.run([sys.executable, str(metrics_script), str(campaign_dir)], check=True)
+        ensure_consolidated_via_subprocess(metrics_script, [str(campaign_dir)])
     if not csv_path.exists():
-        raise FileNotFoundError(
-            f"{csv_path} nao existe. Rode scalability_metrics.py primeiro."
-        )
+        raise FileNotFoundError(f"{csv_path} nao existe. Rode scalability_metrics.py primeiro.")
     return csv_path
 
 
 def series_key(row: dict[str, str]) -> tuple[str, str]:
     return (row.get("architecture", ""), row.get("communication_mode", ""))
-
-
-def style_for(key: tuple[str, str]) -> dict[str, object]:
-    style = SERIES_STYLES.get(key)
-    if style is not None:
-        return style
-    label = " / ".join(part for part in key if part) or "experimento"
-    return {**DEFAULT_STYLE, "label": label}
 
 
 def group_points(
@@ -178,19 +123,13 @@ def group_points(
     return grouped
 
 
-def mean(values: list[float]) -> float:
-    return sum(values) / len(values)
-
-
-def sample_stddev(values: list[float]) -> float:
-    if len(values) < 2:
-        return 0.0
-    average = mean(values)
-    variance = sum((v - average) ** 2 for v in values) / (len(values) - 1)
-    return math.sqrt(variance)
-
-
 def stress_points_from_json(campaign_dir: Path) -> dict[tuple[str, str], int]:
+    """Le os stress points por arquitetura do JSON consolidado.
+
+    O JSON nao guarda `communication_mode` por entrada de stress point, entao
+    inferimos varrendo `aggregated_per_interval` para descobrir qual modo
+    aparece para cada arquitetura.
+    """
     json_path = campaign_dir / CONSOLIDATED_JSON_NAME
     if not json_path.exists():
         return {}
@@ -202,17 +141,11 @@ def stress_points_from_json(campaign_dir: Path) -> dict[tuple[str, str], int]:
         if first is None:
             continue
         architecture = str(entry.get("architecture", ""))
-        # JSON nao guarda communication_mode no nivel arquitetura; tenta
-        # achar todos os modos da mesma arch nas agregadas.
         for aggregated in payload.get("aggregated_per_interval", []):
             if str(aggregated.get("architecture", "")) == architecture:
                 key = (architecture, str(aggregated.get("communication_mode", "")))
                 result.setdefault(key, int(first))
     return result
-
-
-def format_interval(value: float) -> str:
-    return str(int(value)) if float(value).is_integer() else f"{value:g}"
 
 
 def plot_spec(
@@ -233,8 +166,8 @@ def plot_spec(
     fig, ax = plt.subplots(figsize=(10, 5.8))
     all_intervals: set[float] = set()
 
-    ordered_keys = [key for key in SERIES_STYLES if key in grouped]
-    ordered_keys += [key for key in grouped if key not in SERIES_STYLES]
+    ordered_keys = [key for key in LEGACY_SERIES_STYLES_2KEY if key in grouped]
+    ordered_keys += [key for key in grouped if key not in LEGACY_SERIES_STYLES_2KEY]
 
     for key in ordered_keys:
         averaged = grouped[key]
@@ -251,7 +184,7 @@ def plot_spec(
         if not x_values:
             continue
 
-        style = style_for(key)
+        style = style_for_legacy_2key(key)
         ax.errorbar(
             x_values,
             y_values,
@@ -340,7 +273,7 @@ def main() -> int:
         return 1
 
     csv_path = ensure_consolidated(campaign_dir)
-    rows = load_rows(csv_path)
+    rows = read_rows_dict(csv_path)
     if not rows:
         print(f"[plot_scalability] {csv_path.name} vazio.", file=sys.stderr)
         return 1
