@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-06-01T00:00:00.000Z",
+  "schemaVersion": 1,
+  "fixtureCount": 10,
+  "fixtures": [
+    {
+      "name": "01_health_inicial",
+      "file": "fixtures/01_health_inicial.json",
+      "method": "GET",
+      "path": "/health",
+      "sha256": "294e60c454d555f5caa83e15c02b3ba80f47cf9b666b45892f617443ba179649",
+      "size": 373
+    },
+    {
+      "name": "02_data_latest_sem_mensagens",
+      "file": "fixtures/02_data_latest_sem_mensagens.json",
+      "method": "GET",
+      "path": "/data/latest",
+      "sha256": "9bcbcdc8fb49ed2266bb4ea40be3da3bed5241c3e09ee370fd50646889942096",
+      "size": 364
+    },
+    {
+      "name": "03_clock",
+      "file": "fixtures/03_clock.json",
+      "method": "GET",
+      "path": "/clock",
+      "sha256": "c8d6f29fe515797e503e40ecaa986f5852e1fa3fb4be4e4717bbbaac86645072",
+      "size": 181
+    },
+    {
+      "name": "04_health_process",
+      "file": "fixtures/04_health_process.json",
+      "method": "GET",
+      "path": "/health/process",
+      "sha256": "9852dc93b5c53f0b2417c1a9876947586f4219c1cdeb6585979480a891b2a38f",
+      "size": 936
+    },
+    {
+      "name": "05_clock_sync",
+      "file": "fixtures/05_clock_sync.json",
+      "method": "POST",
+      "path": "/clock/sync",
+      "sha256": "d0925712cefb4c1edc96202184e6a1e77f1e70c48443bfb42e6261fb2c688dd9",
+      "size": 302
+    },
+    {
+      "name": "06_metrics",
+      "file": "fixtures/06_metrics.json",
+      "method": "GET",
+      "path": "/metrics",
+      "sha256": "b7cb1a7e0b386ffb5870287b889979e149cec798750c08d47ddbb07929eb3c42",
+      "size": 1999
+    },
+    {
+      "name": "07_experiments_reset",
+      "file": "fixtures/07_experiments_reset.json",
+      "method": "POST",
+      "path": "/experiments/reset",
+      "sha256": "40d83772c2bae4718a1d2eded078cb17bf290ab5644d3fe14c0059d40b5a0df8",
+      "size": 169
+    },
+    {
+      "name": "08_experiments_start",
+      "file": "fixtures/08_experiments_start.json",
+      "method": "POST",
+      "path": "/experiments/start",
+      "sha256": "8d52e14117d0e1216d7920838a191a24e715863e1d917ff061497972d4275eca",
+      "size": 1436
+    },
+    {
+      "name": "09_experiments_current",
+      "file": "fixtures/09_experiments_current.json",
+      "method": "GET",
+      "path": "/experiments/current",
+      "sha256": "838cca8e2ae397a3f676af2526a971053d4eb57e01373f62ee19af39deb43296",
+      "size": 1224
+    },
+    {
+      "name": "10_experiments_stop",
+      "file": "fixtures/10_experiments_stop.json",
+      "method": "POST",
+      "path": "/experiments/stop",
+      "sha256": "0371968fb29754bcd1779468e00c7b801ebe6a61cd0340f6e28bf43ca7d68a04",
+      "size": 1227
+    }
+  ]
+}

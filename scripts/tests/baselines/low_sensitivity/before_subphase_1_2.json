@@ -1,0 +1,62 @@
+{
+  "resultados\\escalabilidade-2026-05\\plots\\latencia_media_por_arquitetura_e_intervalo.png": {
+    "size": 101626,
+    "sha256": "c64bac9e7aabfa924c0f628f655bc63ca66e57cd8404d3c912b3caa7021bd683"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\latencia_p95_por_arquitetura_e_intervalo.png": {
+    "size": 101349,
+    "sha256": "416add828d46c70083f39b9e8357e50faa72365963d9c6b6af2b4548192996d1"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\missing_messages.png": {
+    "size": 112547,
+    "sha256": "508575828b3fa7f1f1c0619d8f7aa681a446c13b66e074db28ee13b3259af09d"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\missing_percent.png": {
+    "size": 104639,
+    "sha256": "633c0310dba6c4dfa5761004b4220e3a89064da16fbc94fb01e839b4d3fd4e0b"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\perdas_por_arquitetura_e_intervalo.png": {
+    "size": 107545,
+    "sha256": "04612fbea40c86672043e75f22437b5bb7a7f8432bbaf3e52dc7cf37921bcc56"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\throughput_percent.png": {
+    "size": 100248,
+    "sha256": "8444df15bc812797a2f006a61117d07f18f95aa490826cedcd3f4ddcd9270b91"
+  },
+  "resultados\\escalabilidade-2026-05\\plots\\throughput_por_arquitetura_e_intervalo.png": {
+    "size": 112622,
+    "sha256": "fe1b54f35b12a2fafcad077b343e364715db464d7ac4950278e8138a602bfa82"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\cobertura_unica_por_clientes.png": {
+    "size": 102531,
+    "sha256": "ae51b8701e4aea9b6728fe593a5a5e81e49189beb317a51ce716e7eda3ef7da5"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\cpu_por_clientes.png": {
+    "size": 96229,
+    "sha256": "9e5124ab848eee45712be9ff9463625194c6aee08d66580edb139984e527022a"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\duplicacao_por_clientes.png": {
+    "size": 94113,
+    "sha256": "7233cb0f73975051db7e869e3147fe4252ce82689325f6fc3fa579368084bbbb"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\fairness_por_clientes.png": {
+    "size": 116525,
+    "sha256": "1eb56686db36e14dfbbd74c0aa5cc26e9b8f885cf4d776bae49cdc160c845577"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\latencia_avg_por_clientes.png": {
+    "size": 104423,
+    "sha256": "cac1e1d55e91ec46658dd3fbe9c88e72f186b50cf832c0eca8e9d5dfdd38d3ed"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\latencia_p95_por_clientes.png": {
+    "size": 104939,
+    "sha256": "a5dc20b4023b95ee56f3fc94534c7630ed6f8e44e473f527db1b1d5a1437abe4"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\throughput_por_clientes.png": {
+    "size": 144299,
+    "sha256": "bbf438717073a07bb740582ec6d02fc8109efe7444d875afcde0b8aa1ba1f619"
+  },
+  "resultados\\escalabilidade-clientes-2026-05-corrigido\\plots\\throughput_por_cliente_vs_clientes.png": {
+    "size": 108445,
+    "sha256": "609512690534f6caf90eb6c12678974f82aeee9f78941a5fed868b7eeda75739"
+  }
+}

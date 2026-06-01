@@ -1,0 +1,19 @@
+%% Figura A - Arquitetura C1: WebSerial (browser <-> Arduino direto, sem backend)
+flowchart LR
+    classDef hardware fill:#fde7c8,stroke:#cc8a3a,color:#222
+    classDef browser  fill:#cfe5ff,stroke:#3672bd,color:#222
+    classDef storage  fill:#dff2d4,stroke:#3a8a3a,color:#222
+
+    Arduino["Arduino Uno<br/>sketch:<br/>tcc_sports_sensor_standard.ino<br/>(seq, send_us, hr, ax, ay, az)"]:::hardware
+    USB[("USB Serial<br/>115200 bps")]:::hardware
+    Browser["Navegador (Chrome/Edge)<br/>prototypes/webserial/<br/>app.js / parser.js / metrics.js"]:::browser
+    Sync["Sincronizacao de relogio<br/>SYNC,id -> SYNC_REPLY,id,T1,T2<br/>(estilo Cristian/NTP)"]:::browser
+    UI["UI cientifica<br/>experimento, metricas, CSV<br/>(scientific.js / experiment.js)"]:::browser
+    CSVf[("CSV no proprio navegador<br/>sensor-data.csv<br/>metrics.csv<br/>experiment-summary.json")]:::storage
+
+    Arduino -- "linha CSV (1 amostra/linha)" --> USB
+    USB --> Browser
+    Browser <-. "comandos<br/>SYNC / INTERVAL_MS / INTERVAL_US" .-> Arduino
+    Browser --> Sync
+    Browser --> UI
+    UI --> CSVf

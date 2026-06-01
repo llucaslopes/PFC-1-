@@ -1,0 +1,14 @@
+{
+  "name": "02_data_latest_sem_mensagens",
+  "request": {
+    "method": "GET",
+    "path": "/data/latest"
+  },
+  "response": {
+    "status": 404,
+    "body": {
+      "message": "Nenhuma mensagem valida recebida ainda."
+    }
+  },
+  "syntheticReason": "404 sintetico: backend ja recebeu mensagens do simulator; resposta validada pela rota em src/http/routes.ts"
+}

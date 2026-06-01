@@ -1,0 +1,107 @@
+{
+  "resultados/escalabilidade-2026-05/plots/latencia_media_por_arquitetura_e_intervalo.png": {
+    "byte_size": 101626,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "c7811e8868d92dd031bea44b2129cf1d4832275d230f4aae55d958add4aebdd4",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/latencia_p95_por_arquitetura_e_intervalo.png": {
+    "byte_size": 101349,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "afe7bf531ca2b167a7ffe4eebb69c01d7b2bfd6dde9313d0c81b53e5caf79725",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/missing_messages.png": {
+    "byte_size": 112547,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "72947b66e1338e922937ad867610dbf6453bf65f52a988da976ed5b8232ae707",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/missing_percent.png": {
+    "byte_size": 104639,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "e287b058d9233ddf623bc70b4ea55f49a91f46405291036d241cc76a747c3cce",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/perdas_por_arquitetura_e_intervalo.png": {
+    "byte_size": 107545,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "727b045f0cb6b8e8efa769d4978133ca0f7e68a0a9dbbcd3b0740fe3fe5ac97f",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/throughput_percent.png": {
+    "byte_size": 100248,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "47b86f89d1b440a9c8ca91eb0553e0a6d790693bc8213104355807bab3f1637e",
+    "width": 1600
+  },
+  "resultados/escalabilidade-2026-05/plots/throughput_por_arquitetura_e_intervalo.png": {
+    "byte_size": 112622,
+    "height": 928,
+    "mode": "RGBA",
+    "pixels_sha256": "4958f4a196f76b4e59761b3db02aba16dd2c54224c366285e8de330be761fa03",
+    "width": 1600
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/cobertura_unica_por_clientes.png": {
+    "byte_size": 102531,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "2ac8837ce7912a80b7bdc6948b5ae6711ee6c9c00adaf4996c74c3e1441804a4",
+    "width": 1690
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/cpu_por_clientes.png": {
+    "byte_size": 96229,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "4693a2e8bc00f6a6fc27bd3787539de5a56bb9f4b5c9da41ddf1c1c3ef7312b3",
+    "width": 1690
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/duplicacao_por_clientes.png": {
+    "byte_size": 94113,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "4c16e4b3f64a7367f2dddfafb901d302ee4a8ecf810b168d2230f7d8ef4e6488",
+    "width": 1690
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/fairness_por_clientes.png": {
+    "byte_size": 116525,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "7fe8a6b0ce7f32a4c8832d9df608efb2da383e697e66a987d51c3fe154a93d4b",
+    "width": 2535
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/latencia_avg_por_clientes.png": {
+    "byte_size": 104423,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "741cef716ca39925027fb7e17b7680755c4472b8ec2edb0ff14685607ffd72a9",
+    "width": 2535
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/latencia_p95_por_clientes.png": {
+    "byte_size": 104939,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "2eb22f8f3c402fb4f6bde6a07dcf2c86dba0323691b735cd8a776b2925fac7b0",
+    "width": 2535
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/throughput_por_cliente_vs_clientes.png": {
+    "byte_size": 108445,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "e4c9a433b44c4b9f130bd6fedd98b022e26169960d6fcb5243681fe4290b448f",
+    "width": 2535
+  },
+  "resultados/escalabilidade-clientes-2026-05-corrigido/plots/throughput_por_clientes.png": {
+    "byte_size": 144299,
+    "height": 650,
+    "mode": "RGBA",
+    "pixels_sha256": "1961a91305c33a1f4b632dac030b04b3a160d8d98b50c7c6d585ed0f0326b44d",
+    "width": 2535
+  }
+}

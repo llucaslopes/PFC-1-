@@ -1,0 +1,330 @@
+==============================================================================
+PAR DUPLICADO: prototypes/webserial/js/clockSyncMath.js <=> arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js
+  prototypes/webserial/js/clockSyncMath.js bytes=247 sha=3e74d784b4e0
+  arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js bytes=252 sha=851a33b376c7
+  exports A: 
+  exports B: 
+------------------------------------------------------------------------------
+--- prototypes/webserial/js/clockSyncMath.js
++++ arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js
+  1:1: 
+  2:2: /**
++ 3:  * Wrapper finissimo do frontend backend client. Toda a logica vive em
+- 3:  * Wrapper finissimo do frontend WebSerial. Toda a logica vive em
+  4:4:  * `_shared/clockSyncMath.js`, sincronizado a partir de
+  5:5:  * `shared/js/clockSyncMath.js` via `scripts/sync-shared-frontend.mjs`.
+
+==============================================================================
+PAR DUPLICADO: prototypes/webserial/js/scientific.js <=> arquitetura-arduino-node-api/backend/public/js/scientific.js
+  prototypes/webserial/js/scientific.js bytes=506 sha=adbc27931ec9
+  arquitetura-arduino-node-api/backend/public/js/scientific.js bytes=519 sha=127563048a2c
+  exports A: 
+  exports B: 
+------------------------------------------------------------------------------
+--- prototypes/webserial/js/scientific.js
++++ arquitetura-arduino-node-api/backend/public/js/scientific.js
+  1:1: 
+  2:2: /**
++ 3:  * Wrapper finissimo do frontend backend client (arquitetura-arduino-node-api).
+- 3:  * Wrapper finissimo do frontend WebSerial (prototypes/webserial).
+  4:4:  * Toda a logica vive em `_shared/scientific.js`, sincronizado a partir de
+  5:5:  * `shared/js/scientific.js` via `scripts/sync-shared-frontend.mjs`.
+@@
+  6:6:  *
+  7:7:  * Aqui apenas sobrescrevemos `applicationVersion` para preservar o output
++ 8:  * historico do CSV/JSON deste frontend (era "0.1.0").
+- 8:  * historico do CSV/JSON deste frontend (era "1.0.0").
+  9:9:  */
+  10:10: 
+@@
+  11:11: import { SCIENTIFIC_CONFIG } from "./_shared/scientific.js";
+  12:12: 
++ 13: SCIENTIFIC_CONFIG.applicationVersion = "0.1.0";
+- 13: SCIENTIFIC_CONFIG.applicationVersion = "1.0.0";
+  14:14: 
+  15:15: export * from "./_shared/scientific.js";
+
+==============================================================================
+PAR DUPLICADO: prototypes/webserial/js/clockSync.js <=> arquitetura-arduino-node-api/backend/public/js/clockSync.js
+  prototypes/webserial/js/clockSync.js bytes=5106 sha=318a6a809c70
+  arquitetura-arduino-node-api/backend/public/js/clockSync.js bytes=5604 sha=3ae7fd5fed4b
+  exports A: CLOCK_SYNC_ATTEMPTS, LATENCY_METHOD_FALLBACK, LATENCY_METHOD_SYNC, SYNC_DRAIN_MS, SYNC_INTER_ATTEMPT_MS, SYNC_SAFE_INTERVAL_MS, SYNC_TIMEOUT_MS, buildArduinoClockSync, cancelPendingSync, createRelativeFallbackClockSync, nextSyncId, registerPendingSync, runSyncAttempt, sleep, synchronizeArduinoClock
+  exports B: CLOCK_SYNC_ATTEMPTS, LATENCY_METHOD_FALLBACK, LATENCY_METHOD_SYNC, createRelativeFallbackClockSync, mergeClockSync, sleep, synchronizeBackendClock
+------------------------------------------------------------------------------
+--- prototypes/webserial/js/clockSync.js
++++ arquitetura-arduino-node-api/backend/public/js/clockSync.js
+- 1: import { appendLog } from "./dom.js";
+  2:1: import { computeCristianSync } from "./clockSyncMath.js";
+- 3: import { writeSerialCommand } from "./serial.js";
+- 4: import { metricsState, serialState } from "./state.js";
+  5:2: 
+  6:3: export const CLOCK_SYNC_ATTEMPTS = 10;
+- 7: export const SYNC_TIMEOUT_MS = 2000;
+- 8: export const SYNC_INTER_ATTEMPT_MS = 50;
+- 9: export const SYNC_SAFE_INTERVAL_MS = 100;
+- 10: export const SYNC_DRAIN_MS = 250;
+  11:4: export const LATENCY_METHOD_SYNC = "ntp_style_clock_synchronization";
+  12:5: export const LATENCY_METHOD_FALLBACK = "relative_offset_between_arduino_millis_and_frontend_performance_now";
+- 13: 
+- 14: const SYNC_ID_LIMIT = 1_000_000_000;
+  15:6: 
+  16:7: export function createRelativeFallbackClockSync(reason = "sync_not_available", attempts = 0) {
+@@
+  17:8:   return {
++ 9:     arduinoToBackendOffsetMs: null,
++ 10:     arduinoToBackendRttMs: null,
++ 11:     arduinoToBackendUncertaintyMs: null,
+- 18:     arduinoToFrontendOffsetMs: null,
+- 19:     arduinoToFrontendRttMs: null,
+- 20:     arduinoToFrontendUncertaintyMs: null,
+  21:12:     arduinoHostOffsetMs: null,
+  22:13:     arduinoHostRttMs: null,
+@@
+  23:14:     arduinoHostUncertaintyMs: null,
++ 15:     backendToFrontendOffsetMs: null,
++ 16:     backendToFrontendRttMs: null,
++ 17:     backendToFrontendUncertaintyMs: null,
+  24:18:     frontendBackendOffsetMs: null,
+  25:19:     frontendBackendRttMs: null,
+@@
+  26:20:     frontendBackendUncertaintyMs: null,
+- 27:     arduinoRemoteUnit: null,
+  28:21:     syncAttempts: attempts,
+  29:22:     selectedBy: "lowest_rtt",
+@@
+  34:27: }
+  35:28: 
++ 29: export async function synchronizeBackendClock(attempts = CLOCK_SYNC_ATTEMPTS) {
+- 36: /**
+- 37:  * Executa o SYNC NTP/Cristian com o Arduino. Para evitar contencao da serial,
+- 38:  * e dever do CHAMADOR colocar o Arduino em estado idle (intervalo seguro de
+- 39:  * 100 ms) antes de chamar esta funcao. Veja `experiment.js`.
+- 40:  */
+- 41: export async function synchronizeArduinoClock(attempts = CLOCK_SYNC_ATTEMPTS) {
+- 42:   if (!serialState.port?.writable) {
+- 43:     return createRelativeFallbackClockSync("serial_port_not_writable", 0);
+- 44:   }
+- 45: 
+  46:30:   const samples = [];
+  47:31: 
++ 32:   for (let attempt = 0; attempt < attempts; attempt++) {
+- 48:   for (let attempt = 1; attempt <= attempts; attempt++) {
+  49:33:     try {
++ 34:       const t0 = performance.now();
++ 35:       const response = await fetch("/clock/sync", {
++ 36:         method: "POST",
++ 37:         headers: { "Content-Type": "application/json" },
++ 38:         cache: "no-store",
++ 39:         body: JSON.stringify({ clientT0: t0 })
++ 40:       });
++ 41:       const payload = await response.json();
++ 42:       const t3 = performance.now();
++ 43:       const backendT1Ms = Number(payload.backendT1Ms);
++ 44:       const backendT2Ms = Number(payload.backendT2Ms);
++ 45: 
++ 46:       if (!response.ok || !Number.isFinite(backendT1Ms) || !Number.isFinite(backendT2Ms)) {
++ 47:         continue;
+- 50:       const sample = await runSyncAttempt();
+- 51:       if (sample) {
+- 52:         samples.push(sample);
+  53:48:       }
++ 49: 
++ 50:       samples.push({
++ 51:         t0,
++ 52:         t3,
++ 53:         ...computeCristianSync({ t0, t1: backendT1Ms, t2: backendT2Ms, t3, remoteUnit: "ms" })
++ 54:       });
++ 55:       await sleep(20);
++ 56:     } catch {
++ 57:       await sleep(20);
+- 54:     } catch (error) {
+- 55:       appendLog(`SYNC tentativa ${attempt} falhou: ${error.message}`);
+  56:58:     }
+- 57:     await sleep(SYNC_INTER_ATTEMPT_MS);
+  58:59:   }
+  59:60: 
+@@
+  60:61:   if (!samples.length) {
++ 62:     return createRelativeFallbackClockSync("backend_clock_sync_failed", attempts);
+- 61:     const failed = createRelativeFallbackClockSync("no_valid_sync_reply", attempts);
+- 62:     metricsState.clockSync = failed;
+- 63:     return failed;
+  64:63:   }
+  65:64: 
+@@
+  66:65:   const selected = samples.sort((a, b) => a.roundTripMs - b.roundTripMs)[0];
+- 67:   const clockSync = buildArduinoClockSync(selected, attempts);
+- 68:   metricsState.clockSync = clockSync;
+- 69:   appendLog(
+- 70:     `SYNC Arduino: RTT ${selected.roundTripMs.toFixed(3)} ms, offset ${selected.offsetMs.toFixed(3)} ms, incerteza ${selected.uncertaintyMs.toFixed(3)} ms.`
+- 71:   );
+- 72:   return clockSync;
+- 73: }
+- 74: 
+- 75: function buildArduinoClockSync(selected, attempts) {
+  76:66:   return {
++ 67:     arduinoToBackendOffsetMs: null,
++ 68:     arduinoToBackendRttMs: null,
++ 69:     arduinoToBackendUncertaintyMs: null,
++ 70:     arduinoHostOffsetMs: null,
++ 71:     arduinoHostRttMs: null,
++ 72:     arduinoHostUncertaintyMs: null,
++ 73:     backendToFrontendOffsetMs: selected.offsetMs,
++ 74:     backendToFrontendRttMs: selected.roundTripMs,
++ 75:     backendToFrontendUncertaintyMs: selected.uncertaintyMs,
++ 76:     frontendBackendOffsetMs: selected.offsetMs,
++ 77:     frontendBackendRttMs: selected.roundTripMs,
++ 78:     frontendBackendUncertaintyMs: selected.uncertaintyMs,
+- 77:     arduinoToFrontendOffsetMs: selected.offsetMs,
+- 78:     arduinoToFrontendRttMs: selected.roundTripMs,
+- 79:     arduinoToFrontendUncertaintyMs: selected.uncertaintyMs,
+- 80:     arduinoHostOffsetMs: selected.offsetMs,
+- 81:     arduinoHostRttMs: selected.roundTripMs,
+- 82:     arduinoHostUncertaintyMs: selected.uncertaintyMs,
+- 83:     frontendBackendOffsetMs: null,
+- 84:     frontendBackendRttMs: null,
+- 85:     frontendBackendUncertaintyMs: null,
+- 86:     arduinoRemoteUnit: selected.remoteUnit,
+  87:79:     syncAttempts: attempts,
+  88:80:     selectedBy: "lowest_rtt",
+@@
+  89:81:     syncedAt: new Date().toISOString(),
++ 82:     syncFailed: false
+- 90:     syncFailed: false,
+- 91:     samples: selected
+  92:83:   };
+  93:84: }
+@@
+  94:85: 
++ 86: export function mergeClockSync(backendArduinoSync, frontendBackendSync) {
++ 87:   const backendFailed = backendArduinoSync?.syncFailed ?? true;
++ 88:   const frontendFailed = frontendBackendSync?.syncFailed ?? true;
++ 89:   const arduinoToBackendOffsetMs = backendArduinoSync?.arduinoToBackendOffsetMs ?? backendArduinoSync?.arduinoHostOffsetMs ?? null;
++ 90:   const arduinoToBackendUncertaintyMs =
++ 91:     backendArduinoSync?.arduinoToBackendUncertaintyMs ?? backendArduinoSync?.arduinoHostUncertaintyMs ?? null;
++ 92:   const backendToFrontendOffsetMs =
++ 93:     frontendBackendSync?.backendToFrontendOffsetMs ?? frontendBackendSync?.frontendBackendOffsetMs ?? null;
++ 94:   const backendToFrontendUncertaintyMs =
++ 95:     frontendBackendSync?.backendToFrontendUncertaintyMs ?? frontendBackendSync?.frontendBackendUncertaintyMs ?? null;
++ 96:   const arduinoToFrontendOffsetMs =
++ 97:     Number.isFinite(arduinoToBackendOffsetMs) && Number.isFinite(backendToFrontendOffsetMs)
++ 98:       ? arduinoToBackendOffsetMs + backendToFrontendOffsetMs
++ 99:       : null;
++ 100:   const totalUncertaintyMs =
++ 101:     Number.isFinite(arduinoToBackendUncertaintyMs) && Number.isFinite(backendToFrontendUncertaintyMs)
++ 102:       ? arduinoToBackendUncertaintyMs + backendToFrontendUncertaintyMs
++ 103:       : null;
+- 95: async function runSyncAttempt() {
+- 96:   const syncId = nextSyncId();
+- 97:   const t0 = performance.now();
+- 98:   const pending = registerPendingSync(syncId, t0);
+- 99:   const sent = await writeSerialCommand(`SYNC,${syncId}`);
+- 100: 
+- 101:   if (!sent) {
+- 102:     cancelPendingSync(syncId);
+- 103:     return null;
+- 104:   }
+- 105: 
+- 106:   let reply;
+- 107:   try {
+- 108:     reply = await pending.promise;
+- 109:   } catch (error) {
+- 110:     cancelPendingSync(syncId);
+- 111:     throw error;
+- 112:   }
+- 113: 
+- 114:   if (!reply || reply.valid === false) {
+- 115:     return null;
+- 116:   }
+- 117: 
+- 118:   const t3 = reply.receivedAtMs;
+- 119: 
+- 120:   if (reply.legacy) {
+- 121:     const roundTripMs = t3 - t0;
+- 122:     const offsetMs = (t0 + t3) / 2 - reply.arduinoMillis;
+- 123:     return {
+- 124:       t0,
+- 125:       t3,
+- 126:       roundTripMs,
+- 127:       offsetMs,
+- 128:       uncertaintyMs: roundTripMs / 2,
+- 129:       remoteUnit: "ms"
+- 130:     };
+- 131:   }
+  132:104: 
+  133:105:   return {
++ 106:     arduinoToBackendOffsetMs,
++ 107:     arduinoToBackendRttMs: backendArduinoSync?.arduinoToBackendRttMs ?? backendArduinoSync?.arduinoHostRttMs ?? null,
++ 108:     arduinoToBackendUncertaintyMs,
++ 109:     arduinoHostOffsetMs: arduinoToBackendOffsetMs,
++ 110:     arduinoHostRttMs: backendArduinoSync?.arduinoToBackendRttMs ?? backendArduinoSync?.arduinoHostRttMs ?? null,
++ 111:     arduinoHostUncertaintyMs: arduinoToBackendUncertaintyMs,
++ 112:     backendToFrontendOffsetMs,
++ 113:     backendToFrontendRttMs:
++ 114:       frontendBackendSync?.backendToFrontendRttMs ?? frontendBackendSync?.frontendBackendRttMs ?? null,
++ 115:     backendToFrontendUncertaintyMs,
++ 116:     frontendBackendOffsetMs: backendToFrontendOffsetMs,
++ 117:     frontendBackendRttMs:
++ 118:       frontendBackendSync?.backendToFrontendRttMs ?? frontendBackendSync?.frontendBackendRttMs ?? null,
++ 119:     frontendBackendUncertaintyMs: backendToFrontendUncertaintyMs,
++ 120:     arduinoToFrontendOffsetMs,
++ 121:     arduinoToFrontendUncertaintyMs: totalUncertaintyMs,
++ 122:     arduinoRemoteUnit: backendArduinoSync?.arduinoRemoteUnit ?? null,
++ 123:     syncAttempts: Math.max(
++ 124:       backendArduinoSync?.syncAttempts ?? 0,
++ 125:       frontendBackendSync?.syncAttempts ?? 0
++ 126:     ),
++ 127:     selectedBy: "lowest_rtt",
++ 128:     syncedAt: frontendBackendSync?.syncedAt ?? backendArduinoSync?.syncedAt ?? null,
++ 129:     syncFailed: backendFailed || frontendFailed,
++ 130:     fallbackReason:
++ 131:       backendFailed || frontendFailed
++ 132:         ? [backendArduinoSync?.fallbackReason, frontendBackendSync?.fallbackReason]
++ 133:             .filter(Boolean)
++ 134:             .join("; ") || "sync_failed"
++ 135:         : undefined
+- 134:     ...computeCristianSync({
+- 135:       t0,
+- 136:       t1: reply.arduinoT1Us,
+- 137:       t2: reply.arduinoT2Us,
+- 138:       t3,
+- 139:       remoteUnit: "us"
+- 140:     }),
+- 141:     t0,
+- 142:     t3,
+- 143:     syncId
+  144:136:   };
+- 145: }
+- 146: 
+- 147: function nextSyncId() {
+- 148:   const id = serialState.nextSyncId;
+- 149:   serialState.nextSyncId = id + 1 > SYNC_ID_LIMIT ? 1 : id + 1;
+- 150:   return id;
+- 151: }
+- 152: 
+- 153: function registerPendingSync(syncId, t0) {
+- 154:   const pending = { syncId, t0 };
+- 155:   pending.promise = new Promise((resolve, reject) => {
+- 156:     pending.resolve = resolve;
+- 157:     pending.reject = reject;
+- 158:     pending.timer = window.setTimeout(() => {
+- 159:       if (serialState.pendingSyncReplies.get(syncId) === pending) {
+- 160:         serialState.pendingSyncReplies.delete(syncId);
+- 161:         reject(new Error("timeout aguardando SYNC_REPLY"));
+- 162:       }
+- 163:     }, SYNC_TIMEOUT_MS);
+- 164:   });
+- 165:   serialState.pendingSyncReplies.set(syncId, pending);
+- 166:   return pending;
+- 167: }
+- 168: 
+- 169: function cancelPendingSync(syncId) {
+- 170:   const pending = serialState.pendingSyncReplies.get(syncId);
+- 171:   if (!pending) {
+- 172:     return;
+- 173:   }
+- 174:   window.clearTimeout(pending.timer);
+- 175:   serialState.pendingSyncReplies.delete(syncId);
+  176:137: }
+  177:138: 
+

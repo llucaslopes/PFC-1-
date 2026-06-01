@@ -1,0 +1,45 @@
+%% Figura F - Ambiente experimental completo (campanhas e ferramentas de medicao)
+flowchart LR
+    classDef hardware fill:#fde7c8,stroke:#cc8a3a,color:#222
+    classDef backend  fill:#ffe1e1,stroke:#b04040,color:#222
+    classDef browser  fill:#cfe5ff,stroke:#3672bd,color:#222
+    classDef tooling  fill:#eee5ff,stroke:#6a4ea3,color:#222
+    classDef storage  fill:#dff2d4,stroke:#3a8a3a,color:#222
+
+    Arduino["Arduino Uno + USB<br/>tcc_sports_sensor_standard.ino<br/>baud 115200<br/>seq,send_us,hr,ax,ay,az"]:::hardware
+
+    subgraph Hosts ["Localhost (mesma maquina)"]
+        Backend["arquitetura-arduino-node-api/backend<br/>Node.js + Express + ws<br/>WebSocket + REST + /health/process"]:::backend
+        Browser["WebSerial<br/>prototypes/webserial<br/>(Chrome/Edge desktop)"]:::browser
+    end
+
+    subgraph Orchestration ["Orquestracao e coleta"]
+        direction TB
+        S1["scripts/run-scalability-campaign.mjs<br/>(escalabilidade vertical 100..1 ms x 3 reps)"]:::tooling
+        S2["scripts/run-multiclient-scalability.mjs<br/>(escalabilidade horizontal 1..20 clientes)"]:::tooling
+        S3["scripts/scalability_metrics.py<br/>scripts/consolidate_results.py"]:::tooling
+        S4["scripts/fix-rollover-anomalies.mjs<br/>(neutraliza rollover do micros)"]:::tooling
+        S5["scripts/gera_figuras_tcc.py<br/>(este script: figuras + tabelas + diagramas)"]:::tooling
+    end
+
+    subgraph Outputs ["resultados/"]
+        direction TB
+        R1[("escalabilidade-2026-05/<br/>consolidated_metrics.{csv,json}")]:::storage
+        R2[("escalabilidade-clientes-2026-05/<br/>aggregate + per-client + resources")]:::storage
+        R3[("escalabilidade-clientes-2026-05-corrigido/<br/>consolidated_metrics_corrected.csv")]:::storage
+        R4[("figuras_tcc/<br/>11 figuras + 5 tabelas + 6 diagramas + legendas")]:::storage
+    end
+
+    Arduino --> Backend
+    Arduino --> Browser
+    S1 -- spawn --> Backend
+    S1 -- spawn --> Browser
+    S2 -- spawn --> Backend
+    S1 --> R1
+    S2 --> R2
+    S3 --> R1
+    S3 --> R2
+    S4 --> R3
+    S5 -- le --> R1
+    S5 -- le --> R3
+    S5 --> R4

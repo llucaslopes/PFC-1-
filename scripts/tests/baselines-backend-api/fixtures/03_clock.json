@@ -1,0 +1,13 @@
+{
+  "name": "03_clock",
+  "request": {
+    "method": "GET",
+    "path": "/clock"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "backendNowMs": "<NUMERIC>"
+    }
+  }
+}

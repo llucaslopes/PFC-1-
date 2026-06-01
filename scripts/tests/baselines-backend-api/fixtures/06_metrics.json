@@ -1,0 +1,69 @@
+{
+  "name": "06_metrics",
+  "request": {
+    "method": "GET",
+    "path": "/metrics"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "startedAt": "<ISO_DATE>",
+      "elapsedSeconds": "<NUMERIC>",
+      "totalMessagesReceived": "<NUMERIC>",
+      "totalInvalidMessages": "<NUMERIC>",
+      "lostMessages": "<NUMERIC>",
+      "sequenceGapMessages": "<NUMERIC>",
+      "totalSamples": "<NUMERIC>",
+      "lastMessageAt": "<ISO_DATE>",
+      "lastMessage": {
+        "sensor": {
+          "id": "<NUMERIC>",
+          "sendUs": "<NUMERIC>",
+          "timestamp": "<NUMERIC>",
+          "heartRate": "<NUMERIC>",
+          "acceleration": {
+            "x": "<NUMERIC>",
+            "y": "<NUMERIC>",
+            "z": "<NUMERIC>",
+            "magnitude": "<NUMERIC>"
+          }
+        },
+        "receivedAt": "<ISO_DATE>",
+        "backendReceiveMs": "<NUMERIC>",
+        "arduinoSendUs": "<NUMERIC>",
+        "estimatedBackendSendTimeMs": null,
+        "backendArduinoClockOffsetMs": null,
+        "backendArduinoClockUncertaintyMs": null,
+        "processingLatencyMs": "<NUMERIC>",
+        "rolloverSuspected": false
+      },
+      "messagesPerSecond": "<NUMERIC>",
+      "averageMessagesPerSecond": "<NUMERIC>",
+      "lostMessagesPercent": "<NUMERIC>",
+      "invalidMessagesPercent": "<NUMERIC>",
+      "lastProcessingLatencyMs": "<NUMERIC>",
+      "processingLatencyMs": {
+        "samples": "<NUMERIC>",
+        "average": "<NUMERIC>",
+        "min": "<NUMERIC>",
+        "max": "<NUMERIC>",
+        "standardDeviation": "<NUMERIC>"
+      },
+      "heartRate": {
+        "samples": "<NUMERIC>",
+        "average": "<NUMERIC>",
+        "min": "<NUMERIC>",
+        "max": "<NUMERIC>",
+        "standardDeviation": "<NUMERIC>"
+      },
+      "accelerationMagnitude": {
+        "samples": "<NUMERIC>",
+        "average": "<NUMERIC>",
+        "min": "<NUMERIC>",
+        "max": "<NUMERIC>",
+        "standardDeviation": "<NUMERIC>"
+      },
+      "serialConnected": true
+    }
+  }
+}

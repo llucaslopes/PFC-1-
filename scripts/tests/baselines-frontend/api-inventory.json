@@ -1,0 +1,205 @@
+{
+  "generatedAt": "2026-06-01T18:16:13.615Z",
+  "files": {
+    "prototypes/webserial/js/clockSync.js": [
+      "CLOCK_SYNC_ATTEMPTS",
+      "LATENCY_METHOD_FALLBACK",
+      "LATENCY_METHOD_SYNC",
+      "SYNC_DRAIN_MS",
+      "SYNC_INTER_ATTEMPT_MS",
+      "SYNC_SAFE_INTERVAL_MS",
+      "SYNC_TIMEOUT_MS",
+      "buildArduinoClockSync",
+      "cancelPendingSync",
+      "createRelativeFallbackClockSync",
+      "nextSyncId",
+      "registerPendingSync",
+      "runSyncAttempt",
+      "sleep",
+      "synchronizeArduinoClock"
+    ],
+    "prototypes/webserial/js/clockSyncMath.js": [],
+    "prototypes/webserial/js/csv.js": [],
+    "prototypes/webserial/js/dom.js": [
+      "appendLog",
+      "downloadText",
+      "els",
+      "formatSerialSource",
+      "setStatus"
+    ],
+    "prototypes/webserial/js/experiment/exporter.js": [
+      "collectExperimentEnvironment",
+      "exportExperiment"
+    ],
+    "prototypes/webserial/js/experiment/lifecycle.js": [
+      "startCampaign",
+      "startExperiment",
+      "startSingleExperiment",
+      "stopExperiment",
+      "stopExperimentTimer"
+    ],
+    "prototypes/webserial/js/experiment/metrics-builder.js": [
+      "createCampaignSummaryCsv",
+      "createExperimentRunsHeader",
+      "createMetricsCsv",
+      "createMetricsSnapshot",
+      "createSensorCsv",
+      "getLatencyMethod",
+      "getLatencyType",
+      "storeCompletedRun"
+    ],
+    "prototypes/webserial/js/experiment/observation-recorder.js": [
+      "recordExperimentInvalid",
+      "recordExperimentSample"
+    ],
+    "prototypes/webserial/js/experiment/summary-builder.js": [
+      "createSummary"
+    ],
+    "prototypes/webserial/js/experiment/ui-helpers.js": [
+      "formatDuration",
+      "readCampaignConfig",
+      "readReplicationNumber",
+      "resetStartButton",
+      "sleep",
+      "stopExperimentTimers",
+      "updateRunningExperimentUi"
+    ],
+    "prototypes/webserial/js/experiment.js": [
+      "exportExperiment",
+      "recordExperimentInvalid",
+      "recordExperimentSample",
+      "startCampaign",
+      "startExperiment",
+      "stopExperiment",
+      "stopExperimentTimer"
+    ],
+    "prototypes/webserial/js/metrics.js": [
+      "applyDisplayUpdate",
+      "applySystemMetrics",
+      "ensureDisplayTicker",
+      "isDisplayTickerRunning",
+      "percent",
+      "pushInterArrival",
+      "resetMetrics",
+      "serializeStats",
+      "stats",
+      "stopDisplayTicker",
+      "tail"
+    ],
+    "prototypes/webserial/js/parser.js": [
+      "consumeSyncReply",
+      "handleParsedLine",
+      "parseAndConsumeLines",
+      "parseCsvPayload"
+    ],
+    "prototypes/webserial/js/scientific.js": [],
+    "prototypes/webserial/js/serial.js": [
+      "assertSerialControlLines",
+      "connectSerial",
+      "disconnectSerial",
+      "initializeSerialSupport",
+      "readSerialLoop",
+      "sendSerialIntervalCommand",
+      "writeSerialCommand"
+    ],
+    "prototypes/webserial/js/simulator.js": [
+      "cleanupSimulator",
+      "setSimulatorInterval",
+      "simTick",
+      "startSimulator",
+      "stopSimulator"
+    ],
+    "prototypes/webserial/js/state.js": [
+      "DISPLAY_TICK_MS",
+      "MAX_DISPLAY_STATS_SAMPLES",
+      "MAX_SAMPLES",
+      "experiment",
+      "metricsState",
+      "serialState",
+      "simulatorState"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/api.js": [
+      "refreshMetricsOnly",
+      "refreshSnapshots"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/chart.js": [
+      "drawChart"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/clockSync.js": [
+      "CLOCK_SYNC_ATTEMPTS",
+      "LATENCY_METHOD_FALLBACK",
+      "LATENCY_METHOD_SYNC",
+      "createRelativeFallbackClockSync",
+      "mergeClockSync",
+      "sleep",
+      "synchronizeBackendClock"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js": [],
+    "arquitetura-arduino-node-api/backend/public/js/communication.js": [
+      "configureCommunicationMode",
+      "connectWebSocket",
+      "pollLatestMessage"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/dashboard.js": [
+      "applyHealth",
+      "applyMessage",
+      "applyMetrics"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/dom.js": [
+      "chartContext",
+      "downloadText",
+      "elements",
+      "formatNumber",
+      "setConnectionStatus"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/exporter.js": [
+      "exportExperiment"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/lifecycle.js": [
+      "collectExperimentEnvironment",
+      "resetExperiment",
+      "sendExperimentObservation",
+      "startCampaign",
+      "startExperiment",
+      "startSingleExperiment",
+      "stopExperiment"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/metrics-builder.js": [
+      "createCampaignSummaryCsv",
+      "createExperimentRunsHeader",
+      "createMetricsCsv",
+      "createObservedMetrics",
+      "createSensorCsv",
+      "getLatencyMethod",
+      "getLatencyType",
+      "storeCompletedRun"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/observation-recorder.js": [
+      "recordObservedMessage",
+      "resetObservedData"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/summary-builder.js": [
+      "createSummary"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments/ui-helpers.js": [
+      "clearExperimentTimers",
+      "formatDuration",
+      "readReplicationNumber",
+      "resetStartButton",
+      "sleep",
+      "updateRunningExperimentUi"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/experiments.js": [
+      "exportExperiment",
+      "recordObservedMessage",
+      "resetExperiment",
+      "startCampaign",
+      "startExperiment",
+      "stopExperiment"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/scientific.js": [],
+    "arquitetura-arduino-node-api/backend/public/js/state.js": [
+      "state"
+    ]
+  }
+}

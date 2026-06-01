@@ -1,0 +1,36 @@
+{
+  "name": "04_health_process",
+  "request": {
+    "method": "GET",
+    "path": "/health/process"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "sampledAt": "<ISO_DATE>",
+      "backendNowMs": "<NUMERIC>",
+      "uptimeSeconds": "<NUMERIC>",
+      "cpu": {
+        "deltaUserMs": "<NUMERIC>",
+        "deltaSystemMs": "<NUMERIC>",
+        "deltaTotalMs": "<NUMERIC>",
+        "wallElapsedMs": "<NUMERIC>",
+        "usagePercent": "<NUMERIC>"
+      },
+      "memory": {
+        "rssBytes": "<NUMERIC>",
+        "rssMb": "<NUMERIC>",
+        "heapUsedBytes": "<NUMERIC>",
+        "heapUsedMb": "<NUMERIC>",
+        "heapTotalBytes": "<NUMERIC>",
+        "heapTotalMb": "<NUMERIC>",
+        "externalBytes": "<NUMERIC>",
+        "externalMb": "<NUMERIC>",
+        "arrayBuffersBytes": "<NUMERIC>",
+        "arrayBuffersMb": "<NUMERIC>"
+      },
+      "websocketClients": 0,
+      "arduinoMicrosRolloverCount": 0
+    }
+  }
+}

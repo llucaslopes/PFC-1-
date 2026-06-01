@@ -1,0 +1,11 @@
+{
+  "name": "07_experiments_reset",
+  "request": {
+    "method": "POST",
+    "path": "/experiments/reset"
+  },
+  "response": {
+    "status": 204,
+    "body": null
+  }
+}

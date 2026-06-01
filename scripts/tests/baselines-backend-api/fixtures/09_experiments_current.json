@@ -1,0 +1,42 @@
+{
+  "name": "09_experiments_current",
+  "request": {
+    "method": "GET",
+    "path": "/experiments/current"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "architecture": "backend-node",
+      "source": "simulator",
+      "communicationMode": "websocket",
+      "sendIntervalMs": 50,
+      "durationSeconds": 600,
+      "replicationNumber": 1,
+      "id": "<EXPERIMENT_ID>",
+      "status": "running",
+      "startedAt": "<ISO_DATE>",
+      "stoppedAt": null,
+      "clockSync": {
+        "arduinoToBackendOffsetMs": null,
+        "arduinoToBackendRttMs": null,
+        "arduinoToBackendUncertaintyMs": null,
+        "arduinoHostOffsetMs": null,
+        "arduinoHostRttMs": null,
+        "arduinoHostUncertaintyMs": null,
+        "arduinoRemoteUnit": null,
+        "backendToFrontendOffsetMs": null,
+        "backendToFrontendRttMs": null,
+        "backendToFrontendUncertaintyMs": null,
+        "frontendBackendOffsetMs": null,
+        "frontendBackendRttMs": null,
+        "frontendBackendUncertaintyMs": null,
+        "syncAttempts": 0,
+        "selectedBy": "lowest_rtt",
+        "syncedAt": null,
+        "syncFailed": true,
+        "fallbackReason": "simulator_or_sync_not_available"
+      }
+    }
+  }
+}

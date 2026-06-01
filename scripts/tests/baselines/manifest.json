@@ -1,0 +1,1595 @@
+{
+  "created_at_utc": "2026-06-01T13:36:21+00:00",
+  "files": {
+    "resultados/figuras_tcc/README.md": {
+      "byte_size": 3467,
+      "kind": "text",
+      "sha256": "dd3c0e1874cb2c78f11df6203a779e79881900e90605f6069db4c51564e7fd0e"
+    },
+    "resultados/figuras_tcc/diagramas/A_arquitetura_webserial.png": {
+      "byte_size": 236397,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 236397,
+        "height": 1518,
+        "mode": "RGBA",
+        "pixels_sha256": "38333964bb162c8a00d69281ebaff83341a1a360c62e9d7f8fb45f77d1364a83",
+        "width": 2435
+      },
+      "sha256": "f0ebe46d85828212fc00458c9542eabacdc7c13a8d76a53009f52e20dbdcc232"
+    },
+    "resultados/figuras_tcc/diagramas/A_arquitetura_webserial.svg": {
+      "byte_size": 90289,
+      "kind": "text",
+      "sha256": "92b99f39c111b5df4df8e2e7764f96266257cf8cd070109f0aab74011bcad86d"
+    },
+    "resultados/figuras_tcc/diagramas/A_arquitetura_webserial_mermaid.png": {
+      "byte_size": 65845,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 65845,
+        "height": 322,
+        "mode": "RGB",
+        "pixels_sha256": "6dd70a858fb8f750d0a17eda15fe399426023a8774dbb992986ac5c672c008f7",
+        "width": 1620
+      },
+      "sha256": "1ed5c2d7cf4e06ca8236a4b55db72330c587d536ab698a0263fe82288317be58"
+    },
+    "resultados/figuras_tcc/diagramas/A_arquitetura_webserial_mermaid.svg": {
+      "byte_size": 17788,
+      "kind": "text",
+      "sha256": "59caf513cc727458bfffc89bf7df219d1cc5e84a1fb5a284bfc127bb5e395e9e"
+    },
+    "resultados/figuras_tcc/diagramas/B_arquitetura_websocket.png": {
+      "byte_size": 356491,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 356491,
+        "height": 2095,
+        "mode": "RGBA",
+        "pixels_sha256": "c7e9a93660c7835c849d84611558cbe5920e79c4e5413daecb318c8a72c29323",
+        "width": 3005
+      },
+      "sha256": "e0949c0aa958a22323b684703de2bee47f9880ab97ede46d704ed31c90c3442c"
+    },
+    "resultados/figuras_tcc/diagramas/B_arquitetura_websocket.svg": {
+      "byte_size": 116351,
+      "kind": "text",
+      "sha256": "f563cc6531ee63a2bdfeba05a926b0a4896fca78964c38e6ba220828ac6d4992"
+    },
+    "resultados/figuras_tcc/diagramas/B_arquitetura_websocket_mermaid.png": {
+      "byte_size": 83082,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 83082,
+        "height": 479,
+        "mode": "RGB",
+        "pixels_sha256": "182223bba3402f58be345877376e3b272862b0e742523c5f7214ee8ec288c3e8",
+        "width": 1904
+      },
+      "sha256": "1f53beb80eabf1bea0494bee3410c899fbb046fb37e9916ef75699e9d4bfef5a"
+    },
+    "resultados/figuras_tcc/diagramas/B_arquitetura_websocket_mermaid.svg": {
+      "byte_size": 26376,
+      "kind": "text",
+      "sha256": "02902b75fcf0970d4c3f03cc4a000b101085be9f57ef0a51c96ea2a471b3395e"
+    },
+    "resultados/figuras_tcc/diagramas/C_arquitetura_rest_polling.png": {
+      "byte_size": 281095,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 281095,
+        "height": 1864,
+        "mode": "RGBA",
+        "pixels_sha256": "2eb62e6f4c551d68fe216de5fd1f9a9066d6aeef846138bed7049607cbe8a31c",
+        "width": 2562
+      },
+      "sha256": "47d7e015cc99f104a73faacc079cf4ce9aebfa797ea6555aebb548532b5480be"
+    },
+    "resultados/figuras_tcc/diagramas/C_arquitetura_rest_polling.svg": {
+      "byte_size": 103720,
+      "kind": "text",
+      "sha256": "776b1bca189e8f44320d346fee85832f34ef8a0a995e50b3bfb3a1657a62e872"
+    },
+    "resultados/figuras_tcc/diagramas/C_arquitetura_rest_polling_mermaid.png": {
+      "byte_size": 71023,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 71023,
+        "height": 338,
+        "mode": "RGB",
+        "pixels_sha256": "e5aca55dc2c7e5f98be493ada825ed60073cfdade020e5115889a239bf18a6e8",
+        "width": 1904
+      },
+      "sha256": "7dc2852a4ed05a83326aa1d69d419678ca4b83613d99480d9865ec989b100888"
+    },
+    "resultados/figuras_tcc/diagramas/C_arquitetura_rest_polling_mermaid.svg": {
+      "byte_size": 25095,
+      "kind": "text",
+      "sha256": "afd48548f12e897629cea2bbbebd3a23dcae61c62dcd4b3499ce3bac958e214c"
+    },
+    "resultados/figuras_tcc/diagramas/D_fluxo_medicao_latencia.png": {
+      "byte_size": 284027,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 284027,
+        "height": 1980,
+        "mode": "RGBA",
+        "pixels_sha256": "bf7e3592f963fb4dbef74669c4dfd4582860c51149b38d37fa76ba6e8fbde562",
+        "width": 2772
+      },
+      "sha256": "2057dd9c66bf093736e3d658c2fbd963d4112d39dabcddf6ca16b8da4c859c96"
+    },
+    "resultados/figuras_tcc/diagramas/D_fluxo_medicao_latencia.svg": {
+      "byte_size": 101769,
+      "kind": "text",
+      "sha256": "dd685dd5c7f673f169139bb901233b97253160a2f7d6029fc4b39782f4c67284"
+    },
+    "resultados/figuras_tcc/diagramas/D_fluxo_medicao_latencia_mermaid.png": {
+      "byte_size": 134398,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 134398,
+        "height": 1176,
+        "mode": "RGB",
+        "pixels_sha256": "641321268af477646bbfc8b8c929eaa37a5624c456b31467c01d43637edab5db",
+        "width": 1579
+      },
+      "sha256": "63ae91d1c4ee1e22d62a2b39c1437cbeb143052fb2956b520c2433fe56442f70"
+    },
+    "resultados/figuras_tcc/diagramas/D_fluxo_medicao_latencia_mermaid.svg": {
+      "byte_size": 29851,
+      "kind": "text",
+      "sha256": "7c407e3fcc5f4f8841f0491b45169c82f73bd7a7157514d9ee7cb411f4c60e5f"
+    },
+    "resultados/figuras_tcc/diagramas/E_cenario_multi_cliente.png": {
+      "byte_size": 396117,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 396117,
+        "height": 2095,
+        "mode": "RGBA",
+        "pixels_sha256": "6cdce6c5529bd354df5b979c2f278a101ca93d1e7a019803a0351070f4de02d0",
+        "width": 2953
+      },
+      "sha256": "530a9d8431d3ce13a5bf905f3933b33f6c6330e970aa502d44760a6ab8b5a236"
+    },
+    "resultados/figuras_tcc/diagramas/E_cenario_multi_cliente.svg": {
+      "byte_size": 105646,
+      "kind": "text",
+      "sha256": "5b375e854fa3385a235101df071d27fb54327575d367b8d9196be7763e23cb49"
+    },
+    "resultados/figuras_tcc/diagramas/E_cenario_multi_cliente_mermaid.png": {
+      "byte_size": 95888,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 95888,
+        "height": 928,
+        "mode": "RGB",
+        "pixels_sha256": "5527343db9585889d878da9eb1d932e35a15f3b212b0aecec551ed0065f5b5e1",
+        "width": 1054
+      },
+      "sha256": "1d7159321426ab42a8f910356c5c8f36c0851274c7c15c8b3ce9bca097aaaced"
+    },
+    "resultados/figuras_tcc/diagramas/E_cenario_multi_cliente_mermaid.svg": {
+      "byte_size": 29022,
+      "kind": "text",
+      "sha256": "10ddeff16477cad21ea6f96bb3ae8fd8e12a44cd109921b33f8e2ba81f0fb570"
+    },
+    "resultados/figuras_tcc/diagramas/F_ambiente_experimental.png": {
+      "byte_size": 533105,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 533105,
+        "height": 2166,
+        "mode": "RGBA",
+        "pixels_sha256": "775dea1824a445038a1d4245c1d4dfadc161bbb675bee150ec01fa117ad27562",
+        "width": 3315
+      },
+      "sha256": "c3e8431f0922a746da271f17e42a9f596544f489e5cfade83d98a432271c5158"
+    },
+    "resultados/figuras_tcc/diagramas/F_ambiente_experimental.svg": {
+      "byte_size": 134010,
+      "kind": "text",
+      "sha256": "52fdae01b6ad70da386a1c3d12e3f6886eec25ce57f431c941f3b313744245c7"
+    },
+    "resultados/figuras_tcc/diagramas/F_ambiente_experimental_mermaid.png": {
+      "byte_size": 147422,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 147422,
+        "height": 1351,
+        "mode": "RGB",
+        "pixels_sha256": "8ef2c7d362911e4e3f6da58853f63b1d0412aaae50f98c60e7f7eb96c54e3727",
+        "width": 768
+      },
+      "sha256": "d5e3fc2d75e9bf517db61b3e2308203e1301403ed9ba358f649bfc5a3e547b8e"
+    },
+    "resultados/figuras_tcc/diagramas/F_ambiente_experimental_mermaid.svg": {
+      "byte_size": 33450,
+      "kind": "text",
+      "sha256": "fc9c453afb0310b8b1d27adda9eda977e45df4a068dc1bb6dbc986642c5a98eb"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/A_arquitetura_webserial.mmd": {
+      "byte_size": 1107,
+      "kind": "text",
+      "sha256": "f45aa48c81152a1855e384cb2fa83e88c505aa36a28243549f647fcae12d91af"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/B_arquitetura_websocket.mmd": {
+      "byte_size": 1654,
+      "kind": "text",
+      "sha256": "35a1760b370f57ac067a54d6977752747b9e15c60873b7c272a804789e7f75b2"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/C_arquitetura_rest_polling.mmd": {
+      "byte_size": 1344,
+      "kind": "text",
+      "sha256": "1a7eb9c7cfb4f426e1326220d3d2595986c1c76ab199ae00642cee04b1757680"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/D_fluxo_medicao_latencia.mmd": {
+      "byte_size": 1239,
+      "kind": "text",
+      "sha256": "6cf5f31faa67a039a60029954ab2156c5dec6f7aba22abe81f9ce2a674e0742a"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/E_cenario_multi_cliente.mmd": {
+      "byte_size": 1535,
+      "kind": "text",
+      "sha256": "ff392a3c86213353dd460a91214ae1521b9c3adc32105040c9e55bdea0d61a85"
+    },
+    "resultados/figuras_tcc/diagramas/mmd/F_ambiente_experimental.mmd": {
+      "byte_size": 2146,
+      "kind": "text",
+      "sha256": "9ce8e07fbdc6d2872ad033cdf9ce9a706e57c3f1c34655b7c922d09ee33ec3a8"
+    },
+    "resultados/figuras_tcc/legendas.md": {
+      "byte_size": 14541,
+      "kind": "text",
+      "sha256": "11ac5afe5a6b3cd8da7f9b1acd0671541c0521c08a3a7ea2c14c0e6367d7e7b4"
+    },
+    "resultados/figuras_tcc/png/fig01_throughput_vs_intervalo.png": {
+      "byte_size": 258597,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 258597,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "79a031049ccc7d6277401bac11c77d6e3223714aebdc99a93924101614cc525f",
+        "width": 2747
+      },
+      "sha256": "8195fd8388350e12d6b80ed98787df4c5740f6c6f908d5f2ddccaf816924c9c8"
+    },
+    "resultados/figuras_tcc/png/fig02_perda_vs_intervalo.png": {
+      "byte_size": 239838,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 239838,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "db8b8ef85096399bd0624b2b269324a7341cca6da7b8bd774709810ef1aff149",
+        "width": 2747
+      },
+      "sha256": "be2d3ae02e258e343e049b7c7c2dd66a5687b49c8577f092c7ec8da8e661cee2"
+    },
+    "resultados/figuras_tcc/png/fig03_latencia_media_vs_intervalo.png": {
+      "byte_size": 234515,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 234515,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "4cfed836d006c487943e55c9c7806d134ebe7646cd9563a9ccb08659b125b1f3",
+        "width": 2833
+      },
+      "sha256": "8d2c4d884e96731c44d8c3e9f9234dbbda61ac4454ed98de39c5ddbb570a33ec"
+    },
+    "resultados/figuras_tcc/png/fig04_latencia_p95_vs_intervalo.png": {
+      "byte_size": 221318,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 221318,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "76283df07f2997cafb930a5e30c38fee14c762fbe14ba5b7efa7122e5f22fc6a",
+        "width": 2748
+      },
+      "sha256": "6030856da1856ba9b22e5d0284691db3f9ef8b85687348734042b867ff38e599"
+    },
+    "resultados/figuras_tcc/png/fig05_throughput_por_clientes.png": {
+      "byte_size": 246052,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 246052,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "3efa7cf6c4faf622d76d3a66b7dbc9a2ddabf296d3e4213e985cd6b5d8c8e0ec",
+        "width": 2783
+      },
+      "sha256": "a0c2d349e78ad34e92bbb7fcfd00083678029e2659400960d978f0b90f20bed6"
+    },
+    "resultados/figuras_tcc/png/fig06_throughput_por_cliente.png": {
+      "byte_size": 171113,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 171113,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "484c3cbd2047579ee59eb4f38f2010e63d6fb0656df99f4c5a92c80f044aa362",
+        "width": 2747
+      },
+      "sha256": "8a0c48cbd54750784603b8eb3ed8adedb0e900f36573ccd88a37402fdb92f3a0"
+    },
+    "resultados/figuras_tcc/png/fig07_cpu_por_clientes.png": {
+      "byte_size": 191447,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 191447,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "86ee6b9fee884253b391931c634cf15de66cc06f0640d85001a634acc4e53a44",
+        "width": 2792
+      },
+      "sha256": "63900eff058280436e7eff1210475489b3986f2deee8693bfd23c6be6be97a87"
+    },
+    "resultados/figuras_tcc/png/fig08_memoria_por_clientes.png": {
+      "byte_size": 186633,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 186633,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "e64fe57f3476e1055e04ce4e01041b5cb763ca57ec0bf08394fd742ffee768c5",
+        "width": 2830
+      },
+      "sha256": "a8ba655b84d0e61017a903b01bd4280814c438ffd301fc6fe75e6c4e1a0066b8"
+    },
+    "resultados/figuras_tcc/png/fig09_latencia_media_por_clientes.png": {
+      "byte_size": 164770,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 164770,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "a847ea99e75ac8aeb370048e19ed0562e91b6b815a4ec31b37746f9733b5d7de",
+        "width": 2747
+      },
+      "sha256": "c398d06cc7e11653ba5bbc6fdc9fd4f396ac9ec8dec7be4b3516e5615ae4500f"
+    },
+    "resultados/figuras_tcc/png/fig10_latencia_p95_por_clientes.png": {
+      "byte_size": 179380,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 179380,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "6beeeee081a01da10ad54c3ef17c0988254e10e75c8f458e860e0ce418ed0db2",
+        "width": 2770
+      },
+      "sha256": "701f45470756686216adc5bf7ce134b517fe766841f086213fba09917204e35e"
+    },
+    "resultados/figuras_tcc/png/fig11_cobertura_unica_websocket.png": {
+      "byte_size": 179042,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 179042,
+        "height": 1744,
+        "mode": "RGBA",
+        "pixels_sha256": "1e249e50480c46f9d92cae7cac96fa9579d4f601df1f0c774c391bd8c4c74563",
+        "width": 2761
+      },
+      "sha256": "f86880b25d970c6668033a59757d137bcec63923ec1ba129c9f0959ebce5a5ab"
+    },
+    "resultados/figuras_tcc/revisao_final.md": {
+      "byte_size": 8655,
+      "kind": "text",
+      "sha256": "0e6b0325930651f5b88510eaa1b114a190f7561c04b8c08fa61032fd756b634d"
+    },
+    "resultados/figuras_tcc/svg/fig01_throughput_vs_intervalo.svg": {
+      "byte_size": 102330,
+      "kind": "text",
+      "sha256": "3e93316a4e12cf5170c8514b1c466b54bc03b76ec863da351da42d2969e359a8"
+    },
+    "resultados/figuras_tcc/svg/fig02_perda_vs_intervalo.svg": {
+      "byte_size": 93602,
+      "kind": "text",
+      "sha256": "1f25dcd44f5f70af78ab6d7dd1d5edb7304197175c9b32e2c901d913ed329700"
+    },
+    "resultados/figuras_tcc/svg/fig03_latencia_media_vs_intervalo.svg": {
+      "byte_size": 106170,
+      "kind": "text",
+      "sha256": "6ee7435880e99d17b0a52975f68305a3a11ad9dbb27f08e2349e22773655ff71"
+    },
+    "resultados/figuras_tcc/svg/fig04_latencia_p95_vs_intervalo.svg": {
+      "byte_size": 102838,
+      "kind": "text",
+      "sha256": "698b0d6670c3d08b3780833bdf6ad386445eed324fd6d9458fab870e834d8393"
+    },
+    "resultados/figuras_tcc/svg/fig05_throughput_por_clientes.svg": {
+      "byte_size": 90734,
+      "kind": "text",
+      "sha256": "15dec7e4351a15b2852a722649dc6227ca63a266b41221304fe177755a193a42"
+    },
+    "resultados/figuras_tcc/svg/fig06_throughput_por_cliente.svg": {
+      "byte_size": 83903,
+      "kind": "text",
+      "sha256": "2562bc05b6eaad9e894413bb38f95b66153d2afd5797e4ac5ec20f5583e9eb1f"
+    },
+    "resultados/figuras_tcc/svg/fig07_cpu_por_clientes.svg": {
+      "byte_size": 81233,
+      "kind": "text",
+      "sha256": "1d1cd6f18f2e07cf14f5e4b5d095491de7584b6371495e2d2ff2131a483e3819"
+    },
+    "resultados/figuras_tcc/svg/fig08_memoria_por_clientes.svg": {
+      "byte_size": 82302,
+      "kind": "text",
+      "sha256": "ff602db02f119d8927630467a1bac6263b2a6dbbe1a2a5ddf6d315a2293be893"
+    },
+    "resultados/figuras_tcc/svg/fig09_latencia_media_por_clientes.svg": {
+      "byte_size": 76407,
+      "kind": "text",
+      "sha256": "480bae2f5a2a569f7f6ddcd581a8c6a9dac11dcd399c7a64fa717a29704dc41f"
+    },
+    "resultados/figuras_tcc/svg/fig10_latencia_p95_por_clientes.svg": {
+      "byte_size": 83445,
+      "kind": "text",
+      "sha256": "a26c42bc7a2ecfa818fc7ad129f2cdfad8ddf1ff54aa38959b46180fa90e52a5"
+    },
+    "resultados/figuras_tcc/svg/fig11_cobertura_unica_websocket.svg": {
+      "byte_size": 88364,
+      "kind": "text",
+      "sha256": "aef5a202cece5f54c7ed5c9032ea0a7eb964631773ca268633f3dc375067dcbe"
+    },
+    "resultados/figuras_tcc/tabelas/tabela1_resumo_escalabilidade_vertical.csv": {
+      "byte_size": 3945,
+      "kind": "text",
+      "sha256": "dd67757e4f18619ea308ed09ad1c90a16a64d8327389e9ec2dc036bc1a08860b"
+    },
+    "resultados/figuras_tcc/tabelas/tabela1_resumo_escalabilidade_vertical.md": {
+      "byte_size": 2782,
+      "kind": "text",
+      "sha256": "9ee13fedac02650540dd556a2573ae8bfd842b0645730f393e18a59c0882ddec"
+    },
+    "resultados/figuras_tcc/tabelas/tabela1_resumo_escalabilidade_vertical.xlsx": {
+      "byte_size": 7364,
+      "kind": "xlsx",
+      "sha256": "212b431bdfd819a1d049f15bcee542a3c4b8bf85e73cebd96f053225997c7ef7",
+      "xlsx_values": {
+        "sheet_names": [
+          "Sheet1"
+        ],
+        "sheets": {
+          "Sheet1": [
+            [
+              "Arquitetura",
+              "Intervalo (ms)",
+              "Throughput medio (%)",
+              "Throughput desv (%)",
+              "Perdas medio (%)",
+              "Perdas desv (%)",
+              "Latencia media (ms)",
+              "Latencia media desv (ms)",
+              "Latencia P95 (ms)",
+              "Latencia P95 desv (ms)",
+              "N reps"
+            ],
+            [
+              "REST Polling",
+              100,
+              90.77766666666666,
+              0.09584014468547399,
+              9.222333333333333,
+              0.0958401446854781,
+              53.99133333333333,
+              0.3781538487617614,
+              98.524,
+              0.6144298169848187,
+              3
+            ],
+            [
+              "REST Polling",
+              50,
+              79.47233333333334,
+              0.04792007234273699,
+              20.52766666666666,
+              0.04792007234273776,
+              29.07366666666667,
+              0.4208198347670082,
+              51.77666666666666,
+              0.4448284313455424,
+              3
+            ],
+            [
+              "REST Polling",
+              20,
+              63.611,
+              0.03810511776651623,
+              36.389,
+              0.03810511776651623,
+              14.23333333333333,
+              0.1523821949354106,
+              23.185,
+              0.167687208814506,
+              3
+            ],
+            [
+              "REST Polling",
+              10,
+              63.66666666666666,
+              0.01650252505931252,
+              36.33333333333334,
+              0.01650252505931252,
+              9.124333333333333,
+              0.1051681193771827,
+              13.67366666666667,
+              0.1236136454172155,
+              3
+            ],
+            [
+              "REST Polling",
+              5,
+              31.861,
+              0.02961418578992289,
+              68.139,
+              0.02961418578992028,
+              6.727333333333334,
+              0.06524824390995802,
+              9.222333333333333,
+              0.0864079471653703,
+              3
+            ],
+            [
+              "REST Polling",
+              4,
+              25.47533333333334,
+              0.03280751946327992,
+              74.52466666666668,
+              0.03280751946327728,
+              6.258,
+              0.1010593884802397,
+              8.304666666666668,
+              0.1062748010270218,
+              3
+            ],
+            [
+              "REST Polling",
+              3,
+              19.17166666666667,
+              0.03214550253664149,
+              80.82833333333333,
+              0.03214550253663826,
+              10.706,
+              0.075624070242218,
+              12.62566666666667,
+              0.09790471558271932,
+              3
+            ],
+            [
+              "REST Polling",
+              2,
+              12.76466666666667,
+              0.004041451884326551,
+              87.23533333333334,
+              0.004041451884328217,
+              10.73933333333333,
+              0.1426966479400743,
+              12.66433333333333,
+              0.2056461361984053,
+              3
+            ],
+            [
+              "REST Polling",
+              1,
+              7.007333333333333,
+              0.008962886439832467,
+              92.99266666666666,
+              0.008962886439836188,
+              10.591,
+              0.1118078709215056,
+              12.625,
+              0.1500099996666889,
+              3
+            ],
+            [
+              "WebSerial",
+              100,
+              100,
+              0,
+              0,
+              0,
+              3.662333333333333,
+              0.01985782801147528,
+              4.511333333333333,
+              0.001154700538379124,
+              3
+            ],
+            [
+              "WebSerial",
+              50,
+              100,
+              0,
+              0,
+              0,
+              3.583,
+              0.01410673597966611,
+              4.493333333333333,
+              0.01553490693030851,
+              3
+            ],
+            [
+              "WebSerial",
+              20,
+              100,
+              0,
+              0,
+              0,
+              3.587333333333333,
+              0.03271594921950659,
+              4.378666666666667,
+              0.03859188170241709,
+              3
+            ],
+            [
+              "WebSerial",
+              10,
+              99.983,
+              0,
+              0.017,
+              0,
+              3.616333333333333,
+              0.01537313674346688,
+              4.521999999999999,
+              0.01928730152198571,
+              3
+            ],
+            [
+              "WebSerial",
+              5,
+              99.95800000000001,
+              0,
+              0.042,
+              0,
+              3.684333333333333,
+              0.02193931022920589,
+              4.496666666666666,
+              0.023180451534285,
+              3
+            ],
+            [
+              "WebSerial",
+              4,
+              99.947,
+              0,
+              0.053,
+              0,
+              3.722333333333333,
+              0.009451631252505437,
+              4.524666666666667,
+              0.01171893055416486,
+              3
+            ],
+            [
+              "WebSerial",
+              3,
+              84.06,
+              0,
+              15.94,
+              0,
+              8.365333333333332,
+              0.02154839514519188,
+              9.154666666666666,
+              0.0220302821891449,
+              3
+            ],
+            [
+              "WebSerial",
+              2,
+              56.043,
+              0,
+              43.957,
+              0,
+              8.410333333333334,
+              0.05353814839283531,
+              9.201333333333332,
+              0.0480138868800818,
+              3
+            ],
+            [
+              "WebSerial",
+              1,
+              28.022,
+              0,
+              71.978,
+              0,
+              8.375666666666667,
+              0.04957149718672288,
+              9.168000000000001,
+              0.03934463114581167,
+              3
+            ],
+            [
+              "WebSocket",
+              100,
+              100,
+              0,
+              0,
+              0,
+              4.091,
+              0.05737595315112373,
+              4.897666666666667,
+              0.09166424239218524,
+              3
+            ],
+            [
+              "WebSocket",
+              50,
+              100.0553333333333,
+              0.04792007234274007,
+              0,
+              0,
+              3.997333333333334,
+              0.07681362726322286,
+              4.839333333333333,
+              0.06408067831517816,
+              3
+            ],
+            [
+              "WebSocket",
+              20,
+              100.011,
+              0.01905255888326452,
+              0,
+              0,
+              3.953333333333333,
+              0.1503340724298167,
+              4.751666666666666,
+              0.1561580396051812,
+              3
+            ],
+            [
+              "WebSocket",
+              10,
+              100,
+              0,
+              0,
+              0,
+              4.083666666666667,
+              0.2521157141737365,
+              4.800666666666666,
+              0.06351640208114231,
+              3
+            ],
+            [
+              "WebSocket",
+              5,
+              99.967,
+              0,
+              0.033,
+              0,
+              4.039666666666666,
+              0.1144566875867605,
+              4.824666666666666,
+              0.0892319075966289,
+              3
+            ],
+            [
+              "WebSocket",
+              4,
+              99.95533333333333,
+              0.004041451884324115,
+              0.04466666666666667,
+              0.00404145188432738,
+              4.042000000000001,
+              0.1010593884802398,
+              4.835333333333334,
+              0.07409678355592271,
+              3
+            ],
+            [
+              "WebSocket",
+              3,
+              82.13166666666666,
+              1.910263943368387,
+              17.86833333333334,
+              1.910263943368387,
+              8.628,
+              0.05935486500700753,
+              9.422333333333333,
+              0.05742241142039745,
+              3
+            ],
+            [
+              "WebSocket",
+              2,
+              54.471,
+              1.371533083815333,
+              45.529,
+              1.371533083815333,
+              8.641,
+              0.08432674546073755,
+              9.453333333333333,
+              0.1032343612046562,
+              3
+            ],
+            [
+              "WebSocket",
+              1,
+              27.16866666666667,
+              0.7312156544640804,
+              72.83133333333332,
+              0.7312156544640869,
+              8.633000000000001,
+              0.05650663677834622,
+              9.442666666666668,
+              0.06053373714990123,
+              3
+            ]
+          ]
+        }
+      }
+    },
+    "resultados/figuras_tcc/tabelas/tabela2_pontos_de_stress.csv": {
+      "byte_size": 613,
+      "kind": "text",
+      "sha256": "e3a8606b50da4b00946c8e80d6038b93daacf6e92f584f0ac66f67985c49a808"
+    },
+    "resultados/figuras_tcc/tabelas/tabela2_pontos_de_stress.md": {
+      "byte_size": 1110,
+      "kind": "text",
+      "sha256": "1142663e1b8091c89da20891d56c7418c5ec515506067cd111321a6235b703bb"
+    },
+    "resultados/figuras_tcc/tabelas/tabela2_pontos_de_stress.xlsx": {
+      "byte_size": 5240,
+      "kind": "xlsx",
+      "sha256": "5f241b99c284cfb7aa98eed5dbd9b531ad5629bc35afaf528db2490bd723630f",
+      "xlsx_values": {
+        "sheet_names": [
+          "Sheet1"
+        ],
+        "sheets": {
+          "Sheet1": [
+            [
+              "Arquitetura",
+              "Intervalo de baseline (ms)",
+              "Throughput baseline (%)",
+              "Perdas baseline (%)",
+              "Latencia avg baseline (ms)",
+              "Latencia P95 baseline (ms)",
+              "Menor intervalo saudavel (ms)",
+              "Primeiro stress (ms)",
+              "Motivos do primeiro stress"
+            ],
+            [
+              "WebSerial",
+              100,
+              100,
+              0,
+              3.66,
+              4.51,
+              4,
+              3,
+              "throughput 84.06% < 95%; perdas 15.94% > 1.0%; latencia media 8.37 ms > 2x baseline 3.66 ms; P95 9.15 ms > 2x baseline 4.51 ms"
+            ],
+            [
+              "WebSocket",
+              100,
+              100,
+              0,
+              4.09,
+              4.9,
+              4,
+              3,
+              "throughput 82.13% < 95%; perdas 17.87% > 1.0%; latencia media 8.63 ms > 2x baseline 4.09 ms"
+            ],
+            [
+              "REST Polling",
+              100,
+              90.78,
+              9.22,
+              53.99,
+              98.52,
+              "indefinido",
+              100,
+              "throughput 90.78% < 95%; perdas 9.22% > 1.0%"
+            ]
+          ]
+        }
+      }
+    },
+    "resultados/figuras_tcc/tabelas/tabela3_escalabilidade_horizontal.csv": {
+      "byte_size": 1990,
+      "kind": "text",
+      "sha256": "f173112211fa22790e59f5961f0391530718e778c7911775ad85ec95c11ff217"
+    },
+    "resultados/figuras_tcc/tabelas/tabela3_escalabilidade_horizontal.md": {
+      "byte_size": 1954,
+      "kind": "text",
+      "sha256": "f5f7f198543e57f73c8d393a1193641138fa1039c6d41a99d3fd8d819794a6ba"
+    },
+    "resultados/figuras_tcc/tabelas/tabela3_escalabilidade_horizontal.xlsx": {
+      "byte_size": 6142,
+      "kind": "xlsx",
+      "sha256": "375f87a4bffd705e69a5ec3387dbff27d103cd2e056946c71d5d360ff56dd9be",
+      "xlsx_values": {
+        "sheet_names": [
+          "Sheet1"
+        ],
+        "sheets": {
+          "Sheet1": [
+            [
+              "Arquitetura",
+              "N clientes",
+              "Throughput agreg. medio (msg/s)",
+              "Throughput agreg. desv (msg/s)",
+              "Throughput/cliente medio (msg/s)",
+              "Throughput/cliente desv (msg/s)",
+              "Latencia media (ms)",
+              "Latencia media desv (ms)",
+              "Latencia P95 pior cliente (ms)",
+              "Latencia P95 desv (ms)",
+              "Fairness CV medio",
+              "Cobertura unica (%)",
+              "Razao duplicacao",
+              "N reps"
+            ],
+            [
+              "REST Polling",
+              1,
+              9.138666666666666,
+              0.00981495457622512,
+              9.138666666666666,
+              0.00981495457622512,
+              54.42433333333333,
+              0.5555414775994084,
+              99.62266666666666,
+              0.3147448702256052,
+              0,
+              null,
+              null,
+              3
+            ],
+            [
+              "REST Polling",
+              2,
+              18.27733333333333,
+              0.0196299091524487,
+              9.138666666666666,
+              0.009814954576224352,
+              54.34266666666667,
+              0.1956689380901666,
+              99.66833333333334,
+              0.2889469386121549,
+              0,
+              null,
+              null,
+              3
+            ],
+            [
+              "REST Polling",
+              5,
+              45.75,
+              0,
+              9.15,
+              0,
+              54.62566666666667,
+              0.1450563109048835,
+              99.80133333333333,
+              0.4994019757002701,
+              0,
+              null,
+              null,
+              3
+            ],
+            [
+              "REST Polling",
+              10,
+              91.5,
+              0,
+              9.15,
+              0,
+              55.04433333333333,
+              0.2273880677021826,
+              100.62,
+              0.5841926052253672,
+              0,
+              null,
+              null,
+              3
+            ],
+            [
+              "REST Polling",
+              20,
+              182.8866666666667,
+              0.196299091524485,
+              9.144333333333334,
+              0.009814954576223712,
+              55.901,
+              0.2010298485300172,
+              102.2643333333333,
+              0.4828212229524895,
+              0,
+              null,
+              null,
+              3
+            ],
+            [
+              "WebSerial",
+              1,
+              9.988666666666667,
+              0.009814954576223327,
+              9.988666666666667,
+              0.009814954576223327,
+              3.638,
+              0.02551470164434623,
+              4.473333333333334,
+              0.01847520861406798,
+              0,
+              99.88866666666667,
+              0,
+              3
+            ],
+            [
+              "WebSocket",
+              1,
+              10,
+              0,
+              10,
+              0,
+              4.009333333333333,
+              0.05441813423237966,
+              4.865666666666667,
+              0.06860272103447024,
+              0,
+              100,
+              0,
+              3
+            ],
+            [
+              "WebSocket",
+              2,
+              20,
+              0,
+              10,
+              0,
+              4.000666666666667,
+              0.03066485501895175,
+              4.857333333333333,
+              0.0168027775481714,
+              0,
+              100,
+              0.5,
+              3
+            ],
+            [
+              "WebSocket",
+              5,
+              49.98866666666667,
+              0.01962990915244768,
+              9.997666666666667,
+              0.004041451884327319,
+              3.979000000000001,
+              0.01734935157289744,
+              4.845666666666666,
+              0.01789785834487809,
+              0.0004666666666666667,
+              100.0556666666667,
+              0.7998333333333334,
+              3
+            ],
+            [
+              "WebSocket",
+              10,
+              100,
+              0,
+              10,
+              0,
+              4.077333333333333,
+              0.008082903768654833,
+              5.035333333333333,
+              0.01450287327853801,
+              0,
+              100,
+              0.9,
+              3
+            ],
+            [
+              "WebSocket",
+              20,
+              200,
+              0,
+              10,
+              0,
+              4.256666666666667,
+              0.07487545214109448,
+              5.293333333333334,
+              0.09768486747359237,
+              0,
+              100,
+              0.9499999999999998,
+              3
+            ]
+          ]
+        }
+      }
+    },
+    "resultados/figuras_tcc/tabelas/tabela4_uso_recursos.csv": {
+      "byte_size": 1629,
+      "kind": "text",
+      "sha256": "b730b0bb9dd2d9a5ad230f37e797296f6486d8e25826878cfc73b8aa0f1b2150"
+    },
+    "resultados/figuras_tcc/tabelas/tabela4_uso_recursos.md": {
+      "byte_size": 1339,
+      "kind": "text",
+      "sha256": "8cc82c0b64c9f2f2c548053dcd740652bd760814f3e439041a1d2241e34d67a7"
+    },
+    "resultados/figuras_tcc/tabelas/tabela4_uso_recursos.xlsx": {
+      "byte_size": 5917,
+      "kind": "xlsx",
+      "sha256": "118edb246d2b1d2d88a9a8e636ffdb147bff8dbca27603b93f5f69234e5c793a",
+      "xlsx_values": {
+        "sheet_names": [
+          "Sheet1"
+        ],
+        "sheets": {
+          "Sheet1": [
+            [
+              "Arquitetura",
+              "N clientes",
+              "CPU media (%)",
+              "CPU desv (%)",
+              "CPU P95 (%)",
+              "CPU max (%)",
+              "RSS media (MB)",
+              "RSS desv (MB)",
+              "RSS max (MB)",
+              "Heap usado medio (MB)",
+              "N reps"
+            ],
+            [
+              "REST Polling",
+              1,
+              4.323333333333333,
+              0.538952997332173,
+              10.51366666666667,
+              15.68333333333333,
+              84.81266666666666,
+              11.9806027533398,
+              88.70833333333333,
+              18.11533333333334,
+              3
+            ],
+            [
+              "REST Polling",
+              2,
+              4.225000000000001,
+              0.5531518778780383,
+              9.451333333333332,
+              14.49366666666667,
+              102.0093333333333,
+              1.111684007860748,
+              102.892,
+              21.41233333333333,
+              3
+            ],
+            [
+              "REST Polling",
+              5,
+              5.438666666666667,
+              0.4528160038396758,
+              14.60666666666667,
+              21.469,
+              98.589,
+              6.310082487574949,
+              104.2903333333333,
+              20.39,
+              3
+            ],
+            [
+              "REST Polling",
+              10,
+              6.905666666666666,
+              0.3458328112445855,
+              18.43266666666667,
+              26.88066666666667,
+              104.6656666666667,
+              0.4608929738381078,
+              105.4596666666667,
+              21.20633333333333,
+              3
+            ],
+            [
+              "REST Polling",
+              20,
+              9.985333333333333,
+              0.8617368121029374,
+              22.58666666666667,
+              26.46366666666667,
+              103.455,
+              2.835044444096072,
+              105.5883333333333,
+              21.07833333333333,
+              3
+            ],
+            [
+              "WebSocket",
+              1,
+              4.150666666666667,
+              0.2435083845236816,
+              7.397333333333333,
+              12.373,
+              69.296,
+              1.520181239194855,
+              72.35966666666667,
+              14.181,
+              3
+            ],
+            [
+              "WebSocket",
+              2,
+              3.965333333333334,
+              0.5128180314042531,
+              7.393000000000001,
+              10.39333333333333,
+              74.96033333333332,
+              1.978598072710401,
+              75.50633333333333,
+              16.39233333333333,
+              3
+            ],
+            [
+              "WebSocket",
+              5,
+              3.672,
+              0.5875772289665421,
+              6.426333333333333,
+              8.402333333333333,
+              76.71,
+              0.268419447879625,
+              76.957,
+              16.67,
+              3
+            ],
+            [
+              "WebSocket",
+              10,
+              4.285,
+              0.1183173698152561,
+              6.401,
+              9.402666666666667,
+              77.337,
+              0.1880239346466311,
+              77.711,
+              16.14633333333333,
+              3
+            ],
+            [
+              "WebSocket",
+              20,
+              4.748,
+              0.1135781669160051,
+              7.400333333333333,
+              11.59766666666667,
+              78.86433333333333,
+              0.05499393905998565,
+              78.98433333333332,
+              18.36166666666667,
+              3
+            ]
+          ]
+        }
+      }
+    },
+    "resultados/figuras_tcc/tabelas/tabela5_comparacao_final.csv": {
+      "byte_size": 451,
+      "kind": "text",
+      "sha256": "f7efde9096da8d65354e16e721abe1e454b79c6cfbb0576fcd0e4e8e518ded29"
+    },
+    "resultados/figuras_tcc/tabelas/tabela5_comparacao_final.md": {
+      "byte_size": 928,
+      "kind": "text",
+      "sha256": "c9fa5f472bd48c2883682dfd6a76200b78dc9e9327f90273610b3dbbf3f163c4"
+    },
+    "resultados/figuras_tcc/tabelas/tabela5_comparacao_final.xlsx": {
+      "byte_size": 5254,
+      "kind": "xlsx",
+      "sha256": "b1a42bb244d274a478368fda7cd953f51f9e08a2f8d471f0d1be2cb55614032b",
+      "xlsx_values": {
+        "sheet_names": [
+          "Sheet1"
+        ],
+        "sheets": {
+          "Sheet1": [
+            [
+              "Arquitetura",
+              "Suporta multi-cliente",
+              "Throughput baseline 100 ms (%)",
+              "Perdas baseline 100 ms (%)",
+              "Latencia media 100 ms (ms)",
+              "Latencia P95 100 ms (ms)",
+              "Throughput em 1 ms (%)",
+              "Menor intervalo saudavel (ms)",
+              "Throughput agreg. N=20 (msg/s)",
+              "CPU N=20 (%)",
+              "RSS N=20 (MB)"
+            ],
+            [
+              "WebSerial",
+              "Nao (1)",
+              100,
+              0,
+              3.66,
+              4.51,
+              28.02,
+              4,
+              9.99,
+              "n/a",
+              "n/a"
+            ],
+            [
+              "WebSocket",
+              "Sim",
+              100,
+              0,
+              4.09,
+              4.9,
+              27.17,
+              4,
+              200,
+              4.75,
+              78.86
+            ],
+            [
+              "REST Polling",
+              "Sim",
+              90.78,
+              9.22,
+              53.99,
+              98.52,
+              7.01,
+              "indefinido",
+              182.89,
+              9.99,
+              103.45
+            ]
+          ]
+        }
+      }
+    },
+    "resultados/graficos-artigo/01_basico_mensagens_por_segundo.png": {
+      "byte_size": 113240,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 113240,
+        "height": 1272,
+        "mode": "RGBA",
+        "pixels_sha256": "19c6a6e32b5222ec32296f22b6538dbf194bedb0b93dd9d2e5e45aa292521110",
+        "width": 2114
+      },
+      "sha256": "3337ea13a3865512926048a33a2c035a3b50487b517bfe9937e69e6816f51547"
+    },
+    "resultados/graficos-artigo/02_basico_tempo_medio_processamento.png": {
+      "byte_size": 101841,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 101841,
+        "height": 1168,
+        "mode": "RGBA",
+        "pixels_sha256": "c29b6333120bd739ec1d183acb72e0ec30e9435a0758894162b2957fd102bfbb",
+        "width": 2117
+      },
+      "sha256": "89b9410df1f6903cf15cfaa97b29031998f31c180b077df7589f81f31d58588e"
+    },
+    "resultados/graficos-artigo/03_basico_desvio_padrao_processamento.png": {
+      "byte_size": 105014,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 105014,
+        "height": 1249,
+        "mode": "RGBA",
+        "pixels_sha256": "24bac352f6db03f5ae1b8a2fc4b3b70cdbe7b3bbd2618105c19d43be9593be1d",
+        "width": 2117
+      },
+      "sha256": "59314935313cb9004b5b6f1e48bb386a99cda12f6f5bcbeed380a771fe3ee671"
+    },
+    "resultados/graficos-artigo/04_basico_perdas_invalidas.png": {
+      "byte_size": 165583,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 165583,
+        "height": 1272,
+        "mode": "RGBA",
+        "pixels_sha256": "256ae9d234f2867f043feee7f2c45e9174675e0aa00e4143dec1338d09210166",
+        "width": 3257
+      },
+      "sha256": "a38985f671b7c762a2c73e9c30a559ceeb1939222cd35670de60e4ad52aaed96"
+    },
+    "resultados/graficos-artigo/05_escalabilidade_throughput_percentual_por_intervalo.png": {
+      "byte_size": 201535,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 201535,
+        "height": 1392,
+        "mode": "RGBA",
+        "pixels_sha256": "33f4d7cea9f8e73d3d3b030bab7ca8d342d864561cb0874799681b5d7f9e428a",
+        "width": 2357
+      },
+      "sha256": "aa656016d45dc0ba158209bf7f4006a0bddbbc9d77f58951beb1eb3995bfaff1"
+    },
+    "resultados/graficos-artigo/06_escalabilidade_throughput_recebido_por_intervalo.png": {
+      "byte_size": 188222,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 188222,
+        "height": 1392,
+        "mode": "RGBA",
+        "pixels_sha256": "a026f7f74ae433643010ce4c74afa3913d9854c77f45a1fe74aad138b9957c1e",
+        "width": 2353
+      },
+      "sha256": "c23dc908b187e521765f734e65b771cdebc015a6e52b8ff211854b84821b1b95"
+    },
+    "resultados/graficos-artigo/07_escalabilidade_perdas_por_intervalo.png": {
+      "byte_size": 176581,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 176581,
+        "height": 1392,
+        "mode": "RGBA",
+        "pixels_sha256": "969fe5b12dbaffcf7eef39c9b578e9ad96caf8f71e5b396ff1f211189ed60237",
+        "width": 2357
+      },
+      "sha256": "b41873f415708f0eb43c9c7f70616efc5bd009ef6685b5c2c9ee7db3b64a294f"
+    },
+    "resultados/graficos-artigo/08_escalabilidade_latencia_media_por_intervalo.png": {
+      "byte_size": 202794,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 202794,
+        "height": 1343,
+        "mode": "RGBA",
+        "pixels_sha256": "6c1d0ee5544899c0c7285759f2d022f27c2c2cdd0b73922c4e4087e367ccaa58",
+        "width": 2357
+      },
+      "sha256": "656cfd5cf09c1a6a9cf39481d9ef9d9d2fc31d4a78858b3dcc4c476a6fe9dcf7"
+    },
+    "resultados/graficos-artigo/09_escalabilidade_latencia_p95_por_intervalo.png": {
+      "byte_size": 202093,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 202093,
+        "height": 1343,
+        "mode": "RGBA",
+        "pixels_sha256": "7756d9ce5052b5ac62d7bab7a9172b2d42ec235bb82b5586796b4c8400266887",
+        "width": 2357
+      },
+      "sha256": "c8fd542991937c0271aef04cf5ec375bc748a24cd1cd493bb6266e5af521e55f"
+    },
+    "resultados/graficos-artigo/10_ponto_de_stress_por_arquitetura.png": {
+      "byte_size": 182648,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 182648,
+        "height": 1279,
+        "mode": "RGBA",
+        "pixels_sha256": "27de3bfd6239b44c54f0bbc66d43c3bd6c1aae7abbb3bd1b14f3c06a9c720bc4",
+        "width": 2415
+      },
+      "sha256": "9ab572c3de464fb248929022e5ed5433376e97fc07b7f2eb6b9605743af18b3b"
+    },
+    "resultados/graficos-artigo/11_clientes_throughput_agregado.png": {
+      "byte_size": 244538,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 244538,
+        "height": 1334,
+        "mode": "RGBA",
+        "pixels_sha256": "47fbd33e2f265d1b26219bd9f47c20e27e04227ef1c3424f271e935b135ab12f",
+        "width": 2297
+      },
+      "sha256": "bdabedc24160db575e7a8dd3b8fceba76e8445c616504994742a355338538b4b"
+    },
+    "resultados/graficos-artigo/12_clientes_throughput_por_cliente.png": {
+      "byte_size": 114381,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 114381,
+        "height": 1332,
+        "mode": "RGBA",
+        "pixels_sha256": "370a8fe5bb2c926c7bb598ea4c046baffa31cf9cdc3cf36848d99b579f838fff",
+        "width": 2237
+      },
+      "sha256": "eafeff5fb012f82346b59285bbb18ab88eef5f59c857ad1cde211bdc3067a093"
+    },
+    "resultados/graficos-artigo/13_clientes_latencia_media.png": {
+      "byte_size": 113526,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 113526,
+        "height": 1332,
+        "mode": "RGBA",
+        "pixels_sha256": "8328977f12391a8fc29492da86e85bc4b1a011bc83860657cb25842e4ce4010b",
+        "width": 2237
+      },
+      "sha256": "df927413bd64ca5d60164e40ae32a8366a2ce7d938d189c57747c897075b606a"
+    },
+    "resultados/graficos-artigo/14_clientes_latencia_p95.png": {
+      "byte_size": 119098,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 119098,
+        "height": 1332,
+        "mode": "RGBA",
+        "pixels_sha256": "ef8dfdc673a2fe7ec46bc12fca2de826432c8613651eaad5e576f1dca77959b7",
+        "width": 2237
+      },
+      "sha256": "eeb57aa2af89da1f1e02d1a50fd3bcd92cb6250465d5dbb77a9176e8dbe5d7e2"
+    },
+    "resultados/graficos-artigo/15_clientes_cpu_media.png": {
+      "byte_size": 136817,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 136817,
+        "height": 1332,
+        "mode": "RGBA",
+        "pixels_sha256": "d5d0b07c901d4c7cefef0120fa75eb98d1727ca57236c65c00b6e732e3688f4d",
+        "width": 2237
+      },
+      "sha256": "aa682869e76aa23395b97a6ae5bace3bb914b643ddd1ef456e2b065ded6d2b76"
+    },
+    "resultados/graficos-artigo/16_clientes_memoria_media.png": {
+      "byte_size": 143606,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 143606,
+        "height": 1332,
+        "mode": "RGBA",
+        "pixels_sha256": "7344a6f8e3625133798903b4eb4049d0c31f657d66f5821b183bca0068f9d2e1",
+        "width": 2237
+      },
+      "sha256": "1311e78df6f20082a4b237f0ed9de16b8daaf46eb5ce410d143ca7e75cebaae0"
+    },
+    "resultados/graficos-artigo/17_clientes_fairness.png": {
+      "byte_size": 193112,
+      "kind": "png",
+      "png_signature": {
+        "byte_size": 193112,
+        "height": 1282,
+        "mode": "RGBA",
+        "pixels_sha256": "5ff64d08c76d3fa114e4e0f75315ab723a0ea0cffa9157d32972416218d2bbea",
+        "width": 2237
+      },
+      "sha256": "114fca7d25e7c7e439caa66e786679ec645d8aaf2b68199c74a147ff387a29ef"
+    },
+    "resultados/graficos-artigo/README.md": {
+      "byte_size": 5805,
+      "kind": "text",
+      "sha256": "dd02e5eb312f03d06fd446dae30d452d46901ec55444f74da4f4cf868cda6ed6"
+    },
+    "resultados/graficos-artigo/dados_basicos_resumo.csv": {
+      "byte_size": 2116,
+      "kind": "text",
+      "sha256": "04477ba8717acea3c3742b6e0924d347375b18374f15ac3379e6fa67d3185091"
+    },
+    "resultados/graficos-artigo/dados_escalabilidade_clientes_resumo.csv": {
+      "byte_size": 4153,
+      "kind": "text",
+      "sha256": "82999e1a1edf440d6b627971bf1c350658f788a7dcbf65fa59c6a053d05bf689"
+    },
+    "resultados/graficos-artigo/dados_escalabilidade_clientes_todos_intervalos.csv": {
+      "byte_size": 18715,
+      "kind": "text",
+      "sha256": "24d3925a50a55f2a83f258622e8e3a1bab6b849d2e1e2d09a1dd6fb4a0fc04f1"
+    },
+    "resultados/graficos-artigo/dados_escalabilidade_vertical_resumo.csv": {
+      "byte_size": 8091,
+      "kind": "text",
+      "sha256": "9b553576f75bc2311730c009ebac52c0284ccb70bdc76016f6f5479e7e580469"
+    },
+    "resultados/graficos-artigo/pontos_de_stress.csv": {
+      "byte_size": 428,
+      "kind": "text",
+      "sha256": "6f51f4a755800e705b11e0b24e9e513bf5671af2ccc883fd27e0bafbf683b7dc"
+    }
+  },
+  "root": "PFC-1-",
+  "tracked_roots": [
+    "resultados/figuras_tcc",
+    "resultados/graficos-artigo"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "01_health_inicial",
+  "request": {
+    "method": "GET",
+    "path": "/health"
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "serial": {
+        "source": "simulator",
+        "configuredPort": null,
+        "baudRate": 0,
+        "connected": true,
+        "lastError": null
+      },
+      "websocketClients": 0
+    }
+  }
+}

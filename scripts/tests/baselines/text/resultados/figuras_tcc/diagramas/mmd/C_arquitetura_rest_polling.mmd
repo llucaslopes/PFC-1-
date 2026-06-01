@@ -1,0 +1,32 @@
+%% Figura C - Arquitetura C3: Backend Node + REST polling (clientes puxam ativamente)
+flowchart LR
+    classDef hardware fill:#fde7c8,stroke:#cc8a3a,color:#222
+    classDef backend  fill:#ffe1e1,stroke:#b04040,color:#222
+    classDef browser  fill:#cfe5ff,stroke:#3672bd,color:#222
+    classDef storage  fill:#dff2d4,stroke:#3a8a3a,color:#222
+
+    Arduino["Arduino Uno<br/>tcc_sports_sensor_standard.ino"]:::hardware
+    USB[("USB Serial 115200 bps")]:::hardware
+
+    subgraph Backend ["Backend Node.js (mesmo backend dos casos B e C)"]
+        direction TB
+        SR["SerialReader"]:::backend
+        SDS["SensorDataService<br/>guarda 'latestMessage'"]:::backend
+        HTTP["GET /data/latest<br/>GET /clock<br/>GET /health/process<br/>POST /experiments/*"]:::backend
+    end
+
+    C1["Cliente 1 (polling)<br/>setInterval(GET /data/latest, 1 ms)"]:::browser
+    C2["Cliente 2 (polling)"]:::browser
+    Cn["Cliente N (polling)"]:::browser
+    CSVb[("CSV/JSON do cliente")]:::storage
+
+    Arduino --> USB --> SR --> SDS --> HTTP
+
+    C1 == "GET /data/latest<br/>(repete a cada ~1 ms)" ==> HTTP
+    C2 == "GET /data/latest" ==> HTTP
+    Cn == "GET /data/latest" ==> HTTP
+    HTTP -. "200 JSON {seq, sendUs, hr, ax, ay, az, ...}" .-> C1
+    HTTP -. "200 JSON" .-> C2
+    HTTP -. "200 JSON" .-> Cn
+
+    C1 --> CSVb
