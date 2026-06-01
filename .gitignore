@@ -17,17 +17,17 @@ coverage/
 logs/
 *.log
 
-# Resultados de experimentos: versionar apenas READMEs e gráficos.
+# Resultados de experimentos: versionar documentos e gráficos.
 # Ignora todo o conteúdo dentro de resultados/ e subpastas
 # (CSVs, JSONs, etc.), mas mantém a estrutura de pastas,
-# READMEs e imagens em qualquer nível de profundidade.
+# documentos Markdown (READMEs, relatórios, notas, análises)
+# e imagens em qualquer nível de profundidade.
 # Obs.: arquivos .rar/.zip na raiz do projeto (ex.: resultados.rar)
 # continuam versionados para envio ao orientador.
 resultados/**
 !resultados/
 !resultados/**/
-!resultados/**/README.md
-!resultados/**/README*.md
+!resultados/**/*.md
 !resultados/**/*.png
 !resultados/**/*.jpg
 !resultados/**/*.jpeg
@@ -38,8 +38,8 @@ resultados/**
 
 # Entregáveis do TCC (figuras, tabelas, diagramas e textos academicos)
 # em resultados/figuras_tcc/. Aqui versionamos TUDO, inclusive .csv,
-# .xlsx, .md e .mmd, porque sao os artefatos finais do trabalho.
-!resultados/figuras_tcc/**/*.md
+# .xlsx e .mmd, porque sao os artefatos finais do trabalho.
+# (.md ja eh liberado globalmente acima.)
 !resultados/figuras_tcc/**/*.mmd
 !resultados/figuras_tcc/**/*.csv
 !resultados/figuras_tcc/**/*.xlsx
