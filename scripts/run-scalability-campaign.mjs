@@ -15,7 +15,6 @@
  *   scripts/plot_scalability.py     -> 4 PNGs em <campaignDir>/plots/
  */
 
-import { spawn } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -31,6 +30,14 @@ import {
   runWebserialCampaign
 } from "./lib/webserial-runner.mjs";
 
+import {
+  parseArgs,
+  parseIntList as parseIntervals,
+  parseList,
+  parsePositiveInt,
+} from "./lib_mjs/cli-args.mjs";
+import { runPython } from "./lib_mjs/python-runner.mjs";
+
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const CAMPAIGN = {
@@ -40,43 +47,6 @@ const CAMPAIGN = {
   defaultReps: 3,
   defaultDurationSeconds: 60
 };
-
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i++) {
-    const token = argv[i];
-    if (!token.startsWith("--")) continue;
-    const name = token.slice(2);
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith("--")) {
-      args[name] = true;
-    } else {
-      args[name] = next;
-      i++;
-    }
-  }
-  return args;
-}
-
-function parseList(value, fallback) {
-  if (value === undefined || value === true) return fallback;
-  return String(value)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function parseIntervals(value, fallback) {
-  const parts = parseList(value, fallback.map(String));
-  return parts
-    .map((part) => Number(part))
-    .filter((part) => Number.isFinite(part) && part > 0);
-}
-
-function parsePositiveInt(value, fallback) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
 
 function parseNonNegativeInt(value, fallback) {
   const parsed = Number(value);
@@ -121,21 +91,6 @@ Exemplos:
   node scripts/run-scalability-campaign.mjs --source simulator     # sanity check
   node scripts/run-scalability-campaign.mjs --skip-analysis        # so coleta
 `);
-}
-
-function runPython(scriptName, args = []) {
-  return new Promise((resolveRun, rejectRun) => {
-    const pythonCmd = process.platform === "win32" ? "python" : "python3";
-    const child = spawn(pythonCmd, [resolve(rootDir, "scripts", scriptName), ...args], {
-      stdio: "inherit",
-      shell: false
-    });
-    child.on("exit", (code) => {
-      if (code === 0) resolveRun();
-      else rejectRun(new Error(`${scriptName} saiu com codigo ${code}`));
-    });
-    child.on("error", rejectRun);
-  });
 }
 
 async function runForScenario({

@@ -1,5 +1,12 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+/**
+ * Orquestrador principal da campanha (oficial e refinamento) que coordena
+ * cenarios C1 (WebSerial), C2 (WebSocket) e C3 (REST polling) para uma ou
+ * mais fontes (serial/simulator).
+ *
+ * Refatorado na Sub-fase 2.5: parsers CLI e runPython agora vem de
+ * `lib_mjs/`. Orquestracao C1/C2/C3 e logica de loop permanecem aqui.
+ */
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { runBackendCampaign } from "./lib/backend-runner.mjs";
@@ -12,6 +19,14 @@ import {
   hasSerialPermission,
   runWebserialCampaign
 } from "./lib/webserial-runner.mjs";
+
+import {
+  parseArgs,
+  parseIntList as parseIntervals,
+  parseList,
+  parsePositiveInt,
+} from "./lib_mjs/cli-args.mjs";
+import { runPython } from "./lib_mjs/python-runner.mjs";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CAMPAIGNS = {
@@ -36,41 +51,6 @@ const CAMPAIGNS = {
     }
   }
 };
-
-function parseArgs(argv) {
-  const args = {};
-  for (let index = 0; index < argv.length; index++) {
-    const token = argv[index];
-    if (!token.startsWith("--")) continue;
-    const name = token.slice(2);
-    const next = argv[index + 1];
-    if (next === undefined || next.startsWith("--")) {
-      args[name] = true;
-    } else {
-      args[name] = next;
-      index++;
-    }
-  }
-  return args;
-}
-
-function parseList(value, fallback) {
-  if (value === undefined || value === true) return fallback;
-  return String(value)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function parseIntervals(value, fallback) {
-  const parts = parseList(value, fallback.map(String));
-  return parts.map((part) => Number(part)).filter((part) => Number.isFinite(part) && part > 0);
-}
-
-function parsePositiveInt(value, fallback) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
 
 function parseNonNegativeInt(value, fallback) {
   const parsed = Number(value);
@@ -116,21 +96,6 @@ Exemplos:
   node scripts/run-experiments.mjs --campaign refinement           # campanha complementar
   node scripts/run-experiments.mjs --bootstrap-webserial           # so autoriza a porta
 `);
-}
-
-async function runPython(scriptName, args = []) {
-  return new Promise((resolveRun, rejectRun) => {
-    const pythonCmd = process.platform === "win32" ? "python" : "python3";
-    const child = spawn(pythonCmd, [resolve(rootDir, "scripts", scriptName), ...args], {
-      stdio: "inherit",
-      shell: false
-    });
-    child.on("exit", (code) => {
-      if (code === 0) resolveRun();
-      else rejectRun(new Error(`${scriptName} saiu com codigo ${code}`));
-    });
-    child.on("error", rejectRun);
-  });
 }
 
 function normalizeSources(args) {
