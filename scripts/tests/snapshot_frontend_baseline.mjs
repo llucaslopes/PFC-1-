@@ -34,18 +34,16 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 const BASELINE_DIR = join(__dirname, 'baselines-frontend');
 
 const FRONTEND_DIRS = [
-  'prototypes/webserial/js',
+  'prototypes/_legacy_webserial/js',
   'arquitetura-arduino-node-api/backend/public/js',
 ];
 
-// Pares conhecidos com mesma intencao mas implementacao divergente
-// (alvos das sub-fases 3.1 e 3.2).
 const KNOWN_DUPLICATE_PAIRS = [
-  ['prototypes/webserial/js/clockSyncMath.js',
+  ['prototypes/_legacy_webserial/js/clockSyncMath.js',
    'arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js'],
-  ['prototypes/webserial/js/scientific.js',
+  ['prototypes/_legacy_webserial/js/scientific.js',
    'arquitetura-arduino-node-api/backend/public/js/scientific.js'],
-  ['prototypes/webserial/js/clockSync.js',
+  ['prototypes/_legacy_webserial/js/clockSync.js',
    'arquitetura-arduino-node-api/backend/public/js/clockSync.js'],
 ];
 

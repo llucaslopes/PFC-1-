@@ -10,12 +10,22 @@
     <main class="shell">
       <section class="topbar">
         <div>
-          <p class="eyebrow">Arduino -> Node.js -> WebSocket</p>
-          <h1>Monitor Esportivo</h1>
+          <p class="eyebrow">ESP32 -> Wi-Fi -> &lt;A1 | A2 | A3&gt; -> Dashboard</p>
+          <h1>Monitor Esportivo do Clube</h1>
         </div>
-        <div class="status" id="connectionStatus">
-          <span class="status-dot"></span>
-          <span>Conectando</span>
+        <div class="topbar-actions">
+          <label class="target-selector">
+            <span>Arquitetura</span>
+            <select id="targetSelector">
+              <option value="a1">A1 — Backend Node WebSocket</option>
+              <option value="a2">A2 — Backend Node REST polling</option>
+              <option value="a3">A3 — Serverless (Vercel)</option>
+            </select>
+          </label>
+          <div class="status" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span>Conectando</span>
+          </div>
         </div>
       </section>
 
@@ -51,15 +61,16 @@
             <label>
               <span>Modo</span>
               <select id="communicationMode">
-                <option value="websocket">WebSocket</option>
-                <option value="rest-polling">REST polling</option>
+                <option value="websocket">WebSocket (A1)</option>
+                <option value="rest-polling">REST polling (A2)</option>
+                <option value="serverless-http">Serverless HTTP (A3)</option>
               </select>
             </label>
             <label>
               <span>Fonte</span>
               <select id="experimentSource">
-                <option value="simulator">Simulador</option>
-                <option value="serial">Arduino serial</option>
+                <option value="wifi-http">ESP32 Wi-Fi (oficial)</option>
+                <option value="simulator">Simulador (sanity-check)</option>
               </select>
             </label>
             <label>

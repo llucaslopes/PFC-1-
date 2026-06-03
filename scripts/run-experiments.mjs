@@ -1,24 +1,27 @@
 #!/usr/bin/env node
 /**
- * Orquestrador principal da campanha (oficial e refinamento) que coordena
- * cenarios C1 (WebSerial), C2 (WebSocket) e C3 (REST polling) para uma ou
- * mais fontes (serial/simulator).
+ * Orquestrador principal da campanha A1 + A2 + A3 sobre Wi-Fi.
  *
- * Refatorado na Sub-fase 2.5: parsers CLI e runPython agora vem de
- * `lib_mjs/`. Orquestracao C1/C2/C3 e logica de loop permanecem aqui.
+ * Cenarios:
+ *   - A1: backend-node WebSocket   (modo "websocket")
+ *   - A2: backend-node REST polling (modo "rest-polling")
+ *   - A3: serverless (Vercel Functions, modo "serverless-http")
+ *
+ * Fonte oficial: ESP32 real conectado por Wi-Fi (`source=wifi-http`).
+ * Sanity-check sem hardware: `--source simulator` -- nao vale como dado
+ * oficial do TCC.
+ *
+ * WebSerial e fonte serial USB foram removidos do caminho oficial e ficam
+ * preservados em pastas `_legacy_*` apenas para reproduzir campanhas
+ * antigas.
  */
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { runBackendCampaign } from "./lib/backend-runner.mjs";
 import { startKeepAwake } from "./lib/keep-awake.mjs";
 import { initLogFile } from "./lib/runtime-utils.mjs";
-import { resolveSerialPort } from "./lib/serial-detect.mjs";
-import { startBackend, startWebserial, stop } from "./lib/server-control.mjs";
-import {
-  bootstrapSerialPermission,
-  hasSerialPermission,
-  runWebserialCampaign
-} from "./lib/webserial-runner.mjs";
+import { runServerlessCampaign } from "./lib/serverless-runner.mjs";
+import { attachServerless, startBackend, startServerless, stop } from "./lib/server-control.mjs";
 
 import {
   parseArgs,
@@ -32,24 +35,34 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CAMPAIGNS = {
   official: {
     type: "official",
-    description: "campanha oficial ampla",
-    defaultIntervalsMs: [100, 50, 20, 10, 5, 1],
+    description: "campanha oficial Wi-Fi (A1+A2+A3)",
+    defaultIntervalsMs: [1000, 500, 200, 100, 50, 20],
     scenarioIntervalsMs: {
-      c1: [100, 50, 20, 10, 5, 1],
-      c2: [100, 50, 20, 10, 5, 1],
-      c3: [100, 50, 20, 10, 5, 1]
-    }
+      a1: [1000, 500, 200, 100, 50, 20],
+      a2: [1000, 500, 200, 100, 50, 20],
+      a3: [1000, 500, 200, 100, 50, 20],
+    },
   },
   refinement: {
     type: "saturation-refinement",
-    description: "campanha complementar de refinamento",
-    defaultIntervalsMs: [4, 3, 2],
+    description: "campanha complementar de refinamento (intervalos extremos)",
+    defaultIntervalsMs: [10, 5, 2000, 5000],
     scenarioIntervalsMs: {
-      c1: [4, 3, 2],
-      c2: [4, 3, 2],
-      c3: [200, 500, 1000]
-    }
-  }
+      a1: [10, 5],
+      a2: [2000, 5000],
+      a3: [10, 5, 2000, 5000],
+    },
+  },
+  coldstart: {
+    type: "cold-start",
+    description: "campanha de cold start (apenas A3)",
+    defaultIntervalsMs: [100],
+    scenarioIntervalsMs: {
+      a1: [],
+      a2: [],
+      a3: [100],
+    },
+  },
 };
 
 function parseNonNegativeInt(value, fallback) {
@@ -60,62 +73,43 @@ function parseNonNegativeInt(value, fallback) {
 function printHelp() {
   console.log(`Uso: node scripts/run-experiments.mjs [opcoes]
 
-Opcoes (todas tem default sensato; rodar sem nada ja executa a campanha completa
-com o Arduino real):
-  --sources serial,simulator    fontes a rodar em sequencia (default: serial)
-  --source serial|simulator     atalho para uma unica fonte (sobrescreve --sources)
-                                Use 'simulator' apenas para sanity-check sem hardware;
-                                ele nao substitui dados oficiais do TCC.
-  --serial-port COM3|auto       (default: auto; usa env SERIAL_PORT se definida)
-  --campaign official|refinement
-                                official = 100,50,20,10,5,1 (default)
-                                refinement = C1/C2: 4,3,2; C3: 200,500,1000
-  --reps 3                      numero de repeticoes
+Opcoes:
+  --source wifi-http|simulator  fonte (default: wifi-http; simulator=sanity-check sem hardware)
+  --campaign official|refinement|coldstart
+                                official    = matriz oficial 1000..20 ms (default)
+                                refinement  = intervalos extremos (10/5/2000/5000)
+                                coldstart   = campanha dedicada A3 com warmup forcado
+  --reps 3                      repeticoes
   --duration 60                 segundos por intervalo
-  --intervals 100,50,20,10,5,1  override manual da matriz da campanha
-  --scenarios c1,c2,c3          quais cenarios executar
+  --intervals 1000,500,200,100,50,20  override manual da matriz
+  --scenarios a1,a2,a3          quais cenarios executar (subset)
+  --serverless-base-url <url>   URL do deployment Vercel (se omitido, sobe vercel dev local em :3001)
+  --serverless-api-key <key>    valor de X-Api-Key (default: env INGEST_API_KEY)
+  --cold-start-delay-ms 0       espera antes de cada intervalo A3 (forca cold start)
   --results-dir resultados      diretorio dos CSV/JSON
-  --port-backend 3000
-  --port-webserial 8765
-  --chromium-user-data <path>   default: .playwright-profile/
-  --log-file logs/run.log       tee de stdout/stderr para arquivo
-  --heartbeat-ms 10000          intervalo do heartbeat; 0 desliga
+  --port-backend 3000           porta do backend (A1/A2)
+  --port-serverless 3001        porta local do vercel dev (apenas se sem --serverless-base-url)
+  --log-file logs/run.log       tee de stdout/stderr
+  --heartbeat-ms 10000
   --no-resume                   nao pula reps cujos arquivos ja existem
   --no-continue-on-error        aborta tudo na primeira falha
-  --no-keep-awake               nao impede sleep do Windows durante o run
-  --no-auto-bootstrap           nao tenta autorizar a porta serial automaticamente
+  --no-keep-awake               nao impede sleep do Windows
   --skip-analysis               nao roda consolidate_results.py + plot_results.py
-  --bootstrap-webserial         so abre Chrome para autorizar a porta serial e sai
   --help
 
 Exemplos:
-  node scripts/run-experiments.mjs                                 # campanha oficial (Arduino)
-  node scripts/run-experiments.mjs --sources serial,simulator      # Arduino + sanity-check simulador
-  node scripts/run-experiments.mjs --source simulator              # so simulador (sanity-check)
-  node scripts/run-experiments.mjs --scenarios c2,c3 --reps 5      # backend, 5 reps
-  node scripts/run-experiments.mjs --campaign refinement           # campanha complementar
-  node scripts/run-experiments.mjs --bootstrap-webserial           # so autoriza a porta
+  node scripts/run-experiments.mjs                                  # campanha oficial Wi-Fi
+  node scripts/run-experiments.mjs --scenarios a1,a2 --reps 5       # so backend
+  node scripts/run-experiments.mjs --scenarios a3 --reps 3 \\
+      --serverless-base-url https://meu-projeto.vercel.app
+  node scripts/run-experiments.mjs --campaign coldstart --scenarios a3
 `);
-}
-
-function normalizeSources(args) {
-  if (args.source) {
-    return [args.source === "simulator" ? "simulator" : "serial"];
-  }
-  // Default: somente Arduino (serial). O simulador e auxiliar e so e rodado se
-  // pedido explicitamente via --source simulator ou --sources ...,simulator.
-  // Toda metrica oficial do TCC vem de hardware real.
-  const list = parseList(args.sources, ["serial"]).map((s) =>
-    s === "simulator" ? "simulator" : "serial"
-  );
-  return [...new Set(list)];
 }
 
 function resolveCampaign(args) {
   const requested = String(args.campaign ?? "official").toLowerCase();
-  if (requested === "refinement" || requested === "saturation-refinement") {
-    return CAMPAIGNS.refinement;
-  }
+  if (requested === "refinement" || requested === "saturation-refinement") return CAMPAIGNS.refinement;
+  if (requested === "coldstart" || requested === "cold-start") return CAMPAIGNS.coldstart;
   return CAMPAIGNS.official;
 }
 
@@ -126,122 +120,66 @@ function resolveScenarioIntervals({ args, campaign, scenario }) {
   return [...(campaign.scenarioIntervalsMs[scenario] ?? campaign.defaultIntervalsMs)];
 }
 
+function normalizeSource(args) {
+  return args.source === "simulator" ? "simulator" : "wifi-http";
+}
+
 async function runCampaignForSource({
-  source,
-  scenarios,
-  reps,
-  durationSeconds,
-  campaign,
-  scenarioIntervalsMs,
-  resultsDir,
-  backendPort,
-  webserialPort,
-  userDataDir,
-  resume,
-  continueOnError,
-  heartbeatIntervalMs,
-  autoBootstrap,
-  serialPortConfigured
+  source, scenarios, reps, durationSeconds, campaign,
+  scenarioIntervalsMs, resultsDir, backendPort, serverlessPort,
+  serverlessBaseUrl, serverlessApiKey, coldStartDelayMs, resume,
+  continueOnError, heartbeatIntervalMs,
 }) {
   console.log(`\n[orchestrator] ##### Fonte: ${source} #####`);
-
-  const resolvedSerialPort =
-    source === "serial" ? await resolveSerialPort(serialPortConfigured) : null;
-
-  if (source === "serial" && !resolvedSerialPort) {
-    console.warn(
-      `[orchestrator] Fonte serial sem porta COM detectada. Verifique se o Arduino esta conectado. Pulando fonte 'serial'.`
+  if (source === "wifi-http") {
+    console.log(
+      "[orchestrator] Verifique se o ESP32 esta ligado, conectado ao Wi-Fi e apontando para o endpoint do cenario atual."
     );
-    return;
   }
 
-  if (source === "serial") {
-    console.log(`[orchestrator] Porta serial: ${resolvedSerialPort}`);
-  }
+  const wantsA1 = scenarios.includes("a1");
+  const wantsA2 = scenarios.includes("a2");
+  const wantsA3 = scenarios.includes("a3");
 
-  const wantsC1 = scenarios.includes("c1");
-  const wantsC2 = scenarios.includes("c2");
-  const wantsC3 = scenarios.includes("c3");
-
-  if (wantsC1) {
-    console.log(`\n[orchestrator] ===== Cenario C1 (WebSerial) / source=${source} =====`);
+  if (wantsA1 || wantsA2) {
+    console.log(`\n[orchestrator] ===== Cenarios backend-node (A1/A2) / source=${source} =====`);
+    let backend;
     try {
-      const webserial = await startWebserial({ port: webserialPort });
-      try {
-        const baseUrl = `http://localhost:${webserialPort}/`;
-        if (source === "serial" && autoBootstrap) {
-          const granted = await hasSerialPermission({ baseUrl, userDataDir });
-          if (!granted) {
-            console.log(
-              "[orchestrator] WebSerial sem permissao salva; abrindo bootstrap automatico."
-            );
-            await bootstrapSerialPermission({ baseUrl, userDataDir });
-          }
-        }
-
-        await runWebserialCampaign({
-          baseUrl,
-          source,
-          reps,
-          durationSeconds,
-          intervalsMs: scenarioIntervalsMs.c1,
-          campaignType: campaign.type,
-          resultsDir,
-          userDataDir,
-          resume,
-          continueOnError,
-          heartbeatIntervalMs
-        });
-      } finally {
-        await stop(webserial);
-      }
-    } catch (error) {
-      console.warn(
-        `[orchestrator] Cenario C1 (${source}) falhou: ${error.message}. ${continueOnError ? "Seguindo." : ""}`
-      );
-      if (!continueOnError) throw error;
-    }
-  }
-
-  if (wantsC2 || wantsC3) {
-    console.log(`\n[orchestrator] ===== Cenarios backend-node / source=${source} =====`);
-    try {
-      const backend = await startBackend({
+      backend = await startBackend({
         source,
-        serialPort: resolvedSerialPort,
-        port: backendPort
+        port: backendPort,
       });
       try {
-        if (wantsC2) {
-          console.log(`\n[orchestrator] --- C2 (WebSocket) / source=${source} ---`);
+        if (wantsA1 && scenarioIntervalsMs.a1.length > 0) {
+          console.log(`\n[orchestrator] --- A1 (WebSocket) / source=${source} ---`);
           await runBackendCampaign({
             baseUrl: `http://localhost:${backendPort}`,
             mode: "websocket",
             source,
             reps,
             durationSeconds,
-            intervalsMs: scenarioIntervalsMs.c2,
+            intervalsMs: scenarioIntervalsMs.a1,
             campaignType: campaign.type,
             resultsDir,
             resume,
             continueOnError,
-            heartbeatIntervalMs
+            heartbeatIntervalMs,
           });
         }
-        if (wantsC3) {
-          console.log(`\n[orchestrator] --- C3 (REST polling) / source=${source} ---`);
+        if (wantsA2 && scenarioIntervalsMs.a2.length > 0) {
+          console.log(`\n[orchestrator] --- A2 (REST polling) / source=${source} ---`);
           await runBackendCampaign({
             baseUrl: `http://localhost:${backendPort}`,
             mode: "rest-polling",
             source,
             reps,
             durationSeconds,
-            intervalsMs: scenarioIntervalsMs.c3,
+            intervalsMs: scenarioIntervalsMs.a2,
             campaignType: campaign.type,
             resultsDir,
             resume,
             continueOnError,
-            heartbeatIntervalMs
+            heartbeatIntervalMs,
           });
         }
       } finally {
@@ -254,79 +192,89 @@ async function runCampaignForSource({
       if (!continueOnError) throw error;
     }
   }
+
+  if (wantsA3 && scenarioIntervalsMs.a3.length > 0) {
+    console.log(`\n[orchestrator] ===== Cenario A3 (serverless) / source=${source} =====`);
+    let serverlessHandle;
+    try {
+      let resolvedBaseUrl;
+      if (serverlessBaseUrl) {
+        serverlessHandle = await attachServerless({ baseUrl: serverlessBaseUrl });
+        resolvedBaseUrl = serverlessHandle.baseUrl;
+      } else {
+        serverlessHandle = await startServerless({ port: serverlessPort });
+        resolvedBaseUrl = `http://localhost:${serverlessPort}`;
+      }
+      try {
+        await runServerlessCampaign({
+          baseUrl: resolvedBaseUrl,
+          apiKey: serverlessApiKey,
+          source,
+          reps,
+          durationSeconds,
+          intervalsMs: scenarioIntervalsMs.a3,
+          campaignType: campaign.type,
+          resultsDir,
+          resume,
+          continueOnError,
+          heartbeatIntervalMs,
+          forceColdStartMs: coldStartDelayMs,
+        });
+      } finally {
+        await stop(serverlessHandle);
+      }
+    } catch (error) {
+      console.warn(
+        `[orchestrator] Serverless (${source}) falhou globalmente: ${error.message}. ${continueOnError ? "Seguindo." : ""}`
+      );
+      if (!continueOnError) throw error;
+    }
+  }
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.help) { printHelp(); return; }
+  if (args["log-file"]) initLogFile(resolve(rootDir, args["log-file"]));
 
-  if (args.help) {
-    printHelp();
-    return;
-  }
-
-  if (args["log-file"]) {
-    initLogFile(resolve(rootDir, args["log-file"]));
-  }
-
-  const sources = normalizeSources(args);
+  const sources = [normalizeSource(args)];
   const campaign = resolveCampaign(args);
-  const serialPortConfigured =
-    args["serial-port"] ?? process.env.SERIAL_PORT ?? "auto";
   const reps = parsePositiveInt(args.reps, 3);
   const durationSeconds = parsePositiveInt(args.duration, 60);
-  const scenarios = parseList(args.scenarios, ["c1", "c2", "c3"]).map((s) => s.toLowerCase());
+  const scenarios = parseList(args.scenarios, ["a1", "a2", "a3"]).map((s) => s.toLowerCase());
   const scenarioIntervalsMs = {
-    c1: resolveScenarioIntervals({ args, campaign, scenario: "c1" }),
-    c2: resolveScenarioIntervals({ args, campaign, scenario: "c2" }),
-    c3: resolveScenarioIntervals({ args, campaign, scenario: "c3" })
+    a1: resolveScenarioIntervals({ args, campaign, scenario: "a1" }),
+    a2: resolveScenarioIntervals({ args, campaign, scenario: "a2" }),
+    a3: resolveScenarioIntervals({ args, campaign, scenario: "a3" }),
   };
   const resultsDir = resolve(rootDir, args["results-dir"] ?? "resultados");
   const backendPort = parsePositiveInt(args["port-backend"], 3000);
-  const webserialPort = parsePositiveInt(args["port-webserial"], 8765);
-  const userDataDir = resolve(
-    rootDir,
-    args["chromium-user-data"] ?? ".playwright-profile"
-  );
+  const serverlessPort = parsePositiveInt(args["port-serverless"], 3001);
+  const serverlessBaseUrl = args["serverless-base-url"] ?? process.env.SERVERLESS_BASE_URL ?? null;
+  const serverlessApiKey = args["serverless-api-key"] ?? process.env.INGEST_API_KEY ?? "";
+  const coldStartDelayMs = parseNonNegativeInt(args["cold-start-delay-ms"], 0);
   const skipAnalysis = Boolean(args["skip-analysis"]);
   const resume = !args["no-resume"];
   const continueOnError = !args["no-continue-on-error"];
   const keepAwakeEnabled = !args["no-keep-awake"];
-  const autoBootstrap = !args["no-auto-bootstrap"];
   const heartbeatIntervalMs = parseNonNegativeInt(args["heartbeat-ms"], 10_000);
 
-  if (args["bootstrap-webserial"]) {
-    const webserial = await startWebserial({ port: webserialPort });
-    try {
-      await bootstrapSerialPermission({
-        baseUrl: `http://localhost:${webserialPort}/`,
-        userDataDir
-      });
-    } finally {
-      await stop(webserial);
-    }
-    return;
-  }
-
   console.log(`[orchestrator] Configuracao:`);
-  console.log(`  sources            = ${sources.join(", ")}`);
+  console.log(`  source             = ${sources.join(", ")}`);
   console.log(`  campaign           = ${campaign.type} (${campaign.description})`);
-  console.log(`  serialPort         = ${serialPortConfigured} (resolvido por fonte)`);
   console.log(`  reps               = ${reps}`);
   console.log(`  duration           = ${durationSeconds}s`);
   console.log(`  scenarios          = ${scenarios.join(", ")}`);
-  console.log(`  intervals[c1]      = ${scenarioIntervalsMs.c1.join(", ")} ms`);
-  console.log(`  intervals[c2]      = ${scenarioIntervalsMs.c2.join(", ")} ms`);
-  console.log(`  intervals[c3]      = ${scenarioIntervalsMs.c3.join(", ")} ms`);
+  console.log(`  intervals[a1]      = ${scenarioIntervalsMs.a1.join(", ")} ms`);
+  console.log(`  intervals[a2]      = ${scenarioIntervalsMs.a2.join(", ")} ms`);
+  console.log(`  intervals[a3]      = ${scenarioIntervalsMs.a3.join(", ")} ms`);
   console.log(`  resultsDir         = ${resultsDir}`);
-  console.log(`  userDataDir        = ${userDataDir}`);
+  console.log(`  backendPort        = ${backendPort}`);
+  console.log(`  serverlessBaseUrl  = ${serverlessBaseUrl ?? `(local) http://localhost:${serverlessPort}`}`);
+  console.log(`  coldStartDelayMs   = ${coldStartDelayMs}`);
   console.log(`  resume             = ${resume}`);
   console.log(`  continueOnError    = ${continueOnError}`);
   console.log(`  keepAwake          = ${keepAwakeEnabled}`);
-  console.log(`  autoBootstrap      = ${autoBootstrap}`);
-  console.log(`  heartbeatMs        = ${heartbeatIntervalMs}`);
-  if (args["log-file"]) {
-    console.log(`  logFile            = ${resolve(rootDir, args["log-file"])}`);
-  }
 
   const keepAwake = keepAwakeEnabled ? startKeepAwake() : { stop() {} };
 
@@ -342,17 +290,17 @@ async function main() {
           scenarioIntervalsMs,
           resultsDir,
           backendPort,
-          webserialPort,
-          userDataDir,
+          serverlessPort,
+          serverlessBaseUrl,
+          serverlessApiKey,
+          coldStartDelayMs,
           resume,
           continueOnError,
           heartbeatIntervalMs,
-          autoBootstrap,
-          serialPortConfigured
         });
       } catch (error) {
         console.warn(
-          `[orchestrator] Fonte '${source}' falhou globalmente: ${error.message}. ${continueOnError ? "Seguindo para a proxima fonte." : "Abortando."}`
+          `[orchestrator] Fonte '${source}' falhou globalmente: ${error.message}. ${continueOnError ? "Seguindo." : "Abortando."}`
         );
         if (!continueOnError) throw error;
       }

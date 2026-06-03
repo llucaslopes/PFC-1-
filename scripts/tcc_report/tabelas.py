@@ -196,7 +196,9 @@ def tabela4_uso_recursos(agg_h: pd.DataFrame, out_dir: Path,
             "n_reps"]
     cols = [c for c in cols if c in agg_h.columns]
     df = agg_h[cols].copy()
-    df = df[df["arch_label"] != "WebSerial"]
+    # WebSerial nao tem processo intermediario; A3 (Serverless) idem
+    # (sem servidor proprio para amostrar CPU/RAM).
+    df = df[~df["arch_label"].str.contains("WebSerial|Serverless", na=False)]
     rename = {
         "arch_label":                  "Arquitetura",
         "client_count":                "N clientes",
@@ -229,10 +231,24 @@ def tabela5_comparacao_final(agg_v: pd.DataFrame,
                              stress_points,
                              out_dir: Path,
                              interval_ms: int) -> pd.DataFrame:
-    """Tabela 5 - Comparacao final entre as arquiteturas (sintese para o artigo)."""
+    """Tabela 5 - Comparacao final entre as arquiteturas (sintese para o artigo).
+
+    Itera sobre todas as arquiteturas presentes em `agg_v` na ordem
+    canonica do `lib_py.scenarios.ARCH_ORDER` (A1, A2, A3, A4, WebSerial
+    legado), mantendo retrocompatibilidade com campanhas antigas que
+    ainda usam apenas os tres labels iniciais.
+    """
+    try:
+        from lib_py.scenarios import ARCH_ORDER as _ARCH_ORDER
+    except Exception:
+        _ARCH_ORDER = ["WebSerial", "WebSocket", "REST Polling"]
     rows = []
     sp_by_arch = {sp.arch_label: sp for sp in stress_points}
-    for arch in ["WebSerial", "WebSocket", "REST Polling"]:
+    archs_present = list(agg_v["arch_label"].unique()) if "arch_label" in agg_v.columns else []
+    arch_order = [a for a in _ARCH_ORDER if a in archs_present] + [
+        a for a in archs_present if a not in _ARCH_ORDER
+    ]
+    for arch in arch_order:
         v = agg_v[agg_v["arch_label"] == arch]
         if v.empty:
             continue
@@ -246,7 +262,10 @@ def tabela5_comparacao_final(agg_v: pd.DataFrame,
 
         rows.append({
             "Arquitetura": arch,
-            "Suporta multi-cliente": "Nao (1)" if arch == "WebSerial" else "Sim",
+            "Suporta multi-cliente": (
+                "Nao (1)" if "WebSerial" in arch else "Sim (escala automatica)"
+                if "Serverless" in arch else "Sim"
+            ),
             "Throughput baseline 100 ms (%)":
                 round(float(v100["throughput_percent_mean"].iloc[0]), 2)
                 if not v100.empty else math.nan,

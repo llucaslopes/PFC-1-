@@ -5,10 +5,11 @@ import { CreateRoutesOptions } from "./types";
 // Rotas do ciclo de vida de experimentos: start/stop/reset/current/
 // observations/export.
 //
-// Ordem em /start: a sincronizacao Cristian/NTP eh executada com o
-// Arduino em estado idle (100 ms) e *depois* aplicamos o intervalo
-// experimental. `synchronizeClock` se encarrega da sequencia para o
-// modo `source=serial`; em `simulator` usamos createRelativeFallbackClockSync.
+// Wi-Fi: nao executamos mais o handshake SYNC,<id> via porta serial. O
+// ESP32 sincroniza via SNTP no boot, e a fonte HttpIntake retorna um
+// clockSync de fallback indicando que `send_us` ja esta em epoch absoluto.
+// O alinhamento backend<->frontend continua sendo feito por POST /clock/sync
+// (Cristian) executado pelo cliente antes de iniciar.
 export function createExperimentsRouter(options: CreateRoutesOptions): Router {
   const router = Router();
 
@@ -17,15 +18,19 @@ export function createExperimentsRouter(options: CreateRoutesOptions): Router {
     const requestedIntervalMs = Math.max(1, Number(requestedConfig.sendIntervalMs) || 100);
 
     let clockSync;
-    if (requestedConfig.source === "serial" && options.serialReader.synchronizeClock) {
+    const source = String(requestedConfig.source ?? "wifi-http");
+    if (source === "serial" && options.serialReader.synchronizeClock) {
+      // Caminho legado preservado para reproduzir campanhas antigas com
+      // SerialReader/USB. Nao deve ser usado em novas campanhas.
       clockSync = await options.serialReader.synchronizeClock(10, requestedIntervalMs);
+    } else if (source === "wifi-http" && options.serialReader.synchronizeClock) {
+      // Caminho oficial: HttpIntake.synchronizeClock devolve fallback com
+      // syncFailed=false e fallbackReason="wifi_sntp_absolute_epoch".
+      clockSync = await options.serialReader.synchronizeClock(0, requestedIntervalMs);
     } else {
-      // Simulador: nao tem porta serial; aplica o intervalo direto.
       options.serialReader.setIntervalMs?.(requestedIntervalMs);
       clockSync = createRelativeFallbackClockSync("simulator_or_sync_not_available", 0);
     }
-    // Antes de iniciar uma nova execucao, zera o tracking de rollover para
-    // que rollovers de execucoes anteriores nao "vazem" para esta.
     options.sensorDataService.resetRolloverTracking();
     const experiment = options.experimentService.start(requestedConfig, clockSync);
 

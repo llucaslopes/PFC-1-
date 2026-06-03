@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-01T00:00:00.000Z",
+  "generatedAt": "2026-06-03T00:00:00.000Z",
   "schemaVersion": 1,
   "fixtureCount": 10,
   "fixtures": [
@@ -48,8 +48,8 @@
       "file": "fixtures/06_metrics.json",
       "method": "GET",
       "path": "/metrics",
-      "sha256": "b7cb1a7e0b386ffb5870287b889979e149cec798750c08d47ddbb07929eb3c42",
-      "size": 1999
+      "sha256": "576bac7707031fd5430a69f6ed01a8db3d3b5722bc66dbcc07623dccdee2a489",
+      "size": 2060
     },
     {
       "name": "07_experiments_reset",

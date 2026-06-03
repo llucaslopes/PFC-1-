@@ -1,12 +1,11 @@
 
 /**
- * Paridade comportamental dos modulos que substituiram o
- * `prototypes/webserial/js/experiment.js` original (Sub-fase 3.4).
+ * Paridade comportamental dos modulos do dashboard WebSerial historico.
  *
- * Mesmo principio do `test_experiments_modules.test.mjs` (backend): testa
- * funcoes puras carregaveis em Node + valida API publica do barrel.
- * Funcoes que tocam DOM/serial/simulator sao cobertas via Playwright na
- * Sub-fase de aceite (3.aceite).
+ * WebSerial saiu do escopo oficial; o codigo continua preservado em
+ * `prototypes/_legacy_webserial/` para reproduzir campanhas anteriores.
+ * Estes testes seguem rodando contra o codigo legado para detectar
+ * regressao acidental enquanto o codigo ainda viver no repositorio.
  */
 
 import test from 'node:test';
@@ -16,7 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
-const WEBSERIAL_JS = join(REPO_ROOT, 'prototypes', 'webserial', 'js');
+const WEBSERIAL_JS = join(REPO_ROOT, 'prototypes', '_legacy_webserial', 'js');
 
 // `dom.js` chama document.getElementById/querySelector no top-level + alguns
 // modulos chamam `Blob`, `URL.createObjectURL`, etc. Stub completo.

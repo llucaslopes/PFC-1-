@@ -39,7 +39,7 @@ const PAIRS = [
   {
     name: 'webserial',
     original: join(ORIGINALS, 'webserial', 'scientific.js'),
-    current: join(REPO_ROOT, 'prototypes', 'webserial', 'js', 'scientific.js'),
+    current: join(REPO_ROOT, 'prototypes', '_legacy_webserial', 'js', 'scientific.js'),
     expectedAppVersion: '1.0.0',
   },
   {
@@ -235,12 +235,14 @@ for (const pair of PAIRS) {
   });
 }
 
-test('sync-shared-frontend: _shared/scientific.js em ambos os destinos casa com source', async () => {
+test('sync-shared-frontend: _shared/scientific.js no destino oficial casa com source', async () => {
   const sourceUrl = pathToFileURL(join(REPO_ROOT, 'shared', 'js', 'scientific.js')).href;
   const source = await import(sourceUrl);
 
+  // Destino oficial unico: backend Node (A1+A2). O dashboard A3 reusa o
+  // mesmo backend via querystring `target=a3`. O legacy_webserial fica
+  // fora do contrato de sincronizacao.
   for (const target of [
-    join(REPO_ROOT, 'prototypes', 'webserial', 'js', '_shared', 'scientific.js'),
     join(REPO_ROOT, 'arquitetura-arduino-node-api', 'backend', 'public', 'js', '_shared', 'scientific.js'),
   ]) {
     const copy = await import(pathToFileURL(target).href);

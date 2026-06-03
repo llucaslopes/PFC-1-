@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A3 — Serverless (Vercel)</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font-family: system-ui, sans-serif; max-width: 720px; margin: 4rem auto; padding: 0 1rem; line-height: 1.55; }
+      code, pre { background: rgba(127,127,127,0.15); padding: 0.15rem 0.35rem; border-radius: 4px; }
+      pre { padding: 0.75rem 1rem; overflow-x: auto; }
+      h1 { margin-top: 0; }
+      .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #2c7; color: white; font-weight: 600; font-size: 0.8em; }
+      .endpoint-list code { display: block; padding: 0.35rem 0.6rem; margin: 0.2rem 0; }
+    </style>
+  </head>
+  <body>
+    <p><span class="pill">A3</span> Serverless · Vercel Functions + Vercel KV</p>
+    <h1>Arquitetura serverless do TCC</h1>
+    <p>
+      Esta funcao recebe amostras do ESP32 via Wi-Fi e expoe os endpoints
+      da arquitetura A3. O dashboard visual eh o mesmo do backend Node,
+      apontando para esta URL atraves do selector "Arquitetura" e da
+      querystring <code>?target=a3&amp;baseUrl=...</code>.
+    </p>
+    <h2>Endpoints disponiveis</h2>
+    <div class="endpoint-list">
+      <code>POST /api/ingest</code>
+      <code>GET  /api/health</code>
+      <code>GET  /api/data/latest?deviceId=esp32-01</code>
+      <code>GET  /api/metrics</code>
+      <code>GET  /api/config</code>
+      <code>POST /api/clock/sync</code>
+      <code>POST /api/experiments/start</code>
+      <code>POST /api/experiments/stop</code>
+      <code>POST /api/experiments/reset</code>
+      <code>GET  /api/experiments/current</code>
+      <code>GET  /api/experiments/export</code>
+      <code>POST /api/experiments/observations</code>
+    </div>
+    <h2>Como abrir o dashboard</h2>
+    <p>Suba o backend Node localmente e acesse:</p>
+    <pre>http://localhost:3000/?target=a3&amp;baseUrl=https://&lt;seu-projeto&gt;.vercel.app</pre>
+    <p>O dashboard passa a buscar metricas e ultima amostra deste deployment.</p>
+    <h2>Smoke check</h2>
+    <ul>
+      <li><a href="/api/health">/api/health</a></li>
+      <li><a href="/api/metrics">/api/metrics</a></li>
+      <li><a href="/api/config">/api/config</a></li>
+    </ul>
+  </body>
+</html>

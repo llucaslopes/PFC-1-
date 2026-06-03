@@ -62,11 +62,11 @@ test('frontend: inventario de exports cobre todos os arquivos', () => {
 
 test('frontend: 3 pares de duplicatas conhecidas estao em ambos os frontends', () => {
   const pairs = [
-    ['prototypes/webserial/js/clockSyncMath.js',
+    ['prototypes/_legacy_webserial/js/clockSyncMath.js',
      'arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js'],
-    ['prototypes/webserial/js/scientific.js',
+    ['prototypes/_legacy_webserial/js/scientific.js',
      'arquitetura-arduino-node-api/backend/public/js/scientific.js'],
-    ['prototypes/webserial/js/clockSync.js',
+    ['prototypes/_legacy_webserial/js/clockSync.js',
      'arquitetura-arduino-node-api/backend/public/js/clockSync.js'],
   ];
   for (const [a, b] of pairs) {

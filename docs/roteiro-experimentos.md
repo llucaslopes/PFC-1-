@@ -1,368 +1,201 @@
 # Roteiro de Experimentos
 
-Este roteiro padroniza a execucao dos testes do TCC para comparar WebSerial direto e backend Node.js com REST polling/WebSocket.
+Procedimento experimental do TCC. Este roteiro padroniza a execucao da campanha que compara as arquiteturas **A1 (Backend Node + WebSocket)**, **A2 (Backend Node + REST polling)** e **A3 (Serverless / Vercel Functions)** alimentadas por um **ESP32 real conectado por Wi-Fi**. WebSerial e USB serial direto sao tratados como **trabalho anterior** (preservados em `prototypes/_legacy_webserial/` e `embedded/_legacy_arduino_uno/`) e nao fazem mais parte do escopo experimental atual.
 
-## 1. Preparacao
+> Tema: **Analise de arquiteturas para um sistema de monitoramento esportivo de um clube de futebol** — qual arquitetura e mais adequada para cada cenario operacional do clube.
 
-Instale as dependencias:
+## 0. Cenarios operacionais analisados
+
+| Cenario do clube | Caracteristica | Arquitetura tipicamente favorecida |
+| --- | --- | --- |
+| Jogo em tempo real | Latencia subsegundo critica | A1 (WebSocket) |
+| Pos-treino / dashboard staff | Latencia tolerante, leitura sob demanda | A2 (REST polling) |
+| Telemetria massiva multi-time | Escala global, paga-se por uso | A3 (Serverless) |
+| (Opcional) Ingestao concentrada intra-LAN | Multiplos jogadores em vestiario | A4 (MQTT) |
+
+## 1. Preparacao do ambiente
 
 ```powershell
 npm run install:all
 ```
 
-Use o Arduino como fonte principal da campanha experimental. O simulador deve ser usado como fonte auxiliar para ensaios reprodutiveis, depuracao e comparacao controlada, sempre identificado no campo `source`.
+Verifique:
 
-## 2. Iniciar as arquiteturas
+- ESP32 alimentado, com firmware [embedded/esp32_sports_sensor_wifi/](../embedded/esp32_sports_sensor_wifi/) gravado, conectado a uma rede Wi-Fi 2,4 GHz.
+- O `BACKEND_URL` no firmware aponta para a arquitetura alvo (IP do host na LAN para A1/A2, URL Vercel para A3).
+- Para A3: ter Vercel CLI instalado, `KV_REST_API_URL` e `KV_REST_API_TOKEN` configurados (`vercel env pull`).
+- Navegador Chromium-based para o dashboard (Chrome/Edge desktop).
 
-Backend Node.js:
+## 2. Iniciar as arquiteturas em desenvolvimento
+
+A1 e A2 (mesmo servidor):
 
 ```powershell
 cd arquitetura-arduino-node-api\backend
 npm run dev
 ```
 
-Dashboard:
+- Dashboard: `http://localhost:3000`
+- Endpoint do ESP32: `POST http://<ip-do-host>:3000/ingest/sensor`
 
-```text
-http://localhost:3000
-```
-
-WebSerial:
+A3 (Vercel Functions local):
 
 ```powershell
-cd prototypes\webserial
-npm start
+cd arquitetura-serverless
+npm run dev
 ```
 
-Dashboard:
+- Smoke check: `http://localhost:3001/api/health`
+- Endpoint do ESP32: `POST http://<ip-do-host>:3001/api/ingest`
+- Dashboard A3: `http://localhost:3000/?target=a3&baseUrl=http://localhost:3001` (reusa o dashboard do backend Node).
 
-```text
-http://localhost:8765/
-```
-
-## 3. Fonte dos dados
-
-Simulador:
-
-- Backend: configure `SENSOR_SOURCE=simulator`. O intervalo real do simulador e atualizado por `sendIntervalMs` ao iniciar o experimento.
-- WebSerial: clique em **Iniciar simulacao** antes de executar o experimento.
-
-Arduino:
-
-- Grave o sketch padrao centralizado em `arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino`.
-- Use baud rate `115200`.
-- No backend, configure `SENSOR_SOURCE=serial` e `SERIAL_PORT=COM3` ou a porta equivalente.
-- No WebSerial, clique em **Conectar serial** e selecione a porta autorizada pelo navegador.
-
-## 4. Matriz principal
-
-Execute cada cenario 3 vezes, sempre com duracao de 60 segundos. Use a opcao **Campanha stress** para rodar automaticamente os intervalos `100, 50, 20, 10, 5 e 1 ms` na arquitetura/modo selecionado.
-
-| Cenario | Arquitetura | Modo | Fonte | Intervalo | Duracao |
-| --- | --- | --- | --- | --- | --- |
-| C1 | WebSerial | direto | Arduino principal / simulador auxiliar | 100, 50, 20, 10, 5, 1 ms | 60 s |
-| C2 | Backend Node.js | WebSocket | Arduino principal / simulador auxiliar | 100, 50, 20, 10, 5, 1 ms | 60 s |
-| C3 | Backend Node.js | REST polling | Arduino principal / simulador auxiliar | 100, 50, 20, 10, 5, 1 ms | 60 s |
-
-Total principal esperado: 3 arquiteturas/modos x 6 intervalos x 3 repeticoes = 54 execucoes por fonte.
-
-### Campanha complementar de refinamento
-
-A campanha `saturation-refinement` nao substitui a matriz principal. Ela deve
-gerar novos arquivos em `resultados/`, com timestamp proprio e
-`saturation-refinement` no nome, preservando a campanha ja coletada.
-
-| Cenario | Arquitetura | Modo | Fonte | Intervalo | Duracao |
-| --- | --- | --- | --- | --- | --- |
-| C1 | WebSerial | direto | Arduino principal / simulador auxiliar | 4, 3, 2 ms | 60 s |
-| C2 | Backend Node.js | WebSocket | Arduino principal / simulador auxiliar | 4, 3, 2 ms | 60 s |
-| C3 | Backend Node.js | REST polling | Arduino principal / simulador auxiliar | 200, 500, 1000 ms | 60 s |
-
-Use essa matriz para refinar onde C1/C2 degradam entre `5 ms` e `1 ms` e
-identificar em que faixa C3 passa a ter perdas aceitaveis acima de `100 ms`.
-
-## 5. Execucao
-
-Para cada repeticao:
-
-1. Selecione fonte, modo e duracao.
-2. Clique em **Campanha stress** para executar todos os intervalos.
-3. Aguarde a conclusao automatica da campanha.
-4. Informe o numero da repeticao no campo **Repeticao**.
-5. Clique em **Exportar**.
-
-Os nomes sao gerados automaticamente neste padrao:
-
-```text
-<arquitetura>_<modo>_<fonte>_<intervalo>ms_rep<numero>_<data>_sensor-data.csv
-<arquitetura>_<modo>_<fonte>_<intervalo>ms_rep<numero>_<data>_metrics.csv
-<arquitetura>_<modo>_<fonte>_<intervalo>ms_rep<numero>_<data>_campaign-summary.csv
-<arquitetura>_<modo>_<fonte>_<intervalo>ms_rep<numero>_<data>_experiment-summary.json
-```
-
-Exemplo:
-
-```text
-backend-node_websocket_serial_100ms_rep1_2026-05-29T10-00-00-000Z_metrics.csv
-```
-
-## 6. Medicao de latencia fim a fim (estimada)
-
-A latencia ponta a ponta mede o tempo entre o instante em que o Arduino gera/envia uma amostra (`send_us` via `micros()`) e o instante em que o frontend observa a mensagem (`frontend_receive_ms` via `performance.now()`).
-
-Como Arduino, backend e navegador usam relogios independentes, o sistema executa sincronizacao estilo NTP/Cristian antes de cada experimento:
-
-1. **WebSerial:** quatro timestamps (`t0` envio SYNC, `t1`/`t2` `micros()` no Arduino, `t3` recebimento da resposta). A melhor amostra entre 10 tentativas e a de menor RTT.
-2. **Backend + frontend:** cadeia em dois elos — Arduino↔backend (serial) e backend↔frontend (`POST /clock/sync`).
-3. **REST polling:** mesma estimativa no frontend, mas `frontend_receive_ms` e o instante da **primeira** observacao de cada `seq` (deduplicacao evita inflar latencia ao repetir a ultima amostra).
-
-> **Ordem de execucao do SYNC com o Arduino:** WebSerial e backend forcam o
-> Arduino para o intervalo seguro de 100 ms (idle), aguardam ~250 ms para
-> drenar o TX, executam as 10 tentativas SYNC e so entao aplicam o intervalo
-> experimental real. Isso evita que o `SYNC_REPLY` fique enfileirado atras
-> de amostras pendentes em alta frequencia (1 ms / 5 ms), o que causaria
-> `syncFailed: true` e fallback para `latency_method = relative_offset_*`.
-> Cada `SYNC_REPLY` e correlacionado por `syncId` monotonico, descartando
-> respostas atrasadas que chegariam apos o timeout (2 s).
-
-**Convencao de offset:** `hostMs = remoteMs + offsetMs`. A latencia estimada por amostra e:
-
-```text
-end_to_end_latency_ms = frontend_receive_ms - estimated_frontend_send_ms
-```
-
-**Incerteza:** limitada aproximadamente por `RTT_sync / 2` em cada elo; no backend soma-se `incerteza_Arduino↔backend + incerteza_backend↔frontend`. Isso nao e margem de erro estatistica completa — e um limite superior da assimetria de ida/volta na sincronizacao.
-
-**Quando confiar na medicao:**
-
-- SYNC concluido sem fallback (`syncFailed: false`).
-- RTT de sincronizacao baixo e estavel (idealmente &lt; 5 ms em USB serial local).
-- Intervalo de envio nao tao agressivo que cause fila serial ou perdas (`throughput_percent` proximo de 100%).
-
-**Fallback:** sem SYNC valido, o sistema marca `latency_method` como baseline relativo e nao deve ser comparado numericamente entre maquinas diferentes.
-
-**Diagnostico rapido se o SYNC falhar:** rode
+Para subir as duas arquiteturas ao mesmo tempo:
 
 ```powershell
-npm run diag:sync -- COM3
+npm run dev
 ```
 
-O script abre a porta serial diretamente, envia 5 SYNCs e conta as respostas.
-- `0 SYNC_REPLY recebidos` mas mensagens CSV chegando → o firmware do Arduino esta desatualizado, sem o handler `SYNC,<id>`. Reuploade `arduino/tcc_sports_sensor_standard/tcc_sports_sensor_standard.ino` via Arduino IDE.
-- `< 5 SYNC_REPLY recebidos` → o canal funciona com perdas; ainda da para o backend escolher a melhor entre as 10 tentativas, mas vale investigar ruido/cabo USB.
-- `5 SYNC_REPLY recebidos` → SYNC operacional; se mesmo assim a campanha cai em fallback, abra um issue.
+## 3. Sincronizacao de relogio
 
-**Validacao fisica absoluta:** exigiria instrumentacao externa (analiseador logico, osciloscopio) acoplada ao pino de envio serial e ao evento de recebimento no host.
+Cadeia de relogios:
 
-## 7. Interpretacao dos CSVs
+```text
+Internet (SNTP pool.ntp.org)
+       ↓
+ESP32 (configTime no boot)  -- send_us em epoch absoluto
+       ↓ Wi-Fi/HTTP
+Servidor (A1/A2/A3) recebe send_us absoluto -- nao precisa do handshake SYNC,<id>
+       ↓
+Dashboard executa POST /clock/sync (Cristian) com servidor antes de cada experimento
+       ↓
+Latencia ponta a ponta = t_recv_navegador − (send_us / 1000) − offset_navegador↔servidor
+```
 
-Use `metrics.csv` para tabelas comparativas:
+- Incerteza dominada por `RTT_sntp/2` (no boot do ESP32) + `RTT_clock_sync/2` (no inicio do experimento).
+- Se SNTP falhar no boot, o ESP32 grava `send_us` em `micros()` relativo ao boot, e a campanha cai automaticamente em `latency_method=relative_offset_*` — registrado no JSON de cada execucao.
 
-- `expected_messages`: mensagens esperadas pelo intervalo e duracao configurados.
-- `received_messages`: mensagens validas recebidas durante o experimento.
-- `missing_messages`: perdas experimentais principais, calculadas por esperado menos recebido.
-- `sequence_gap_messages`: perdas detectadas por salto de `seq`, mantidas como diagnostico.
-- `throughput_percent`: percentual recebido em relacao ao esperado.
-- `messages_per_second`: throughput medio.
-- `estimated_latency_*_ms`: estatisticas da latencia fim a fim estimada (`end_to_end_latency_ms`).
-- `uncertainty_*_ms`: estatisticas da incerteza de sincronizacao por amostra (`clock_uncertainty_ms`).
-- `replication_number`, `environment` e `application_version`: contexto operacional para rastreabilidade da execucao.
+## 4. Matriz oficial (campanha principal)
 
-Use `campaign-summary.csv` para graficos:
+| Cenario | Modo | Fonte | Intervalos (ms) | Repeticoes | Duracao |
+| --- | --- | --- | --- | --- | --- |
+| A1 | WebSocket | wifi-http (ESP32 real) | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A2 | REST polling | wifi-http (ESP32 real) | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A3 | Serverless HTTP | wifi-http (ESP32 real) | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
 
-- Throughput x intervalo.
-- Latencia estimada media x intervalo.
-- Perdas experimentais (`missing_messages`) x intervalo.
-- Comparacao entre arquiteturas apos consolidar os CSVs de cada campanha.
+Total: 6 intervalos × 3 cenarios × 3 repeticoes × 60 s = **54 execucoes / ~54 minutos de coleta** (sem cold start auxiliar).
 
-Use `sensor-data.csv` para analises por amostra:
+> Intervalos **abaixo de 20 ms** (ex.: 10 ms, 5 ms) **nao** fazem parte da matriz oficial. ESP32 com Wi-Fi nao sustenta HTTP POST sequencial nessa cadencia; ficam como **trabalho futuro** com hardware dedicado / queue async.
 
-- verificar estabilidade da frequencia de chegada;
-- procurar saltos de `seq`;
-- inspecionar `end_to_end_latency_ms`, `estimated_frontend_send_ms`, `clock_offset_ms`, `clock_uncertainty_ms` e `latency_method`;
-- observar variacao de frequencia cardiaca (`hr`, `ax`, `ay`, `az`).
+## 5. Matriz auxiliar de cold start (apenas A3)
 
-Use `experiment-summary.json` para registrar configuracao, blocos `latency`, `clockSync`, `limitations` e notas de interpretacao.
-Em campanhas, o JSON separa `campaign`, `runs`, `saturationAnalysis` e `saturation`, evitando misturar o ultimo experimento com o primeiro resumo estatistico.
+Mede o `cold_start_ms` da Vercel Function apos N segundos de inatividade.
 
-## 8. Consolidacao e graficos
+| Inatividade antes da requisicao | Repeticoes |
+| --- | --- |
+| 1 s | 3 |
+| 30 s | 3 |
+| 60 s | 3 |
+| 5 min | 3 |
+| 10 min | 3 |
 
-Coloque todos os CSVs exportados em `resultados/` e execute:
+Total: 15 amostras de `cold_start_ms`. O orquestrador implementa esse delay com `--cold-start-delay-ms` em `run-experiments.mjs`.
+
+## 6. Execucao automatizada (campanha principal)
+
+ESP32 ja deve estar **ligado, conectado e enviando** antes de iniciar:
+
+```powershell
+node scripts/run-experiments.mjs --reps 3
+```
+
+Para executar so um cenario:
+
+```powershell
+node scripts/run-experiments.mjs --scenarios a3 --reps 3 \
+    --serverless-base-url https://meu-projeto.vercel.app
+```
+
+Para a campanha de cold start:
+
+```powershell
+npm run experiment:coldstart
+```
+
+Saidas em `resultados/`:
+
+```text
+<arquitetura>_<modo>_wifi_<intervalo>ms_rep<n>_<timestamp>_<tipo>.<ext>
+```
+
+- `*_sensor-data.csv` — uma linha por amostra observada.
+- `*_metrics.csv` — uma linha por execucao (esperadas, recebidas, throughput, latencia agregada, jitter, RSSI).
+- `*_campaign-summary.csv` — uma linha por intervalo, pronto para grafico.
+- `*_experiment-summary.json` — config + clockSync + limitations + http_status_distribution + cold_start_ms.
+
+## 7. Variaveis de interesse
+
+### Tradicionais (mantidas)
+
+- `expected_messages`, `received_messages`, `missing_messages`, `sequence_gap_messages`, `invalid_messages`.
+- `messages_per_second`, `throughput_percent`.
+- `estimated_latency_avg_ms`, `estimated_latency_p95_ms`, `estimated_latency_min_ms`, `estimated_latency_max_ms`, `estimated_latency_std_ms`.
+- `uncertainty_*_ms` (incerteza por amostra dominada por `RTT_sync/2`).
+- `latency_method` (`absolute_clock_synced`, `relative_offset_*`).
+
+### Novas (Wi-Fi + serverless)
+
+- `wifi_rssi_dbm` — qualidade do canal sem fio (RSSI medido pelo ESP32).
+- `wifi_reconnects` — contador de quedas/restabelecimentos de Wi-Fi durante a execucao.
+- `network_jitter_ms` — desvio padrao da diferenca entre intervalos consecutivos observados no servidor.
+- `http_status_distribution` — contadores de respostas 2xx / 4xx / 5xx (detecta throttling, payload invalido).
+- `cold_start_ms` (apenas A3) — primeira invocacao apos N segundos parado.
+- `serverless_processing_latency_ms` (apenas A3) — tempo gasto pela funcao entre receber e responder.
+- `cost_estimate_usd` (apenas A3) — extrapolacao a partir do preco unitario Vercel Functions e do numero de invocacoes.
+
+## 8. Cuidados e limitacoes
+
+1. A latencia continua sendo **estimativa** com incerteza documentada — nao e medicao fisica.
+2. `send_us` em **epoch absoluto** depende de SNTP; sem internet, cai em `micros()` relativo (latencia inflacionada por offset de boot e indicada pelo `latency_method`).
+3. ESP32 com Wi-Fi nao sustenta `<= 10 ms` HTTP POST contínuo — ficou como trabalho futuro.
+4. Vercel KV tem limites de uso no plano gratuito; a matriz oficial cabe folgada (~5k invocacoes / repeticao).
+5. Cold start varia segundo a politica da plataforma e horario; a campanha auxiliar mitiga isso medindo a distribuicao.
+6. RSSI e reconnects sao reportados pelo proprio ESP32 — sem instrumentacao externa.
+7. Resultados validos apenas para o ambiente medido (uma rede Wi-Fi, uma regiao Vercel).
+
+## 9. Diagrama do fluxo de medicao
+
+```text
+ESP32 (SNTP)                    Servidor (A1/A2/A3)               Dashboard
+─────────────                   ─────────────────────             ──────────────
+boot:                                                              POST /clock/sync
+  configTime(pool.ntp.org)        ←────── recebe sync ─────        (Cristian)
+
+loop:                                                              recebe amostra:
+  send_us = epoch_us               ─── POST /ingest/sensor ───→     t_recv_navegador
+  ↓                                  recebe send_us absoluto         ↓
+  ↓                                  ↓                               latency_estimada =
+  ↓                                  WS broadcast / KV insert        t_recv − send_us
+                                                                    ↑
+                                                                    correlaciona com
+                                                                    offset frontend↔servidor
+```
+
+## 10. Reproducao do TCC
+
+Apos coletar a campanha:
 
 ```powershell
 python scripts/consolidate_results.py resultados
 python scripts/plot_results.py resultados
+python scripts/scalability_metrics.py resultados/escalabilidade-2026-06-wifi
+python scripts/plot_scalability.py resultados/escalabilidade-2026-06-wifi
+python scripts/gera_figuras_tcc.py
 ```
 
-O primeiro comando gera `resultados/consolidated_metrics.csv`. O segundo gera graficos em `resultados/plots/` para:
+Saidas finais ficam em `resultados/figuras_tcc/` (PNGs, SVGs, tabelas e legendas para o artigo).
 
-- throughput x intervalo;
-- latencia media estimada x intervalo;
-- latencia p95 estimada x intervalo;
-- perdas x intervalo.
+## 11. Trabalho preservado como historico
 
-## 9. Roteiro de analise para o TCC
-
-Para cada arquitetura/modo, compare:
-
-- throughput x intervalo;
-- latencia media estimada x intervalo;
-- latencia p95 estimada x intervalo;
-- perdas x intervalo;
-- ponto de saturacao;
-- limite operacional recomendado.
-
-Exemplo de conclusao: a arquitetura WebSocket manteve throughput acima de 95% ate determinado intervalo, mas apresentou degradacao apos o ponto de saturacao. REST polling pode limitar antes por perder atualizacoes entre requisicoes. WebSerial reduz o caminho de comunicacao, mas depende diretamente do navegador e da maquina conectada ao Arduino.
-
-## 10. Avaliacao minima de escalabilidade
-
-Com o backend rodando, execute:
-
-```powershell
-cd arquitetura-arduino-node-api\backend
-npm run test:scale
-```
-
-O script testa REST polling e WebSocket com 1, 5 e 10 clientes simulados. Ele gera um CSV com:
-
-- modo de comunicacao;
-- quantidade de clientes;
-- duracao;
-- total de mensagens observadas;
-- mensagens por segundo;
-- perdas detectadas por salto de `seq`;
-- erros de requisicao ou conexao.
-
-Use esses resultados como avaliacao controlada de escalabilidade, sem afirmar comportamento em producao ou infraestrutura distribuida.
-
-## 11. Cuidados na defesa
-
-- Declarar que a latencia fim a fim e uma **estimativa** de one-way latency via sincronizacao de relogio, com incerteza documentada — nao uma medicao fisica absoluta.
-- Explicar que seguranca e tratada qualitativamente porque o prototipo nao implementa TLS, autenticacao ou autorizacao.
-- Explicar que WebBluetooth, WebUSB, serverless e nuvem foram retirados do escopo experimental e permanecem como trabalhos futuros.
-
-## 12. Execucao automatizada
-
-Como alternativa a execucao manual, ha um orquestrador em `scripts/run-experiments.mjs` que automatiza toda a matriz da secao 4. Em uma unica chamada ele:
-
-1. Detecta a porta COM do Arduino sozinho (procura dispositivos PnP do tipo Arduino / CH340 / CP210x / FTDI).
-2. Impede o Windows de dormir pelo `SetThreadExecutionState` (via processo filho de PowerShell que e morto no fim).
-3. Para cada fonte configurada (por default apenas `serial` — Arduino real; `simulator` pode ser adicionado com `--sources serial,simulator` para sanity-check) e para cada cenario (`c1`, `c2`, `c3`):
-   - Sobe o servidor correspondente (WebSerial em `:8765` ou backend em `:3000`).
-   - Para C1, abre um Chromium controlado por Playwright; se a porta serial ainda nao foi autorizada no perfil persistente, faz o bootstrap automaticamente e segue assim que detectar a permissao. Depois clica em **Conectar serial**/**Iniciar simulacao**, **Campanha stress** e **Exportar**, salvando os 4 arquivos em `resultados/`.
-   - Para C2 (WebSocket) e C3 (REST polling), age como um cliente Node: sincroniza o relogio (`POST /clock/sync` x 10), inicia o experimento, observa via WebSocket ou polling, envia as observacoes e grava os 4 arquivos por repeticao.
-   - Resume automatico: pula reps cujos arquivos ja existem em `resultados/`.
-   - Continua apos falha de uma rep individual em vez de abortar tudo.
-   - Heartbeat a cada 10 s no log mostrando rep atual, intervalo, mensagens recebidas etc.
-4. Ao final, roda `scripts/consolidate_results.py` e `scripts/plot_results.py`.
-5. Restaura o estado de sleep do Windows.
-
-Como Arduino e servidor backend nao podem usar a mesma porta serial simultaneamente, o orquestrador alterna entre eles.
-
-### Preparacao (uma vez por maquina)
-
-```powershell
-npm install
-npx playwright install chromium
-```
-
-### Execucao totalmente automatica
-
-Plugue o Arduino e rode:
-
-```powershell
-node scripts/run-experiments.mjs
-```
-
-Equivale a `--sources serial --reps 3 --duration 60 --scenarios c1,c2,c3`. **Apenas dados do Arduino real** são coletados nesse modo — é a campanha oficial do TCC. Se for a primeira execucao da maquina, o Chromium abre durante o C1/serial e voce so precisa clicar em **Conectar serial** uma unica vez — o script detecta a permissao e segue. Nas execucoes seguintes nem isso e necessario.
-
-> Se quiser também rodar a fonte `simulator` como sanity-check (não é dado oficial do TCC), use `--sources serial,simulator` explicitamente.
-
-### Variacoes comuns
-
-```powershell
-# Arduino real + simulador como sanity-check (so o serial vale como dado oficial)
-node scripts/run-experiments.mjs --sources serial,simulator --reps 3
-
-# So simulador (sanity-check sem Arduino plugado; nao usar para o TCC)
-node scripts/run-experiments.mjs --source simulator --reps 3
-
-# So backend (C2 e C3) com 5 reps
-node scripts/run-experiments.mjs --scenarios c2,c3 --reps 5
-
-# Campanha complementar de refinamento, preservando resultados anteriores
-npm run experiment:refinement
-
-# Porta serial fixa em vez de auto
-node scripts/run-experiments.mjs --serial-port COM3
-
-# Autorizar a porta serial uma vez sem rodar nada (modo bootstrap puro)
-node scripts/run-experiments.mjs --bootstrap-webserial
-```
-
-### Opcoes uteis
-
-| Flag | Default | Descricao |
-| --- | --- | --- |
-| `--sources` | `serial` | Lista de fontes a rodar em sequencia. Por default, só o Arduino real. Use `serial,simulator` para incluir o sanity-check. |
-| `--source` | (vazio) | Atalho para uma unica fonte (sobrescreve `--sources`). `simulator` é só sanity-check, não vale como dado do TCC. |
-| `--serial-port` | `auto` (env `SERIAL_PORT`) | Porta COM do Arduino; `auto` detecta sozinho. |
-| `--campaign` | `official` | `official` roda `100,50,20,10,5,1`; `refinement` roda C1/C2 em `4,3,2` e C3 em `200,500,1000`. |
-| `--reps` | `3` | Numero de repeticoes por cenario. |
-| `--duration` | `60` | Duracao em segundos por intervalo. |
-| `--intervals` | matriz da campanha | Override manual da matriz escolhida por `--campaign`. |
-| `--scenarios` | `c1,c2,c3` | Quais cenarios executar (subset separado por virgula). |
-| `--results-dir` | `resultados` | Diretorio de saida dos CSV/JSON. |
-| `--port-backend` | `3000` | Porta do backend Node.js. |
-| `--port-webserial` | `8765` | Porta do servidor estatico do WebSerial. |
-| `--chromium-user-data` | `.playwright-profile` | Diretorio do perfil persistente do Chromium. |
-| `--log-file` | desligada | Tee de stdout/stderr para arquivo (`logs/overnight.log` por exemplo). |
-| `--heartbeat-ms` | `10000` | Intervalo (ms) do log de heartbeat durante a observacao. |
-| `--no-resume` | desligada | Roda mesmo se ja existem arquivos para a rep (sem isso, reps completas sao puladas). |
-| `--no-continue-on-error` | desligada | Aborta tudo na primeira falha (sem isso, segue para a proxima rep/cenario). |
-| `--no-keep-awake` | desligada | Nao impede o Windows de dormir durante o run. |
-| `--no-auto-bootstrap` | desligada | Nao abre o Chrome para autorizar a porta serial automaticamente. |
-| `--skip-analysis` | desligada | Pula o `consolidate_results.py` + `plot_results.py` no fim. |
-| `--bootstrap-webserial` | desligada | Modo de autorizacao inicial da porta serial e sai. |
-
-### Saidas
-
-Os nomes dos arquivos seguem exatamente o mesmo padrao do export manual:
-
-```text
-backend-node_websocket_serial_100ms_rep1_<timestamp>_metrics.csv
-backend-node_websocket_serial_1ms_rep1_<timestamp>_campaign-summary.csv
-webserial_webserial_serial_1ms_rep2_<timestamp>_experiment-summary.json
-webserial_webserial_serial_2ms_rep1_<timestamp>_saturation-refinement_metrics.csv
-```
-
-### Estimativa de duracao
-
-6 intervalos x 60 s x 3 repeticoes x 3 cenarios ≈ **60 a 70 min por fonte**, sem contar overhead de start/stop dos servidores. Total Arduino + Simulador ≈ **2,5 h** rodando sem assistencia (apos o bootstrap inicial).
-
-### Limitacoes da automacao
-
-- A primeira execucao do WebSerial exige autorizacao manual da porta serial (limitacao da Web Serial API).
-- O Chromium fica em modo headed durante a campanha C1, pois alguns sistemas bloqueiam Web Serial em headless.
-- Se o `POST /clock/sync` ou o handshake serial/Arduino falhar, o orquestrador grava `latencyMethod = relative_offset_*` exatamente como o frontend faz hoje — mantendo a rastreabilidade cientifica.
-
-### Resiliencia para campanhas longas (overnight)
-
-Todas as protecoes abaixo estao ligadas por padrao — basta rodar `node scripts/run-experiments.mjs` que ja vale para uma noite inteira:
-
-1. **Keep-awake automatico** — o orquestrador chama `SetThreadExecutionState` (via processo filho de PowerShell) com `ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED`. O Windows para de dormir enquanto o run roda e volta ao normal quando o script sai (mesmo se voce der Ctrl+C). Use `--no-keep-awake` para desligar.
-2. **Auto-deteccao da porta serial** — `--serial-port auto` (default) procura via Win32_PnPEntity um dispositivo Arduino / CH340 / CP210x / FTDI e usa a primeira COM correspondente.
-3. **Auto-bootstrap do WebSerial** — se a permissao da porta nao estiver no perfil, o Chrome abre, voce clica em **Conectar serial** uma unica vez, e o script segue automaticamente.
-4. **Resume automatico** — varre `resultados/` antes de cada rep e pula as que ja tem `experiment-summary.json`. Reiniciou no meio? Continua de onde parou.
-5. **Continuar apos falha** — se uma rep individual falhar (perda de USB, timeout, crash do servidor), a falha e logada e o orquestrador segue para a proxima rep / cenario / fonte.
-6. **Heartbeat** — durante cada observacao, uma linha tipo `[heartbeat 2026-05-30T03:14:00] backend-rest-polling rep=2/3 intervalIdx=4/6 intervalMs=20ms received=2412 expected=3000` aparece a cada 10 s.
-7. **Log em arquivo** — `--log-file logs/overnight.log` faz tee de stdout/stderr para arquivo.
-
-Receita pronta para a madrugada:
-
-```powershell
-mkdir logs -ErrorAction SilentlyContinue
-node scripts/run-experiments.mjs --log-file logs/overnight.log
-```
-
-Pronto. Ele detecta a porta, autoriza o WebSerial se precisar, roda C1+C2+C3 apenas com Arduino real, gera o consolidado e os graficos. Essa e a campanha oficial do TCC. O simulador so roda quando solicitado explicitamente com `--source simulator` ou `--sources serial,simulator`, e seus resultados servem apenas como sanity-check auxiliar; nao devem entrar no artigo como dados oficiais. Se travar em algum ponto, basta rodar o mesmo comando de novo: o resume pula tudo que ja deu certo. Para forcar refazer, use `--no-resume`.
+- `prototypes/_legacy_webserial/` — protótipo WebSerial da campanha anterior.
+- `embedded/_legacy_arduino_uno/` — sketch USB serial do Arduino Uno.
+- Quaisquer pastas em `resultados/` cujo nome contenha `usb_serial` ou que sejam anteriores a junho/2026 referem-se a campanha v1 (USB serial, nao Wi-Fi) e nao devem ser comparadas diretamente com a campanha atual.

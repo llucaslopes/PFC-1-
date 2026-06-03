@@ -4,9 +4,20 @@ import { ClockSyncMetadata } from "./clock";
 // Incluem o contrato de observacao reportado pelo frontend ao backend
 // (FrontendExperimentObservation) e o sumario final (ScientificRunSummary).
 
-export type ExperimentArchitecture = "webserial" | "backend-node";
-export type ExperimentSource = "serial" | "simulator";
-export type ExperimentCommunicationMode = "webserial" | "rest-polling" | "websocket";
+export type ExperimentArchitecture =
+  | "backend-node"
+  | "serverless"
+  | "mqtt"
+  // Mantidos como strings historicas para preservar leitura de campanhas
+  // anteriores; nao sao mais escolhas validas para novas campanhas.
+  | "webserial";
+export type ExperimentSource = "wifi-http" | "serial" | "simulator";
+export type ExperimentCommunicationMode =
+  | "websocket"
+  | "rest-polling"
+  | "serverless-http"
+  | "mqtt"
+  | "webserial";
 export type ExperimentStatus = "idle" | "running" | "stopped";
 
 export interface ExperimentConfig {

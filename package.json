@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "node scripts/dev-all.mjs",
     "dev:backend": "npm --prefix arquitetura-arduino-node-api/backend run dev",
-    "dev:webserial": "npm --prefix prototypes/webserial start",
+    "dev:serverless": "npm --prefix arquitetura-serverless run dev",
     "build:backend": "npm --prefix arquitetura-arduino-node-api/backend run build",
-    "test:scale": "npm --prefix arquitetura-arduino-node-api/backend run test:scale",
+    "build:serverless": "npm --prefix arquitetura-serverless run build",
     "test:rollover": "node --test scripts/tests/rollover-detection.test.mjs",
     "test:collection-parity": "node --test scripts/tests/test_collection_parity.mjs",
     "test:lib-mjs": "node --test scripts/tests/test_lib_mjs.test.mjs",
@@ -17,10 +17,11 @@
     "test:shared-scientific": "node --test scripts/tests/test_shared_scientific_parity.test.mjs",
     "test:shared-clocksync": "node --test scripts/tests/test_shared_clocksync_parity.test.mjs",
     "test:experiments-modules": "node --test scripts/tests/test_experiments_modules.test.mjs",
-    "test:experiment-webserial-modules": "node --test scripts/tests/test_experiment_webserial_modules.test.mjs",
     "test:backend-api": "node --test scripts/tests/test_backend_api_baseline.test.mjs",
     "test:experiment-service-modules": "node --test scripts/tests/test_experiment_service_modules.test.mjs",
     "test:clock-sync-modules": "node --test scripts/tests/test_clock_sync_modules.test.mjs",
+    "test:http-intake": "node --test scripts/tests/test_http_intake.test.mjs",
+    "test:serverless-api": "node --test scripts/tests/test_serverless_api_baseline.test.mjs",
     "snapshot:backend-api": "node scripts/tests/snapshot_backend_api_baseline.mjs",
     "snapshot:backend-api:check": "node scripts/tests/snapshot_backend_api_baseline.mjs --check",
     "snapshot:collection-baseline": "node scripts/tests/snapshot_collection_baseline.mjs",
@@ -30,13 +31,12 @@
     "fix:rollover-anomalies": "node scripts/fix-rollover-anomalies.mjs",
     "test:experiments": "node scripts/run-experiments.mjs",
     "experiment:refinement": "node scripts/run-experiments.mjs --campaign refinement",
+    "experiment:coldstart": "node scripts/run-experiments.mjs --campaign coldstart --scenarios a3",
     "experiment:scalability": "node scripts/run-scalability-campaign.mjs",
     "experiment:multiclient": "node scripts/run-multiclient-scalability.mjs",
-    "diag:sync": "node scripts/debug-sync.mjs",
-    "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix prototypes/webserial install"
+    "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix arquitetura-serverless install"
   },
   "devDependencies": {
-    "playwright": "^1.60.0",
     "ws": "^8.21.0"
   }
 }

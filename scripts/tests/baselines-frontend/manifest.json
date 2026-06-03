@@ -1,77 +1,77 @@
 {
-  "generatedAt": "2026-06-01T18:16:13.615Z",
+  "generatedAt": "2026-06-03T14:04:53.487Z",
   "files": {
-    "prototypes/webserial/js/clockSync.js": {
+    "prototypes/_legacy_webserial/js/clockSync.js": {
       "size": 5106,
       "sha256": "318a6a809c7097655b477f21b833d8eb2bd1581406c1fa9c2062d1f452f2a4f2"
     },
-    "prototypes/webserial/js/clockSyncMath.js": {
+    "prototypes/_legacy_webserial/js/clockSyncMath.js": {
       "size": 247,
       "sha256": "3e74d784b4e09b577063ecebe521d2d579c21a9cf6c3d493dffd1b7d6ea5aaef"
     },
-    "prototypes/webserial/js/csv.js": {
+    "prototypes/_legacy_webserial/js/csv.js": {
       "size": 160,
       "sha256": "5642c751023e4551f5900f8b28f9753fc1cf56e615cb2b94d605762785081124"
     },
-    "prototypes/webserial/js/dom.js": {
+    "prototypes/_legacy_webserial/js/dom.js": {
       "size": 2697,
       "sha256": "37da92ca2e2ebf447e2f205f950cc2ab80d32dedd51576285baed017c95bf9e0"
     },
-    "prototypes/webserial/js/experiment/exporter.js": {
-      "size": 2396,
-      "sha256": "b4e08ede91c5a3184a4b268f3288c904457c47ebe119c597871595223ada3709"
+    "prototypes/_legacy_webserial/js/experiment/exporter.js": {
+      "size": 2469,
+      "sha256": "5f3c2eac7f437a6d9491be16c9e8d3d054e283e3487442ffcbfc853d818928ac"
     },
-    "prototypes/webserial/js/experiment/lifecycle.js": {
-      "size": 6158,
-      "sha256": "62de97fb2731e222b8edfc83a074270d329c9687c6070c9e131d396b9d831f29"
+    "prototypes/_legacy_webserial/js/experiment/lifecycle.js": {
+      "size": 6346,
+      "sha256": "e05e82ee2224a039162e77429ece74eb521c1dbf3605edcfeca9a5cbdddf1d1d"
     },
-    "prototypes/webserial/js/experiment/metrics-builder.js": {
-      "size": 6262,
-      "sha256": "7467ae2226ca295131c855ee052ad8350f7d2d0715766603540b08f40fa10456"
+    "prototypes/_legacy_webserial/js/experiment/metrics-builder.js": {
+      "size": 6443,
+      "sha256": "0c4258f1344ffcd7c6019d0078672cd6a35cbf00bf2b57e2cdab977c73dc87bc"
     },
-    "prototypes/webserial/js/experiment/observation-recorder.js": {
-      "size": 573,
-      "sha256": "e0aa11010389f8b91670749cc5e029725f895370c4de17b0bf0f3b5d844ef8a7"
+    "prototypes/_legacy_webserial/js/experiment/observation-recorder.js": {
+      "size": 599,
+      "sha256": "11a28de35cf84f7cf4fb62f2a172edcc6fcb0f35768a738dedc84875e32ab6da"
     },
-    "prototypes/webserial/js/experiment/summary-builder.js": {
-      "size": 4514,
-      "sha256": "8513f59f4ebcb5d03523bf3f4787f1f3b3beb48eaca4c0c6683f223f852729e2"
+    "prototypes/_legacy_webserial/js/experiment/summary-builder.js": {
+      "size": 4615,
+      "sha256": "9016dfc8c406afef009e7b2b9d9d4b9b93d566366c0ca991d68390100b0ec149"
     },
-    "prototypes/webserial/js/experiment/ui-helpers.js": {
-      "size": 2794,
-      "sha256": "b907cac68253430c11839faf29401a34a564a0cf6d817a829ae67c55afeefc3b"
+    "prototypes/_legacy_webserial/js/experiment/ui-helpers.js": {
+      "size": 2877,
+      "sha256": "c866a0a75e9994a970cb4239d7ccf0fbac9b8548b6dbc798bf227b7758869d40"
     },
-    "prototypes/webserial/js/experiment.js": {
+    "prototypes/_legacy_webserial/js/experiment.js": {
       "size": 1401,
       "sha256": "36da75ccf87c9f599bfa4477def17240a9923205722464f6df9de6ee692cc13b"
     },
-    "prototypes/webserial/js/metrics.js": {
+    "prototypes/_legacy_webserial/js/metrics.js": {
       "size": 5683,
       "sha256": "fe576f53b27daafbe4b443cd3ca50d67ef324f7f4dee6ec0f65135dfa4d922ac"
     },
-    "prototypes/webserial/js/parser.js": {
+    "prototypes/_legacy_webserial/js/parser.js": {
       "size": 7237,
       "sha256": "319fe9cdc5d8b54ba2a27c8b76873edeb64b3983b06f8b466fa664e28977116a"
     },
-    "prototypes/webserial/js/scientific.js": {
+    "prototypes/_legacy_webserial/js/scientific.js": {
       "size": 506,
       "sha256": "adbc27931ec919d75279ea9f2131ab02467d53925218c0cf1f4848efa4dc8248"
     },
-    "prototypes/webserial/js/serial.js": {
+    "prototypes/_legacy_webserial/js/serial.js": {
       "size": 5101,
       "sha256": "2990db3b2c532536f40ce77f2ad1f52c01ac6704358bb48d195007ed0d6000e1"
     },
-    "prototypes/webserial/js/simulator.js": {
+    "prototypes/_legacy_webserial/js/simulator.js": {
       "size": 2170,
       "sha256": "c5a2bd2c0831cb11e04378325281fc67b8cdde94bfae71e879b2534b128971be"
     },
-    "prototypes/webserial/js/state.js": {
+    "prototypes/_legacy_webserial/js/state.js": {
       "size": 1934,
       "sha256": "e1f5695263e43a670bd367ec200e071ff01dc061ec2305c6d5fe6a297a2deac8"
     },
     "arquitetura-arduino-node-api/backend/public/js/api.js": {
-      "size": 1082,
-      "sha256": "08714a2def9a620462ab6327db0f3d944cb9c7d6f0264d886b5b0475a4fc6c64"
+      "size": 1330,
+      "sha256": "a9e915c67262b715c58bdfaae1eb5f78a77f35efaab7b8912aaaa3c4aa4400c4"
     },
     "arquitetura-arduino-node-api/backend/public/js/chart.js": {
       "size": 1799,
@@ -98,28 +98,28 @@
       "sha256": "d1086083beb253d5c6bdf38e0dc2dfc82b70f0325d3910a8918d22db5e8ba440"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/exporter.js": {
-      "size": 1769,
-      "sha256": "f765bccffae019fc6e3c598f1da0e62b857a1318d64df30369415d505b43a3e0"
+      "size": 1821,
+      "sha256": "890adef2ef790621f3aef705f1e279440c9a1061591a5a156015d3250c81ecc4"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/lifecycle.js": {
-      "size": 6733,
-      "sha256": "6606939c2e71d73fcb1a4df47896793d49215727916a1e75f400dc683f333f0e"
+      "size": 6932,
+      "sha256": "9cf2ae4ae8ad502798d1ef59042f1331705bc7b48da452ea5fe1fd19c1b41637"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/metrics-builder.js": {
-      "size": 5391,
-      "sha256": "c1b5cca94ed64d4ade91f2c17e9bebbeb58ee1244e8a91ff5a3f817b87a29b7b"
+      "size": 5569,
+      "sha256": "c1b3edc9916f046d3fc1654e813a5f790c2b0d10150eab72f0f84b284c9add35"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/observation-recorder.js": {
-      "size": 4015,
-      "sha256": "a832ea1b37fdbb5712df8311abf7c52ce09b0e836933d2d9e92987fd8749305d"
+      "size": 4120,
+      "sha256": "61c8d28a8d12d777b3ae7618aaf486e12b5195693b41f23431984fa1e8a4b005"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/summary-builder.js": {
-      "size": 4428,
-      "sha256": "329b57448ee0986f121a1f03656daaf342881e3966285bb723a2a49f061f4178"
+      "size": 4527,
+      "sha256": "17b88b027fe700b5c8c35324298cd002ab44e8d897918d0235c5f5ffad3120b8"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/ui-helpers.js": {
-      "size": 1903,
-      "sha256": "59b5b2ed030e994919bc41713c4f52d70fdb31b1f9a570eb7979f34c82bc4c69"
+      "size": 1963,
+      "sha256": "c1edb08d82c17b986a2e62b246e786ee076d2663b16798c10301f57c30a8a6d3"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments.js": {
       "size": 1379,
@@ -132,6 +132,10 @@
     "arquitetura-arduino-node-api/backend/public/js/state.js": {
       "size": 478,
       "sha256": "8bfd0820d0cad2aede791ef5940e370a61479b3bc68ff3b474c6394c8a2fc92d"
+    },
+    "arquitetura-arduino-node-api/backend/public/js/target.js": {
+      "size": 3489,
+      "sha256": "8fe2b0bb345c8b91a4dfb3a077d375ed8ce7877af72059e4e46221d355938e22"
     }
   }
 }

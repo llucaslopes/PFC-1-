@@ -25,8 +25,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { startKeepAwake } from './lib/keep-awake.mjs';
 import { initLogFile } from './lib/runtime-utils.mjs';
 import { resolveSerialPort } from './lib/serial-detect.mjs';
-import { startWebserial, stop } from './lib/server-control.mjs';
-import { bootstrapSerialPermission } from './lib/webserial-runner.mjs';
 
 import {
   parseArgs,
@@ -36,7 +34,6 @@ import {
 } from './lib_mjs/cli-args.mjs';
 import {
   runBackendBlock,
-  runWebserialBlock,
 } from './lib_mjs/multiclient/run-blocks.mjs';
 import { consolidateAll } from './lib_mjs/multiclient/reporter.mjs';
 
@@ -44,52 +41,40 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const CAMPAIGN = {
   type: 'scalability-clients',
-  name: 'escalabilidade-clientes-2026-05',
-  intervalsMs: [100, 50, 20, 10, 5],
+  name: 'escalabilidade-clientes-2026-06-wifi',
+  intervalsMs: [100, 50, 20],
   clientCounts: [1, 2, 5, 10, 20],
-  modes: ['websocket', 'rest-polling', 'webserial'],
+  modes: ['websocket', 'rest-polling'],
   defaultReps: 3,
   defaultDurationSeconds: 60,
   resourceSampleIntervalMs: 500,
-  // WebSerial e single-client por design (Web Serial API e exclusiva por porta).
-  // Na campanha multi-cliente ele entra apenas em N=1 para servir de baseline
-  // arquitetural lado a lado com WS/REST nesse mesmo numero de clientes.
-  webserialClientCount: 1,
 };
 
 function printHelp() {
   console.log(`Uso: node scripts/run-multiclient-scalability.mjs [opcoes]
 
-Mede escalabilidade horizontal (multiplos clientes simultaneos) para WebSocket
-e REST polling. WebSerial tambem pode ser incluido, mas APENAS em N=1 cliente
-(restricao arquitetural: a Web Serial API e exclusiva por porta serial; rodar
-N>1 navegadores conectados a uma unica porta e impossivel sem replicar o
-hardware). Quando 'webserial' esta entre os modos, qualquer --clients diferente
-de 1 e ignorado para esse modo (usado N=1 fixo) e o backend Node nao roda.
+Mede escalabilidade horizontal (multiplos clientes simultaneos) para A1
+(WebSocket) e A2 (REST polling) sobre Wi-Fi. A3 serverless escala
+implicitamente do lado da plataforma e nao se beneficia desta campanha.
 
 Matriz default:
-  modes              websocket, rest-polling, webserial
-  intervals (ms)     100, 50, 20, 10, 5
-  clients            1, 2, 5, 10, 20  (webserial usa apenas 1)
+  modes              websocket, rest-polling
+  intervals (ms)     100, 50, 20
+  clients            1, 2, 5, 10, 20
   reps               3
   duration           60 s
-  total              5 x 5 x 3 x 2 (WS+REST) + 5 x 1 x 3 (webserial) = 165 execucoes
+  total              3 x 5 x 3 x 2 = 90 execucoes
 
 Opcoes:
-  --source serial|simulator     fonte das amostras (default: serial)
-  --serial-port COM3|auto       porta do Arduino (default: auto)
+  --source wifi-http|simulator  fonte das amostras (default: wifi-http)
   --reps 3                      repeticoes (default: 3)
   --duration 60                 segundos por execucao (default: 60)
-  --intervals 100,50,20,10,5    sobrescreve a matriz de intervalos
-  --clients 1,2,5,10,20         sobrescreve a matriz de clientes (webserial sempre 1)
-  --modes websocket,rest-polling,webserial
+  --intervals 100,50,20         sobrescreve a matriz de intervalos
+  --clients 1,2,5,10,20         sobrescreve a matriz de clientes
+  --modes websocket,rest-polling
                                 modos a testar (default: todos)
   --campaign-dir <path>         destino dos arquivos
   --port-backend 3000           porta do backend (WS/REST)
-  --port-webserial 8765         porta do servidor estatico do prototipo WebSerial
-  --chromium-user-data <path>   perfil persistente do Playwright/Chromium
-  --no-auto-bootstrap           nao autoriza a porta serial automaticamente
-  --bootstrap-webserial         abre o Chrome para autorizar a porta serial e sai
   --log-file logs/multiclient.log
   --no-resume                   refaz execucoes ja completas
   --no-keep-awake               nao impede o Windows de dormir
@@ -98,10 +83,7 @@ Opcoes:
 
 Exemplos:
   npm run experiment:multiclient
-  node scripts/run-multiclient-scalability.mjs --serial-port COM3
   node scripts/run-multiclient-scalability.mjs --modes websocket --clients 1,5,10
-  node scripts/run-multiclient-scalability.mjs --modes webserial --intervals 100
-  node scripts/run-multiclient-scalability.mjs --source simulator --reps 1     # sanity
 `);
 }
 
@@ -130,8 +112,7 @@ async function main() {
     initLogFile(resolve(rootDir, args['log-file']));
   }
 
-  const source = args.source === 'simulator' ? 'simulator' : 'serial';
-  const serialPortConfigured = args['serial-port'] ?? process.env.SERIAL_PORT ?? 'auto';
+  const source = args.source === 'simulator' ? 'simulator' : 'wifi-http';
   const reps = parsePositiveInt(args.reps, CAMPAIGN.defaultReps);
   const durationSeconds = parsePositiveInt(args.duration, CAMPAIGN.defaultDurationSeconds);
   const intervalsMs = parseIntList(args.intervals, CAMPAIGN.intervalsMs);
@@ -140,12 +121,9 @@ async function main() {
   const campaignDir = resolve(rootDir,
     args['campaign-dir'] ?? `resultados/${CAMPAIGN.name}`);
   const backendPort = parsePositiveInt(args['port-backend'], 3000);
-  const webserialPort = parsePositiveInt(args['port-webserial'], 8765);
-  const userDataDir = resolve(rootDir, args['chromium-user-data'] ?? '.playwright-profile');
   const skipAnalysis = Boolean(args['skip-analysis']);
   const resume = !args['no-resume'];
   const keepAwakeEnabled = !args['no-keep-awake'];
-  const autoBootstrap = !args['no-auto-bootstrap'];
 
   for (const m of modes) {
     if (!CAMPAIGN.modes.includes(m)) {
@@ -155,54 +133,30 @@ async function main() {
 
   if (!existsSync(campaignDir)) mkdirSync(campaignDir, { recursive: true });
 
-  if (args['bootstrap-webserial']) {
-    const webserialServer = await startWebserial({ port: webserialPort });
-    try {
-      await bootstrapSerialPermission({
-        baseUrl: `http://localhost:${webserialPort}/`,
-        userDataDir,
-      });
-    } finally {
-      await stop(webserialServer);
-    }
-    return;
-  }
-
-  const backendModes = modes.filter((m) => m !== 'webserial');
-  const includesWebserial = modes.includes('webserial');
-  const backendRuns =
-    backendModes.length * intervalsMs.length * clientCounts.length * reps;
-  const webserialRuns = includesWebserial ? intervalsMs.length * reps : 0;
-  const totalRuns = backendRuns + webserialRuns;
+  const totalRuns = modes.length * intervalsMs.length * clientCounts.length * reps;
   const totalSeconds = totalRuns * durationSeconds;
   const estimatedMinutes = Math.ceil(totalSeconds / 60);
 
-  const resolvedSerialPort =
-    source === 'serial' ? await resolveSerialPort(serialPortConfigured) : null;
-  if (source === 'serial' && !resolvedSerialPort) {
-    console.warn(
-      `[multiclient] Fonte serial sem porta COM detectada. Conecte o Arduino ou use --source simulator.`
-    );
-    return;
-  }
+  // Em modo wifi-http o backend nao precisa abrir nenhum dispositivo; usamos
+  // resolveSerialPort apenas se alguem ainda passar `--source serial` para
+  // reproduzir campanhas antigas. Aqui tratamos wifi-http como caminho default.
+  const resolvedSerialPort = null;
+  void resolveSerialPort;
 
   console.log('[multiclient] ============================================================');
   console.log(`[multiclient] Campanha: ${CAMPAIGN.name} (type=${CAMPAIGN.type})`);
   console.log(`[multiclient] ------------------------------------------------------------`);
-  console.log(`  source           = ${source}${source === 'serial' ? ` (${resolvedSerialPort})` : ''}`);
+  console.log(`  source           = ${source}`);
   console.log(`  modes            = ${modes.join(', ')}`);
   console.log(`  intervals (ms)   = ${intervalsMs.join(', ')}`);
-  console.log(`  clients          = ${clientCounts.join(', ')} (webserial sempre N=1)`);
+  console.log(`  clients          = ${clientCounts.join(', ')}`);
   console.log(`  reps             = ${reps}`);
   console.log(`  duration (s)     = ${durationSeconds}`);
-  console.log(`  backend runs     = ${backendRuns} (WS/REST: ${backendModes.join(', ') || '-'})`);
-  console.log(`  webserial runs   = ${webserialRuns}`);
   console.log(`  total execucoes  = ${totalRuns}`);
   console.log(`  duracao estimada = ~${estimatedMinutes} min de coleta`);
   console.log(`  campaignDir      = ${campaignDir}`);
   console.log(`  resume           = ${resume}`);
   console.log(`  keepAwake        = ${keepAwakeEnabled}`);
-  console.log(`  autoBootstrap    = ${autoBootstrap}`);
   console.log(`  skipAnalysis     = ${skipAnalysis}`);
   console.log('[multiclient] ============================================================\n');
 
@@ -211,19 +165,11 @@ async function main() {
   try {
     for (const mode of modes) {
       try {
-        if (mode === 'webserial') {
-          await runWebserialBlock({
-            campaignDir, intervalsMs, clientCounts, reps, durationSeconds,
-            source, webserialPort, userDataDir, autoBootstrap, resume,
-            campaign: CAMPAIGN,
-          });
-        } else {
-          await runBackendBlock({
-            mode, campaignDir, intervalsMs, clientCounts, reps, durationSeconds,
-            source, resolvedSerialPort, backendPort, resume,
-            campaign: CAMPAIGN,
-          });
-        }
+        await runBackendBlock({
+          mode, campaignDir, intervalsMs, clientCounts, reps, durationSeconds,
+          source, resolvedSerialPort, backendPort, resume,
+          campaign: CAMPAIGN,
+        });
       } catch (error) {
         console.warn(
           `[multiclient] Modo '${mode}' falhou em alto nivel: ${error.message}. Seguindo para o proximo.`
