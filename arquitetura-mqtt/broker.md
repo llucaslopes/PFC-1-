@@ -33,11 +33,18 @@ allow_anonymous true
 
 ## Tópicos usados pelo TCC
 
-| Tópico                   | Direção         | QoS | Conteúdo                                 |
-| ------------------------ | --------------- | --- | ---------------------------------------- |
-| `clube/<deviceId>/sensor` | ESP32 → Broker  | 0   | JSON do payload (mesmo de A1/A2/A3).     |
-| `clube/<deviceId>/config` | Bridge → ESP32  | 1   | `{ "intervalMs": 100 }`.                 |
-| `clube/<deviceId>/status` | ESP32 → Broker  | 0   | RSSI, reconnects, uptime.                |
+| Tópico                    | Direção         | QoS | Conteúdo                             |
+| ------------------------- | --------------- | --- | ------------------------------------ |
+| `clube/<deviceId>/sensor` | ESP32 → Broker  | 0   | JSON do payload (mesmo de A1/A2/A3). |
+
+> O canal de **controle** (`intervalMs` vigente) **não passa por MQTT**.
+> A bridge expõe o mesmo `GET /config` do backend Node em `:4002`, e o
+> firmware faz polling HTTP a cada `CONFIG_POLL_INTERVAL_MS` (2 s) na
+> bridge ativa. Isso mantém o canal de controle idêntico em A1/A2/A3/A4
+> e evita exigir QoS ≥ 1 do broker (o `PubSubClient` só implementa
+> QoS 0). RSSI e reconnects do ESP32 viajam como campos do próprio
+> `payload sensor` (`wifi_rssi_dbm`, `wifi_reconnects`) — não há tópico
+> de status separado.
 
 ## Métricas a colher
 

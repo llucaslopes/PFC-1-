@@ -161,19 +161,22 @@ cp secrets.h.example secrets.h
 > ESP32, isso aponta para o próprio chip. Descubra seu IP LAN com
 > `ipconfig` (Windows) ou `ip addr` (Linux).
 
-### 5.2 Gravar o firmware
+### 5.2 Gravar o firmware (uma única vez para A1+A2+A4)
 
 1. Abra `esp32_sports_sensor_wifi.ino` no Arduino IDE 2.x
 2. **Tools → Board** → `ESP32 Dev Module`
 3. **Tools → Port** → selecione a porta COM do ESP32
 4. **Sketch → Upload** (Ctrl+U)
 5. Abra **Serial Monitor** a 115200 baud para confirmar:
-   - `[wifi] Conectado: IP=<algum-ip>`
-   - `[sntp] Sincronizado: epoch=...`
+   - `[boot] PFC-1 sketch dual-active (HTTP_BACKEND + HTTP_SERVERLESS + MQTT)`
+   - `[wifi] conectado: ip=<algum-ip>`
+   - `[sntp] sincronizado: epoch=...`
 
-Para a campanha A4 oficial, recompile com `#define TRANSPORT_MODE
-TRANSPORT_MQTT` no topo do `.ino` (o sketch já faz failover automático,
-mas a campanha oficial deixa MQTT como transporte primário).
+O firmware é **dual-active**: o mesmo binário cobre A1, A2, A3 e A4. A
+campanha oficial não exige recompilar entre cenários — o ESP32 detecta
+quando o orquestrador derruba o backend HTTP e sobe a bridge MQTT, e
+migra o transporte ativo sozinho em 300–600 ms a 100 ms de intervalo
+(ver `embedded/esp32_sports_sensor_wifi/README.md`, seção "Failover").
 
 ### 5.3 Confirmar conectividade
 

@@ -74,18 +74,13 @@ ESP32 + sensores (HR, ax/ay/az)
    via querystring ou seletor "Arquitetura" no canto superior)
 ```
 
-O firmware do ESP32 (`embedded/esp32_sports_sensor_wifi/`) é compilado em **dois modos** selecionáveis em compile-time:
-
-- `TRANSPORT_HTTP` (default) → POST JSON para Backend Node ou Vercel Function;
-- `TRANSPORT_MQTT` → publish em `clube/<deviceId>/sensor` no broker Mosquitto.
-
-O payload JSON é idêntico nos dois modos.
+O firmware do ESP32 (`embedded/esp32_sports_sensor_wifi/`) é **dual-active**: carrega HTTP (`HTTPClient`) e MQTT (`PubSubClient`) no boot e alterna entre `HTTP_BACKEND → HTTP_SERVERLESS → MQTT` por failover automático (probe a cada `FAIL_THRESHOLD` falhas consecutivas). O mesmo binário cobre A1, A2, A3 e A4 — sem recompilação entre cenários. O payload JSON é idêntico nos três transportes.
 
 ## Escopo: o que faz e o que não faz parte do trabalho
 
 Faz parte do escopo:
 
-- Simular sensores típicos de monitoramento esportivo (frequência cardíaca e aceleração X/Y/Z) em um **ESP32 real conectado por Wi-Fi**, em dois modos de transporte (HTTP e MQTT).
+- Simular sensores típicos de monitoramento esportivo (frequência cardíaca e aceleração X/Y/Z) em um **ESP32 real conectado por Wi-Fi**, com firmware dual-active (HTTP + MQTT no mesmo binário, transporte ativo escolhido por failover automático).
 - Implementar os três padrões de comunicação principais (REST polling, WebSocket, MQTT) como infraestrutura mínima para coleta de métricas.
 - Avaliar a arquitetura serverless como **subseção complementar**, em pasta separada e com runner próprio.
 - Medir **latência ponta a ponta estimada**, **throughput**, **mensagens perdidas/inválidas**, **comportamento sob carga**, **ponto de saturação**, **comportamento com múltiplos clientes simultâneos**, **jitter de rede**, **cold start** (apenas serverless) e **distribuição de status HTTP** (200/4xx/5xx).
@@ -177,7 +172,7 @@ Em cada execução, o sistema produz métricas alinhadas às variáveis de inter
 - **Cold start** (A3) — primeira invocação após N segundos parado, mensurado em matriz dedicada (`1, 30, 60, 300, 600 s` de inatividade).
 - **Estimativa de custo** (A3) — `cost_estimate_usd` extrapolado a partir do preço unitário Vercel Functions.
 - **Ponto de saturação** e limite operacional por intervalo de envio.
-- **Comportamento com múltiplos clientes simultâneos**: 1, 2, 5, 10, 20 clientes consumindo o mesmo backend em REST polling, WebSocket e MQTT (e, complementarmente, serverless).
+- **Comportamento com múltiplos clientes simultâneos**: 1, 2, 5, 10, 20 clientes consumindo o mesmo backend em REST polling e WebSocket (campanha em `scripts/run-multiclient-scalability.mjs`; MQTT e serverless ficam fora dessa matriz por construção — MQTT desacopla produtor/consumidor via broker e o serverless escala do lado da plataforma).
 
 > A latência é uma **estimativa de one-way latency** com incerteza documentada, não uma medição física absoluta. Validação física exigiria instrumentação externa (analisador lógico/osciloscópio) — fora do escopo deste TCC.
 
@@ -243,17 +238,21 @@ npm run dev
 
 A campanha completa cobre os três padrões principais (REST polling, WebSocket, MQTT) **e** a subseção complementar (Serverless), com 6 intervalos × 3 repetições × 60 s cada. É orquestrada por `scripts/run-experiments.mjs`, que inicia/encerra servidores, sincroniza relógios via `POST /clock/sync`, espera o ESP32 começar a enviar (primeira amostra com `seq=1`) e exporta CSV/JSON com nomes padronizados.
 
-Campanha principal com ESP32 real (default — hardware em modo HTTP para A1/A2/A3 e em modo MQTT para A4):
+Campanha oficial com ESP32 real — atalho equivalente a `node scripts/run-experiments.mjs --scenarios a1,a2,a4 --reps 3 --duration 60 --intervals 1000,500,200,100,50,20`:
 
 ```powershell
-# Padrões principais HTTP (REST polling + WebSocket + Serverless complementar):
-node scripts/run-experiments.mjs --scenarios a1,a2,a3 --reps 3
-
-# Padrão MQTT (regrave o ESP32 com TRANSPORT_MQTT antes):
-node scripts/run-experiments.mjs --scenarios a4 --reps 3
+npm run experiment:oficial
 ```
 
-Pré-requisito: o ESP32 já deve estar **alimentado e conectado ao Wi-Fi**, com firmware compilado no modo correto (`TRANSPORT_HTTP` para `a1/a2/a3`, `TRANSPORT_MQTT` para `a4`) e apontando para o IP do PC na LAN. O orquestrador imprime a URL/broker esperado antes de cada cenário.
+Para incluir/isolar a subseção complementar A3 (serverless), basta acrescentar/trocar o cenário:
+
+```powershell
+# Apenas A3 (serverless), via deployment Vercel:
+node scripts/run-experiments.mjs --scenarios a3 --reps 3 `
+  --serverless-base-url https://<seu-projeto>.vercel.app
+```
+
+Pré-requisito: o ESP32 já deve estar **alimentado e conectado ao Wi-Fi**, com o sketch dual-active gravado uma única vez (`embedded/esp32_sports_sensor_wifi/`) e o `secrets.h` apontando `BACKEND_HTTP_BASE`, `SERVERLESS_URL` (opcional) e `MQTT_HOST`/`MQTT_BRIDGE_HTTP_BASE` para o IP LAN do PC. **Não é preciso recompilar entre cenários**: quando o orquestrador derruba o backend HTTP e sobe a bridge MQTT, o firmware migra o transporte ativo sozinho em 300–600 ms a 100 ms de intervalo. O orquestrador imprime a URL/broker esperado antes de cada cenário.
 
 Campanha complementar de cold start (apenas A3):
 
@@ -384,5 +383,5 @@ Os experimentos devem permitir identificar, com base nos CSVs e gráficos consol
 - [`docs/metricas-coletadas.md`](docs/metricas-coletadas.md) — dicionário das métricas exportadas em CSV/JSON.
 - [`arquitetura-arduino-node-api/README.md`](arquitetura-arduino-node-api/README.md) — backend Node.js (A1 e A2), endpoints, configuração `.env`, exportações.
 - [`arquitetura-serverless/README.md`](arquitetura-serverless/README.md) — função serverless (A3), Vercel Functions + Vercel KV, deploy.
-- [`arquitetura-mqtt/README.md`](arquitetura-mqtt/README.md) — broker MQTT (A4 opcional).
-- [`embedded/esp32_sports_sensor_wifi/`](embedded/esp32_sports_sensor_wifi/) — sketch canônico do ESP32 com Wi-Fi, SNTP e HTTP POST.
+- [`arquitetura-mqtt/README.md`](arquitetura-mqtt/README.md) — broker MQTT + bridge Node (A4, padrão principal).
+- [`embedded/esp32_sports_sensor_wifi/`](embedded/esp32_sports_sensor_wifi/) — sketch canônico do ESP32 com Wi-Fi, SNTP e firmware dual-active (HTTP + MQTT no mesmo binário).

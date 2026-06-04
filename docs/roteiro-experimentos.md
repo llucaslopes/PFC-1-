@@ -78,19 +78,24 @@ Latencia ponta a ponta = t_recv_navegador − (send_us / 1000) − offset_navega
 
 ### 4.1 Padroes principais (comparados lado a lado)
 
-| Tag | Padrao de comunicacao | Modo do ESP32 | Intervalos (ms) | Reps | Duracao |
+O ESP32 roda o **mesmo binario dual-active** em todas as linhas abaixo
+(carrega HTTP + MQTT no boot e faz failover automatico para o transporte
+que o orquestrador estiver mantendo de pe). Nao ha recompilacao entre
+linhas — basta gravar uma vez antes do inicio da campanha.
+
+| Tag | Padrao de comunicacao | Transporte ativo (selecionado por failover) | Intervalos (ms) | Reps | Duracao |
 | --- | --- | --- | --- | --- | --- |
-| A1 | WebSocket (Backend Node) | TRANSPORT_HTTP | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
-| A2 | REST polling (Backend Node) | TRANSPORT_HTTP | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
-| A4 | MQTT / Pub-Sub (broker + bridge) | TRANSPORT_MQTT | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A1 | WebSocket (Backend Node) | HTTP_BACKEND | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A2 | REST polling (Backend Node) | HTTP_BACKEND | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A4 | MQTT / Pub-Sub (broker + bridge) | MQTT | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
 
 Total dos padroes principais: 6 intervalos × 3 padroes × 3 repeticoes × 60 s = **54 execucoes / ~54 min**.
 
 ### 4.2 Subsecao complementar (avaliada isoladamente)
 
-| Tag | Arquitetura | Modo do ESP32 | Intervalos (ms) | Reps | Duracao |
+| Tag | Arquitetura | Transporte ativo (selecionado por failover) | Intervalos (ms) | Reps | Duracao |
 | --- | --- | --- | --- | --- | --- |
-| A3 | Serverless (Vercel Functions) | TRANSPORT_HTTP | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
+| A3 | Serverless (Vercel Functions) | HTTP_SERVERLESS | 1000, 500, 200, 100, 50, 20 | 3 | 60 s |
 
 Mais 18 execucoes / ~18 min para a subsecao complementar; e mais 15 amostras de cold start (sec.5).
 
@@ -112,33 +117,33 @@ Total: 15 amostras de `cold_start_ms`. O orquestrador implementa esse delay com 
 
 ## 6. Execucao automatizada (campanha principal)
 
-ESP32 ja deve estar **ligado, conectado e enviando** antes de iniciar.
+ESP32 ja deve estar **ligado, conectado e enviando** antes de iniciar
+(sketch dual-active gravado uma unica vez — vide secao 4.1).
 
-### 6.1 Padroes HTTP (REST polling + WebSocket + Serverless complementar)
+### 6.1 Campanha oficial (REST polling + WebSocket + MQTT)
 
-ESP32 gravado em modo `TRANSPORT_HTTP` apontando para `BACKEND_URL`:
+Atalho equivalente a `node scripts/run-experiments.mjs --scenarios a1,a2,a4 --reps 3 --duration 60 --intervals 1000,500,200,100,50,20`:
 
 ```powershell
-# WebSocket (a1) + REST polling (a2) + Serverless complementar (a3):
-node scripts/run-experiments.mjs --scenarios a1,a2,a3 --reps 3
+npm run experiment:oficial
 ```
 
-Para executar so a subsecao complementar (Serverless):
+O orquestrador executa os tres padroes em sequencia. Quando entra no
+bloco A4, sobe o broker Mosquitto via Docker (ou cai para o broker
+embarcado `aedes` se o Docker nao estiver disponivel) e a bridge MQTT em
+`:4002`. O ESP32 detecta a queda do backend HTTP e migra automaticamente
+para MQTT em 300–600 ms a 100 ms de intervalo — sem regravacao.
+
+### 6.2 Subsecao complementar (Serverless)
 
 ```powershell
 node scripts/run-experiments.mjs --scenarios a3 --reps 3 `
     --serverless-base-url https://meu-projeto.vercel.app
 ```
 
-### 6.2 Padrao MQTT
-
-Recompile o sketch com `TRANSPORT_MODE=TRANSPORT_MQTT` (vide [README do firmware](../embedded/esp32_sports_sensor_wifi/README.md)) e regrave o ESP32. Em seguida:
-
-```powershell
-node scripts/run-experiments.mjs --scenarios a4 --reps 3
-```
-
-O orquestrador sobe o broker Mosquitto via Docker (ou cai para o broker embarcado `aedes` se o Docker nao estiver disponivel) e a bridge MQTT em `:4002`.
+Sem `--serverless-base-url`, o orquestrador sobe `vercel dev` local em
+`:3001` (nao mede cold start real — uso de dev local). Para cold start
+real, use o deployment Vercel publicado.
 
 ### 6.3 Cold start (apenas Serverless complementar)
 

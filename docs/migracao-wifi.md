@@ -1,6 +1,17 @@
 ---
 name: Migracao TCC para arquiteturas Wi-Fi
 overview: Reposicionar o TCC para "Análise de arquiteturas para um clube de futebol", remover WebSerial/USB, adotar ESP32 real via Wi-Fi como única fonte de dados, adicionar Vercel Functions como arquitetura serverless e adequar firmware, backend, testes e métricas — mantendo MQTT como cenário opcional destacável.
+
+> **Snapshot histórico — não atualizar.** Este documento congela o plano
+> de migração no estado em que estava em junho/2026, **antes** das duas
+> mudanças de escopo que vieram depois: (1) a comparação principal
+> passou a ser REST polling × WebSocket × **MQTT** (A4 deixou de ser
+> "opcional/destacável"); (2) o firmware do ESP32 ficou **dual-active**
+> (HTTP + MQTT no mesmo binário, transporte ativo escolhido por
+> failover automático), em vez dos três builds compile-time previstos
+> na Fase 1. O escopo atualizado vive no `README.md` da raiz, em
+> `docs/REPRODUCING.md` e em `docs/roteiro-experimentos.md`. Este
+> arquivo permanece intocado para preservar a trilha de decisão.
 todos:
   - id: fase-0-tema
     content: "Fase 0: reposicionar tema 'Análise de arquiteturas / clube de futebol' nos docs (README, roteiro, tcc_report)"
