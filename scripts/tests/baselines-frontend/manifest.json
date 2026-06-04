@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T20:44:50.985Z",
+  "generatedAt": "2026-06-04T22:34:30.037Z",
   "files": {
     "prototypes/_legacy_webserial/js/clockSync.js": {
       "size": 5106,
@@ -18,8 +18,8 @@
       "sha256": "37da92ca2e2ebf447e2f205f950cc2ab80d32dedd51576285baed017c95bf9e0"
     },
     "prototypes/_legacy_webserial/js/experiment/exporter.js": {
-      "size": 2469,
-      "sha256": "5f3c2eac7f437a6d9491be16c9e8d3d054e283e3487442ffcbfc853d818928ac"
+      "size": 2396,
+      "sha256": "b4e08ede91c5a3184a4b268f3288c904457c47ebe119c597871595223ada3709"
     },
     "prototypes/_legacy_webserial/js/experiment/lifecycle.js": {
       "size": 6346,
