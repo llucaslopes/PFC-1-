@@ -1,21 +1,36 @@
-# Prototipo WebSerial
+# Prototipo WebSerial — APENAS HISTORICO / TRABALHO ANTERIOR
 
-Arquitetura direta usada no TCC:
+> **AVISO:** este diretorio contem material de uma **versao anterior**
+> do PFC-1, em que o tema do TCC era "WebSerial direto vs backend Node".
+> O tema atual mudou para "comparacao de padroes de comunicacao IoT
+> (REST polling, WebSocket, MQTT) com ESP32 + Wi-Fi", e WebSerial **nao
+> faz mais parte do escopo experimental**. Esta pasta esta preservada
+> apenas como referencia da versao anterior do trabalho. Nada aqui e
+> executado pela campanha oficial atual em `scripts/run-experiments.mjs`.
+
+Versao antiga do prototipo:
 
 ```text
 Arduino/simulador -> navegador web usando WebSerial
 ```
 
-Este prototipo serve para comparar a comunicacao direta no navegador com a arquitetura intermediada por backend Node.js.
+Servia para comparar a comunicacao direta no navegador com a arquitetura
+intermediada por backend Node.js. **Nao usar mais como referencia para
+o TCC atual.**
 
-## Escopo oficial
+## Escopo do TCC atual (referencia rapida)
 
-O trabalho compara experimentalmente apenas:
+O TCC atual compara tres padroes de comunicacao principais:
 
-- WebSerial direto, nesta pasta;
-- backend Node.js com REST polling e WebSocket, em `../../arquitetura-arduino-node-api`.
+- **REST polling** (Backend Node, prefixo vazio).
+- **WebSocket** (Backend Node, broadcast).
+- **MQTT / Pub-Sub** (broker Mosquitto + bridge Node).
 
-WebBluetooth, WebUSB, serverless e nuvem ficam como tecnologias relacionadas ou trabalhos futuros, nao como arquiteturas implementadas.
+Mais a subsecao complementar **Serverless** (Vercel Functions). Veja
+`README.md` na raiz do repositorio para o escopo completo.
+
+WebSerial, WebBluetooth e WebUSB ficam como tecnologias relacionadas /
+trabalho anterior, nao como padroes implementados.
 
 ## Pergunta-problema
 
