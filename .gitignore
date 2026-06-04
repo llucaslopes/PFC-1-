@@ -1,29 +1,24 @@
-# Dependências
 node_modules/
 
-# Variáveis de ambiente
 .env
 .env.*
 !.env.example
 
-# Build / saída
 dist/
 build/
 *.tsbuildinfo
 coverage/
 .cache/
 
-# Saídas de experimentos (geradas pelos scripts)
 logs/
 *.log
 
-# Resultados de experimentos: versionar documentos e gráficos.
-# Ignora todo o conteúdo dentro de resultados/ e subpastas
-# (CSVs, JSONs, etc.), mas mantém a estrutura de pastas,
-# documentos Markdown (READMEs, relatórios, notas, análises)
-# e imagens em qualquer nível de profundidade.
-# Obs.: arquivos .rar/.zip na raiz do projeto (ex.: resultados.rar)
-# continuam versionados para envio ao orientador.
+# Saidas brutas das campanhas. A regra eh inversa: ignoramos todos os
+# arquivos dentro de resultados/, mas readmitimos o que tem valor de
+# documentacao no relatorio (Markdowns, figuras, PDFs). CSV/JSON ficam
+# de fora porque crescem rapido e podem ser regenerados a partir das
+# campanhas; quando precisamos enviar dados ao orientador, geramos um
+# .rar/.zip na raiz, que continua versionado.
 resultados/**
 !resultados/
 !resultados/**/
@@ -36,29 +31,29 @@ resultados/**
 !resultados/**/*.webp
 !resultados/**/*.pdf
 
-# Entregáveis do TCC (figuras, tabelas, diagramas e textos academicos)
-# em resultados/figuras_tcc/. Aqui versionamos TUDO, inclusive .csv,
-# .xlsx e .mmd, porque sao os artefatos finais do trabalho.
-# (.md ja eh liberado globalmente acima.)
+# Pacote final de entrega do TCC: figuras, tabelas e diagramas. Aqui
+# versionamos tambem .csv/.xlsx/.mmd porque sao os artefatos canonicos
+# que viram anexo do relatorio.
 !resultados/figuras_tcc/**/*.mmd
 !resultados/figuras_tcc/**/*.csv
 !resultados/figuras_tcc/**/*.xlsx
+_legacy_resultados
 
-# Consolidados das campanhas (sao a entrada dos scripts de plotagem
-# e tabelas; sem eles o repo nao regenera as figuras do TCC).
+# Consolidados sao a entrada dos scripts de plotagem -- sem eles o
+# repo nao regenera as figuras do TCC a partir de um clone limpo.
 !resultados/**/consolidated_metrics.csv
 !resultados/**/consolidated_metrics.json
 !resultados/**/consolidated_metrics_corrected.csv
 !resultados/**/consolidated_metrics_corrected.json
 
-# Audit trail das correcoes (rollover micros() do Arduino, etc.).
+# Trilha de auditoria das correcoes pos-coleta (ex.: rollover do micros
+# no firmware antigo). Pequeno e necessario para reproduzir o ajuste.
 !resultados/**/correction_report.json
 
-# Resumos finais utilizados pelo artigo (graficos-artigo/*.csv).
-# Os PNGs ja sao versionados; aqui liberamos as fontes de dados.
+# Fontes de dados das figuras embutidas no artigo. Os PNGs ja entram
+# pela whitelist global; aqui liberamos os CSVs que os geram.
 !resultados/graficos-artigo/*.csv
 
-# Python (scripts/consolidate_results.py, plot_results.py)
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -67,19 +62,21 @@ venv/
 .pytest_cache/
 .ipynb_checkpoints/
 
-# Playwright
 playwright-report/
 test-results/
 blob-report/
 .playwright/
 
-# Arduino (compilação local)
 *.hex
 *.elf
 *.bin
 arduino/**/build/
 
-# IDE / editores
+# secrets.h carrega SSID, senha do Wi-Fi e credenciais MQTT do ESP32.
+# Versionamos apenas o secrets.h.example como template; cada operador
+# copia e edita a sua copia local.
+embedded/**/secrets.h
+
 .vscode/
 .idea/
 *.iml
@@ -87,21 +84,19 @@ arduino/**/build/
 *.swo
 *~
 
-# Sistema operacional
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
 
-# Perfil persistente do Chromium usado pelo Playwright (WebSerial)
+# Perfil Chromium usado pelas campanhas legadas com WebSerial,
+# preservado para reproduzir rodadas pre-Wi-Fi a partir do git.
 .playwright-profile/
 
-# Lixo de merge / backups de editor
 *.bak
 *.orig
 *.rej
 
-# Caches de gerenciadores de pacote
 .npm/
 .yarn/
 .pnpm-store/
