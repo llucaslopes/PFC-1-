@@ -89,7 +89,7 @@ npm run install:all
 Dependências Python:
 
 ```bash
-pip install pandas matplotlib numpy
+pip install -r requirements.txt
 ```
 
 > **Verificação 1:** `npm run build:backend` deve terminar sem erros.

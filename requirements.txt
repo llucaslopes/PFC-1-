@@ -1,0 +1,21 @@
+# Dependencias Python do pipeline pos-coleta.
+#
+# Usadas por:
+#   - scripts/consolidate_results.py
+#   - scripts/plot_results.py
+#   - scripts/plot_scalability.py
+#   - scripts/gera_tabelas_artigo.py
+#   - scripts/generate-article-charts.py
+#   - scripts/tcc_report/*.py
+#   - scripts/tests/test_lib_py.py
+#   - scripts/tests/test_pos_processing_parity.py
+#
+# Sem pin de versao por consistencia com docs/REPRODUCING.md -- o pip
+# resolve as ultimas versoes compativeis com Python 3.13 (versao usada
+# no CI). Se precisar fixar versoes para reprodutibilidade exata, gere
+# um lock com: pip freeze > requirements.lock.txt
+
+pandas
+matplotlib
+numpy
+pytest

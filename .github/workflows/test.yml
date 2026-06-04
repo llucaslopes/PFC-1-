@@ -71,10 +71,12 @@ jobs:
 
       - name: Install Python dependencies
         # Os modulos cientificos usados pelo pipeline pos-coleta
-        # (consolidate_results, plot_results, gera_tabelas_artigo).
+        # (consolidate_results, plot_results, gera_tabelas_artigo)
+        # estao declarados em requirements.txt na raiz -- mesmo arquivo
+        # que o `cache: pip` acima usa como chave de cache.
         run: |
           python -m pip install --upgrade pip
-          pip install pandas matplotlib numpy pytest
+          pip install -r requirements.txt
 
       - name: Run Python tests (unittest auto-discovery)
         run: python -m pytest scripts/tests/test_lib_py.py scripts/tests/test_pos_processing_parity.py -v
