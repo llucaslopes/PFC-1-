@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T22:34:30.037Z",
+  "generatedAt": "2026-06-04T22:55:51.987Z",
   "files": {
     "prototypes/_legacy_webserial/js/clockSync.js": {
       "size": 5106,
@@ -22,24 +22,24 @@
       "sha256": "b4e08ede91c5a3184a4b268f3288c904457c47ebe119c597871595223ada3709"
     },
     "prototypes/_legacy_webserial/js/experiment/lifecycle.js": {
-      "size": 6346,
-      "sha256": "e05e82ee2224a039162e77429ece74eb521c1dbf3605edcfeca9a5cbdddf1d1d"
+      "size": 6158,
+      "sha256": "62de97fb2731e222b8edfc83a074270d329c9687c6070c9e131d396b9d831f29"
     },
     "prototypes/_legacy_webserial/js/experiment/metrics-builder.js": {
-      "size": 6443,
-      "sha256": "0c4258f1344ffcd7c6019d0078672cd6a35cbf00bf2b57e2cdab977c73dc87bc"
+      "size": 6262,
+      "sha256": "7467ae2226ca295131c855ee052ad8350f7d2d0715766603540b08f40fa10456"
     },
     "prototypes/_legacy_webserial/js/experiment/observation-recorder.js": {
-      "size": 599,
-      "sha256": "11a28de35cf84f7cf4fb62f2a172edcc6fcb0f35768a738dedc84875e32ab6da"
+      "size": 573,
+      "sha256": "e0aa11010389f8b91670749cc5e029725f895370c4de17b0bf0f3b5d844ef8a7"
     },
     "prototypes/_legacy_webserial/js/experiment/summary-builder.js": {
-      "size": 4615,
-      "sha256": "9016dfc8c406afef009e7b2b9d9d4b9b93d566366c0ca991d68390100b0ec149"
+      "size": 4514,
+      "sha256": "8513f59f4ebcb5d03523bf3f4787f1f3b3beb48eaca4c0c6683f223f852729e2"
     },
     "prototypes/_legacy_webserial/js/experiment/ui-helpers.js": {
-      "size": 2877,
-      "sha256": "c866a0a75e9994a970cb4239d7ccf0fbac9b8548b6dbc798bf227b7758869d40"
+      "size": 2794,
+      "sha256": "b907cac68253430c11839faf29401a34a564a0cf6d817a829ae67c55afeefc3b"
     },
     "prototypes/_legacy_webserial/js/experiment.js": {
       "size": 1401,
@@ -98,28 +98,28 @@
       "sha256": "d1086083beb253d5c6bdf38e0dc2dfc82b70f0325d3910a8918d22db5e8ba440"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/exporter.js": {
-      "size": 1821,
-      "sha256": "890adef2ef790621f3aef705f1e279440c9a1061591a5a156015d3250c81ecc4"
+      "size": 1769,
+      "sha256": "f765bccffae019fc6e3c598f1da0e62b857a1318d64df30369415d505b43a3e0"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/lifecycle.js": {
-      "size": 6932,
-      "sha256": "9cf2ae4ae8ad502798d1ef59042f1331705bc7b48da452ea5fe1fd19c1b41637"
+      "size": 6733,
+      "sha256": "6606939c2e71d73fcb1a4df47896793d49215727916a1e75f400dc683f333f0e"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/metrics-builder.js": {
-      "size": 5569,
-      "sha256": "c1b3edc9916f046d3fc1654e813a5f790c2b0d10150eab72f0f84b284c9add35"
+      "size": 5391,
+      "sha256": "c1b5cca94ed64d4ade91f2c17e9bebbeb58ee1244e8a91ff5a3f817b87a29b7b"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/observation-recorder.js": {
-      "size": 4120,
-      "sha256": "61c8d28a8d12d777b3ae7618aaf486e12b5195693b41f23431984fa1e8a4b005"
+      "size": 4015,
+      "sha256": "a832ea1b37fdbb5712df8311abf7c52ce09b0e836933d2d9e92987fd8749305d"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/summary-builder.js": {
-      "size": 4527,
-      "sha256": "17b88b027fe700b5c8c35324298cd002ab44e8d897918d0235c5f5ffad3120b8"
+      "size": 4428,
+      "sha256": "329b57448ee0986f121a1f03656daaf342881e3966285bb723a2a49f061f4178"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments/ui-helpers.js": {
-      "size": 1963,
-      "sha256": "c1edb08d82c17b986a2e62b246e786ee076d2663b16798c10301f57c30a8a6d3"
+      "size": 1903,
+      "sha256": "59b5b2ed030e994919bc41713c4f52d70fdb31b1f9a570eb7979f34c82bc4c69"
     },
     "arquitetura-arduino-node-api/backend/public/js/experiments.js": {
       "size": 1379,
@@ -134,8 +134,8 @@
       "sha256": "8bfd0820d0cad2aede791ef5940e370a61479b3bc68ff3b474c6394c8a2fc92d"
     },
     "arquitetura-arduino-node-api/backend/public/js/target.js": {
-      "size": 3644,
-      "sha256": "467f24437978584b69944bcbf9e4897236cfda80a85f7b9cd2ab432a27d022cc"
+      "size": 3536,
+      "sha256": "0db4035b5203289b0aab636bad384c5cd7042f9122cc1ac96ec3150f90794b66"
     }
   }
 }

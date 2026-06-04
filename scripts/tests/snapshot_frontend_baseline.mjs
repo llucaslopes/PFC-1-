@@ -47,10 +47,23 @@ const KNOWN_DUPLICATE_PAIRS = [
    'arquitetura-arduino-node-api/backend/public/js/clockSync.js'],
 ];
 
+// Le o arquivo normalizando CRLF -> LF. O baseline e gerado no Windows
+// (working tree pode estar com CRLF herdado) e o CI roda em Linux
+// (checkout via .gitattributes eol=lf -> sempre LF). Sem normalizar, o
+// SHA256 e o size divergem entre as duas plataformas.
+function readNormalized(filePath) {
+  const text = readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+  return Buffer.from(text, 'utf8');
+}
+
 function sha256(filePath) {
   const hash = createHash('sha256');
-  hash.update(readFileSync(filePath));
+  hash.update(readNormalized(filePath));
   return hash.digest('hex');
+}
+
+function normalizedSize(filePath) {
+  return readNormalized(filePath).length;
 }
 
 function inventoryExports(filePath) {
@@ -163,7 +176,7 @@ function main() {
       if (!name.endsWith('.js')) continue;
       const rel = relative(REPO_ROOT, full).replace(/\\/g, '/');
       manifest.files[rel] = {
-        size: st.size,
+        size: normalizedSize(full),
         sha256: sha256(full),
       };
       inventory.files[rel] = inventoryExports(full);

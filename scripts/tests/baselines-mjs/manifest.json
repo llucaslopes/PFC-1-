@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-06-04T22:34:30.081Z",
+  "generatedAt": "2026-06-04T22:55:47.106Z",
   "files": {
     "resultados/oficial-2026-06-04-v1-bug-firmware/consolidated_metrics.csv": {
       "kind": "metrics",
-      "size": 35126,
-      "sha256": "e4fc1e37f4460fad7b8469548e106c493822f41e6f7739a8c45ed8a21209960d"
+      "size": 35071,
+      "sha256": "cda53062312733c47ba9ed461ae71b012ae53219bc5aff517c556be3b076db97"
     },
     "resultados/oficial-2026-06-04-v2/consolidated_metrics.csv": {
       "kind": "metrics",
-      "size": 36107,
-      "sha256": "d1af98dcd5fbd02afc2da705074b5780f0fcadad7bc218da4f4771c9d5d8c314"
+      "size": 36052,
+      "sha256": "848a6901c43270ff27428d7a9e037012fbfba502cf669cc224e4db7c556b59d4"
     }
   },
   "counts": {

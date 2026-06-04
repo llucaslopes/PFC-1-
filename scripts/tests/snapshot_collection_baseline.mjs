@@ -27,7 +27,7 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync,
+import { existsSync, mkdirSync, readFileSync, readdirSync,
          writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, join, relative, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,10 +101,24 @@ function loadTrackedFiles() {
   }
 }
 
+// Le o arquivo normalizando CRLF -> LF. Os baselines sao gerados no Windows
+// (working tree pode ter CRLF herdado de commits antigos) mas o CI roda em
+// Linux (checkout via .gitattributes eol=lf -> sempre LF). Sem normalizar,
+// o SHA256 diverge entre as duas plataformas mesmo que o conteudo logico
+// seja identico.
+function readNormalized(filePath) {
+  const text = readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+  return Buffer.from(text, 'utf8');
+}
+
 function sha256(filePath) {
   const hash = createHash('sha256');
-  hash.update(readFileSync(filePath));
+  hash.update(readNormalized(filePath));
   return hash.digest('hex');
+}
+
+function normalizedSize(filePath) {
+  return readNormalized(filePath).length;
 }
 
 function csvHeader(filePath) {
@@ -168,7 +182,7 @@ function main() {
       countsTracked[kind] += 1;
       manifest.files[rel] = {
         kind,
-        size: statSync(file).size,
+        size: normalizedSize(file),
         sha256: sha256(file),
       };
     }

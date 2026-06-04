@@ -17,7 +17,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,8 +29,21 @@ function loadJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+// Normaliza CRLF -> LF antes de hashear/medir. Baselines sao gerados no
+// Windows (working tree pode estar com CRLF herdado) e o CI roda em Linux
+// (checkout via .gitattributes eol=lf -> sempre LF). Sem normalizar, o
+// SHA256 e o size divergem entre as duas plataformas.
+function readNormalized(filePath) {
+  const text = readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+  return Buffer.from(text, 'utf8');
+}
+
 function sha256(filePath) {
-  return createHash('sha256').update(readFileSync(filePath)).digest('hex');
+  return createHash('sha256').update(readNormalized(filePath)).digest('hex');
+}
+
+function normalizedSize(filePath) {
+  return readNormalized(filePath).length;
 }
 
 test('frontend: manifest sha256 casa com arquivos atuais', () => {
@@ -87,7 +100,7 @@ test('frontend: duplicates-diff documenta os 3 pares', () => {
 test('frontend: tamanhos catalogados batem com filesystem', () => {
   const manifest = loadJson(join(BASELINE_DIR, 'manifest.json'));
   for (const [rel, info] of Object.entries(manifest.files)) {
-    const sizeNow = statSync(join(REPO_ROOT, rel)).size;
+    const sizeNow = normalizedSize(join(REPO_ROOT, rel));
     assert.equal(sizeNow, info.size,
       `tamanho divergente em ${rel}: esperado ${info.size}, atual ${sizeNow}`);
   }

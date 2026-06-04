@@ -55,6 +55,13 @@ jobs:
       - name: Run Node test suites
         # Os testes seguem o padrao test_*.test.mjs ou rollover-*.test.mjs.
         # node --test pega todos com um unico comando.
+        #
+        # `shell: bash` e obrigatorio: o PowerShell padrao do runner Windows
+        # NAO expande glob (`scripts/tests/*.test.mjs` chega literal para o
+        # Node, que reporta "Could not find ... *.test.mjs"). Git Bash ja
+        # vem instalado nos runners Windows do GitHub Actions, entao
+        # forcar bash funciona identico em Linux e Windows.
+        shell: bash
         run: node --test scripts/tests/*.test.mjs scripts/tests/test_collection_parity.mjs
 
   python-tests:
