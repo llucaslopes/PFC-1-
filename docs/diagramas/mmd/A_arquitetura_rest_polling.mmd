@@ -1,0 +1,14 @@
+%% Diagrama A - Arquitetura REST polling (interno A2)
+%% O navegador "puxa" os dados do backend a cada poucos ms.
+flowchart LR
+    classDef device  fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef server  fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+
+    ESP["<b>ESP32</b><br/>sensor (HR, ax/ay/az)"]:::device
+    BE["<b>Backend Node</b><br/>recebe e guarda<br/>a última amostra"]:::server
+    BR["<b>Navegador</b><br/>(dashboard)"]:::client
+
+    ESP -- "Wi-Fi · POST JSON" --> BE
+    BR == "GET periódico (~1 ms)" ==> BE
+    BE -. "responde JSON" .-> BR

@@ -1,63 +1,94 @@
-# PFC-1 — Análise de arquiteturas para um sistema de monitoramento esportivo de um clube de futebol
+# PFC-1 — Análise de padrões de comunicação para integração de sensores IoT em monitoramento esportivo
 
-Repositório do TCC. O trabalho **não é um produto** de monitoramento esportivo: é um **estudo comparativo de arquiteturas web** para um cenário de sistema de um clube de futebol, no qual o autor, atuando como desenvolvedor, avalia qual arquitetura é mais adequada para cada cenário operacional do clube.
+[![tests](https://github.com/llucaslopes/PFC-1-/actions/workflows/test.yml/badge.svg)](https://github.com/llucaslopes/PFC-1-/actions/workflows/test.yml)
+[![Reproducible](https://img.shields.io/badge/reproducible-step--by--step-blue)](docs/REPRODUCING.md)
 
-> Tema: Análise de arquiteturas web para integração de sensores em sistemas de monitoramento esportivo (estudo de caso de um clube de futebol).
+Repositório do TCC. O trabalho **não é um produto** de monitoramento esportivo: é um **estudo comparativo de padrões de comunicação** (REST polling, WebSocket e MQTT/Pub-Sub) para integração de sensores IoT em uma aplicação web de monitoramento esportivo, com um clube de futebol como estudo de caso.
+
+> Tema: Análise comparativa de padrões de comunicação (REST polling, WebSocket e MQTT) para integração de sensores IoT em uma aplicação web de monitoramento esportivo.
+>
+> **Para reproduzir os resultados oficiais do zero**, consulte o guia passo-a-passo em [`docs/REPRODUCING.md`](docs/REPRODUCING.md).
 
 ## Pergunta de pesquisa
 
-Dada uma aplicação de monitoramento esportivo de um clube de futebol, com sensores corporais embarcados (frequência cardíaca, aceleração) em ESP32 ligados via Wi-Fi, **qual arquitetura web é mais adequada para cada cenário operacional do clube** (tempo real durante o jogo, dashboard pós-treino do staff técnico, telemetria massiva de muitos jogadores) em termos de **desempenho, latência, confiabilidade e capacidade de processamento**?
+Se um clube de futebol precisasse desenvolver um sistema de monitoramento esportivo com sensores IoT (frequência cardíaca, aceleração) embarcados em ESP32 ligados por Wi-Fi, **qual padrão de comunicação (REST polling, WebSocket ou MQTT/Pub-Sub) é mais adequado para cada contexto de uso** em termos de latência, confiabilidade e comportamento sob carga?
 
 ## Cenários operacionais do clube (estudo de caso)
 
-A análise gira em torno de três cenários típicos do dia a dia do clube:
+A análise gira em torno de três cenários típicos do dia a dia do clube. Os termos "escalabilidade horizontal/vertical" foram substituídos por descrições operacionais mais simples — "múltiplos clientes simultâneos", "diferentes frequências de envio" e "variação de carga".
 
 | Cenário | Descrição | Requisito principal |
 | --- | --- | --- |
-| Jogo em tempo real | Comissão técnica monitora batimentos e impactos durante a partida | Latência baixa e estável (subsegundo) |
-| Pós-treino | Staff técnico revisa histórico do dia em dashboard | Latência tolerante, throughput agregado |
-| Telemetria massiva | Muitos jogadores em campos diferentes, possivelmente vários clubes | Escalabilidade horizontal e elasticidade |
+| Jogo em tempo real | Comissão técnica acompanha batimentos e impactos durante a partida | Latência baixa e estável (subsegundo); múltiplos clientes simultâneos (técnico, médico, preparador físico) |
+| Pós-treino | Staff técnico revisa histórico do dia no dashboard | Latência tolerante; consultas sob demanda |
+| Treino com muitos jogadores | Vários jogadores publicando ao mesmo tempo no centro de treinamento | Variação de carga; ingestão concorrente de muitos dispositivos |
 
-## Arquiteturas avaliadas
+## Padrões de comunicação avaliados
 
-Todas as arquiteturas são alimentadas pelo mesmo dispositivo embarcado (ESP32 com Wi-Fi) usando o mesmo formato de dados, para que a comparação seja justa.
+Todos os padrões são alimentados pelo mesmo dispositivo embarcado (ESP32 com Wi-Fi) usando exatamente o mesmo payload JSON, para que a comparação seja justa.
 
-| Arquitetura | Caminho dos dados | Cenário do clube favorecido |
+| Padrão (principal) | Implementação | Caminho dos dados | Cenário do clube favorecido |
+| --- | --- | --- | --- |
+| **REST polling** | Backend Node + HTTP polling | ESP32 → Wi-Fi → Backend Node → HTTP polling → Navegador | Pós-treino, leitura sob demanda |
+| **WebSocket** (full-duplex) | Backend Node + WS broadcast | ESP32 → Wi-Fi → Backend Node → WebSocket → Navegador | Jogo em tempo real |
+| **MQTT / Pub-Sub** | Broker Mosquitto + bridge Node | ESP32 → Wi-Fi → Broker MQTT → Bridge → Navegador | Treino com muitos jogadores publicando simultaneamente |
+
+### Subseção complementar (não comparada lado a lado)
+
+| Subseção | Implementação | Por que é complementar |
 | --- | --- | --- |
-| **A1** Backend Node + WebSocket | ESP32 → Wi-Fi → Backend Node → WebSocket → Navegador | Jogo em tempo real |
-| **A2** Backend Node + REST polling | ESP32 → Wi-Fi → Backend Node → HTTP polling → Navegador | Pós-treino |
-| **A3** Serverless (Vercel Functions) | ESP32 → Wi-Fi → Vercel Function → KV → Navegador | Telemetria massiva |
-| **A4** (opcional) Backend Node + MQTT | ESP32 → Wi-Fi → Broker MQTT → Backend Node → Navegador | Ingestão concentrada intra-LAN |
+| **Serverless** (Vercel Functions + KV) | ESP32 → Wi-Fi → Vercel Function → KV → Navegador | Modelo operacional muito diferente (sem servidor próprio, paga-se por invocação, cold start). Avaliado isoladamente como estudo exploratório, **não comparado diretamente** com REST/WS/MQTT. |
 
-A4 é um **cenário opcional, isolado em pasta própria** (`arquitetura-mqtt/`) — pode ser excluído da análise sem afetar A1/A2/A3.
+### Mapeamento interno → padrão (estável)
 
-> WebSerial, WebBluetooth, WebUSB e USB Serial direto **não são mais arquiteturas avaliadas**. WebSerial e o backend Node lendo USB Serial foram avaliados em uma versão anterior deste TCC (preservada em `prototypes/_legacy_webserial/`, `embedded/_legacy_arduino_uno/` e `resultados/_legacy_usb_serial/`) e hoje aparecem apenas como tecnologias relacionadas / trabalho anterior.
+A numeração `A1/A2/A3/A4` aparece em scripts, CSVs e logs por motivos históricos. **Não muda mais** para preservar resultados, runners e tabelas:
 
-## Visão geral da nova arquitetura
+| Tag interna | Padrão | Pasta |
+| --- | --- | --- |
+| `A1` | WebSocket            | `arquitetura-arduino-node-api/` |
+| `A2` | REST polling         | `arquitetura-arduino-node-api/` |
+| `A3` | Serverless (complementar) | `arquitetura-serverless/` |
+| `A4` | MQTT / Pub-Sub       | `arquitetura-mqtt/` |
+
+> WebSerial, WebBluetooth, WebUSB e USB Serial direto **não são mais padrões avaliados**. Eles foram analisados em uma versão anterior deste TCC e ficam preservados apenas como histórico em `prototypes/_legacy_webserial/`, `embedded/_legacy_arduino_uno/` e `resultados/_legacy_usb_serial/`.
+
+## Visão geral
 
 ```text
 ESP32 + sensores (HR, ax/ay/az)
         │
-        │  Wi-Fi / Internet
+        │  Wi-Fi
         ▼
-┌──────────────────────────────────────────────────────┐
-│ A1: Backend Node + WebSocket   (broadcast)           │
-│ A2: Backend Node + REST polling (pull)               │
-│ A3: Vercel Function + Vercel KV (serverless)         │
-│ A4 (opt.): Broker MQTT + bridge Node                 │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Padrões principais (comparados lado a lado):                  │
+│   REST polling   -> Backend Node, /ingest + /data/latest      │
+│   WebSocket      -> Backend Node, broadcast                   │
+│   MQTT / Pub-Sub -> Broker Mosquitto + bridge Node            │
+│                                                                │
+│ Subseção complementar (avaliada isoladamente):                │
+│   Serverless     -> Vercel Functions + Vercel KV              │
+└──────────────────────────────────────────────────────────────┘
         │
         ▼
-   Dashboard web (mesmo dashboard, troca apenas BASE_URL)
+   Dashboard web único (mesmo HTML, troca apenas target/baseUrl
+   via querystring ou seletor "Arquitetura" no canto superior)
 ```
+
+O firmware do ESP32 (`embedded/esp32_sports_sensor_wifi/`) é compilado em **dois modos** selecionáveis em compile-time:
+
+- `TRANSPORT_HTTP` (default) → POST JSON para Backend Node ou Vercel Function;
+- `TRANSPORT_MQTT` → publish em `clube/<deviceId>/sensor` no broker Mosquitto.
+
+O payload JSON é idêntico nos dois modos.
 
 ## Escopo: o que faz e o que não faz parte do trabalho
 
 Faz parte do escopo:
 
-- Simular sensores típicos de monitoramento esportivo (frequência cardíaca e aceleração X/Y/Z) em um **ESP32 real conectado por Wi-Fi**.
-- Implementar as três arquiteturas principais (A1, A2, A3) como infraestrutura mínima para coleta de métricas.
-- Medir **latência ponta a ponta estimada**, **throughput**, **mensagens perdidas/inválidas**, **comportamento sob carga**, **ponto de saturação**, **escalabilidade** com múltiplos clientes, **jitter de rede**, **cold start** (apenas serverless) e **distribuição de status HTTP** (200/4xx/5xx).
+- Simular sensores típicos de monitoramento esportivo (frequência cardíaca e aceleração X/Y/Z) em um **ESP32 real conectado por Wi-Fi**, em dois modos de transporte (HTTP e MQTT).
+- Implementar os três padrões de comunicação principais (REST polling, WebSocket, MQTT) como infraestrutura mínima para coleta de métricas.
+- Avaliar a arquitetura serverless como **subseção complementar**, em pasta separada e com runner próprio.
+- Medir **latência ponta a ponta estimada**, **throughput**, **mensagens perdidas/inválidas**, **comportamento sob carga**, **ponto de saturação**, **comportamento com múltiplos clientes simultâneos**, **jitter de rede**, **cold start** (apenas serverless) e **distribuição de status HTTP** (200/4xx/5xx).
 - Garantir reprodutibilidade através de uma matriz padronizada (intervalos `1000, 500, 200, 100, 50, 20 ms`, 60 s por execução, 3 repetições) e da exportação automatizada dos resultados.
 
 **Não** fazem parte do escopo (e não devem ser introduzidos sem necessidade experimental):
@@ -74,27 +105,30 @@ Faz parte do escopo:
 ```text
 PFC-1-/
 ├── embedded/
-│   ├── esp32_sports_sensor_wifi/        # Sketch ESP32: Wi-Fi + SNTP + HTTP POST (oficial)
+│   ├── esp32_sports_sensor_wifi/        # Sketch ESP32 dual HTTP/MQTT (oficial). secrets.h gitignored.
 │   └── _legacy_arduino_uno/             # Sketch antigo Arduino Uno via USB serial (histórico)
-├── arquitetura-arduino-node-api/        # A1 + A2: Backend Node (nome de pasta histórico)
+├── arquitetura-arduino-node-api/        # REST polling + WebSocket (Backend Node). Nome de pasta histórico.
 │   └── backend/
 │       ├── src/http/routes/             # /ingest/sensor, /clock/sync, /experiments/*, /metrics
 │       ├── src/services/                # MetricsService, ExperimentService, SensorDataService
-│       ├── src/_legacy_serial/          # SerialReader desativado (referência histórica)
-│       └── public/                      # Dashboard reaproveitado
-├── arquitetura-serverless/              # A3: Vercel Functions + Vercel KV
+│       ├── src/_legacy_serial/          # SerialReader desativado (histórico)
+│       └── public/                      # Dashboard único (servido também pela bridge MQTT)
+├── arquitetura-mqtt/                    # MQTT / Pub-Sub: Mosquitto + bridge Node
+│   ├── bridge/                          # MQTT subscriber -> WebSocket broadcaster + REST espelhado
+│   ├── docker-compose.yml               # Mosquitto local
+│   └── mosquitto/mosquitto.conf
+├── arquitetura-serverless/              # Subseção complementar: Vercel Functions + Vercel KV
 │   ├── api/                             # ingest, data/latest, metrics, clock/sync, experiments/*
-│   ├── public/                          # Dashboard apontando para A3
 │   └── vercel.json
-├── arquitetura-mqtt/                    # A4 (opcional, isolada)
 ├── prototypes/
 │   └── _legacy_webserial/               # WebSerial antigo (histórico)
 ├── docs/
 │   └── roteiro-experimentos.md          # Procedimento experimental (Wi-Fi)
 ├── scripts/
-│   ├── run-experiments.mjs              # Orquestrador A1/A2/A3 (sem WebSerial)
-│   ├── run-multiclient-scalability.mjs  # Escalabilidade horizontal
-│   ├── lib/                             # serverless-runner, backend-runner, etc.
+│   ├── run-experiments.mjs              # Orquestrador REST/WS/MQTT/Serverless
+│   ├── run-multiclient-scalability.mjs  # Múltiplos clientes simultâneos
+│   ├── esp32-simulator.mjs              # Gerador de carga (substitui o ESP32 quando ausente)
+│   ├── lib/                             # backend-runner, serverless-runner, mqtt-runner, etc.
 │   └── tests/                           # Testes (httpIntake, serverless API, paridade)
 ├── resultados/                          # Saídas das campanhas (Wi-Fi)
 │   └── _legacy_usb_serial/              # Resultados anteriores via USB serial (histórico)
@@ -143,7 +177,7 @@ Em cada execução, o sistema produz métricas alinhadas às variáveis de inter
 - **Cold start** (A3) — primeira invocação após N segundos parado, mensurado em matriz dedicada (`1, 30, 60, 300, 600 s` de inatividade).
 - **Estimativa de custo** (A3) — `cost_estimate_usd` extrapolado a partir do preço unitário Vercel Functions.
 - **Ponto de saturação** e limite operacional por intervalo de envio.
-- **Escalabilidade horizontal**: 1, 2, 5, 10, 20 clientes simultâneos em REST polling, WebSocket e Serverless.
+- **Comportamento com múltiplos clientes simultâneos**: 1, 2, 5, 10, 20 clientes consumindo o mesmo backend em REST polling, WebSocket e MQTT (e, complementarmente, serverless).
 
 > A latência é uma **estimativa de one-way latency** com incerteza documentada, não uma medição física absoluta. Validação física exigiria instrumentação externa (analisador lógico/osciloscópio) — fora do escopo deste TCC.
 
@@ -200,15 +234,26 @@ npm run dev
 
 ## Reprodutibilidade — execução automatizada da matriz
 
-A campanha completa (`A1 + A2 + A3`, 6 intervalos, 3 repetições, 60 s cada) é orquestrada por `scripts/run-experiments.mjs`. Ele inicia/encerra os servidores, sincroniza relógios via `POST /clock/sync`, espera o ESP32 começar a enviar (primeira amostra com `seq=1`) e exporta CSV/JSON com nomes padronizados.
+> **Avaliador / banca / pesquisador externo:** o caminho "do `git clone`
+> até as figuras do TCC" está descrito de forma prescritiva em
+> [`docs/REPRODUCING.md`](docs/REPRODUCING.md), incluindo smoke test
+> (~2 min, sem hardware), critérios de sucesso quantitativos e
+> troubleshooting. A subseção abaixo é a referência de comandos para
+> quem já está familiarizado com o projeto.
 
-Campanha principal com ESP32 (default — todos os dados vêm do hardware real):
+A campanha completa cobre os três padrões principais (REST polling, WebSocket, MQTT) **e** a subseção complementar (Serverless), com 6 intervalos × 3 repetições × 60 s cada. É orquestrada por `scripts/run-experiments.mjs`, que inicia/encerra servidores, sincroniza relógios via `POST /clock/sync`, espera o ESP32 começar a enviar (primeira amostra com `seq=1`) e exporta CSV/JSON com nomes padronizados.
+
+Campanha principal com ESP32 real (default — hardware em modo HTTP para A1/A2/A3 e em modo MQTT para A4):
 
 ```powershell
-node scripts/run-experiments.mjs --reps 3
+# Padrões principais HTTP (REST polling + WebSocket + Serverless complementar):
+node scripts/run-experiments.mjs --scenarios a1,a2,a3 --reps 3
+
+# Padrão MQTT (regrave o ESP32 com TRANSPORT_MQTT antes):
+node scripts/run-experiments.mjs --scenarios a4 --reps 3
 ```
 
-Pré-requisito: o ESP32 já deve estar **alimentado e conectado ao Wi-Fi**, com firmware que aponte para a URL configurada no orquestrador. O orquestrador imprime na tela qual URL deve estar gravada no firmware antes de cada cenário.
+Pré-requisito: o ESP32 já deve estar **alimentado e conectado ao Wi-Fi**, com firmware compilado no modo correto (`TRANSPORT_HTTP` para `a1/a2/a3`, `TRANSPORT_MQTT` para `a4`) e apontando para o IP do PC na LAN. O orquestrador imprime a URL/broker esperado antes de cada cenário.
 
 Campanha complementar de cold start (apenas A3):
 
@@ -225,21 +270,21 @@ Saídas em `resultados/` (formato: `<arquitetura>_<modo>_wifi_<intervalo>ms_rep<
 
 O orquestrador suporta retomada automática (pula reps já completas), continuação após falha individual e log de heartbeat — desenhado para campanhas longas (overnight).
 
-## Avaliação de escalabilidade
+## Cenários de carga avaliados
 
-A escalabilidade é avaliada em dois eixos complementares.
+Os cenários de carga foram organizados em dois eixos complementares — sem usar a terminologia "escalabilidade horizontal/vertical".
 
-### Escalabilidade vertical (taxa por cliente único)
+### Cenário 1 — Variação de carga (diferentes frequências de envio)
 
-Matriz progressiva de intervalos (`1000, 500, 200, 100, 50, 20 ms`) × 3 repetições × 60 s × 3 arquiteturas (A1, A2, A3). Identifica o ponto de stress de cada arquitetura sob carga crescente em um único consumidor:
+Matriz progressiva de intervalos (`1000, 500, 200, 100, 50, 20 ms`) × 3 repetições × 60 s. Identifica o ponto em que cada padrão começa a degradar quando a frequência de envio aumenta. Cobre os três padrões principais (REST, WebSocket, MQTT) e a subseção complementar (Serverless):
 
 ```powershell
 npm run experiment:scalability
 ```
 
-### Escalabilidade horizontal (múltiplos clientes simultâneos)
+### Cenário 2 — Múltiplos clientes simultâneos consumindo o mesmo backend
 
-Matriz de intervalos do produtor (`100, 50, 20 ms`) × número de clientes (`1, 2, 5, 10, 20`) × 3 repetições × 60 s × 3 arquiteturas. Mede latência por cliente, fairness e CPU/RAM do backend (apenas A1/A2; A3 não tem processo backend dedicado):
+Matriz de intervalos do produtor (`100, 50, 20 ms`) × número de clientes (`1, 2, 5, 10, 20`) × 3 repetições × 60 s. Mede latência por cliente, equidade (fairness) e uso de CPU/RAM do backend para REST polling, WebSocket e MQTT (no Serverless o conceito não se aplica diretamente — não há processo backend dedicado):
 
 ```powershell
 npm run experiment:multiclient
@@ -302,23 +347,25 @@ GET  /api/experiments/export
 
 Tratada qualitativamente porque o protótipo **não implementa** TLS forte, autenticação ou autorização (apenas API key estática no header HTTP do ESP32 como hardening mínimo).
 
-| Critério | A1/A2 (Backend Node Wi-Fi) | A3 (Serverless Vercel) | A4 (MQTT) |
+| Critério | REST polling / WebSocket (Backend Node Wi-Fi) | MQTT (Mosquitto + bridge) | Serverless (Vercel — complementar) |
 | --- | --- | --- | --- |
-| Permissão de acesso | API key compartilhada (header `X-Api-Key`) | API key compartilhada (env var Vercel) | Usuário/senha do broker |
-| TLS | Depende do reverse proxy | Sim, automático na Vercel | Depende do broker (TLS opcional) |
-| Exposição em rede | Endpoint HTTP/WS aberto | Endpoint HTTPS público | Broker exposto na LAN |
-| Compatibilidade | Ampla (qualquer cliente HTTP) | Ampla (qualquer cliente HTTPS) | Limitada (precisa de cliente MQTT) |
-| Risco principal | Servidor exposto na rede | Throttling/abuso/custo descontrolado | Broker comprometido vaza tudo |
+| Permissão de acesso | API key compartilhada (header `X-Api-Key`) | Usuário/senha do broker | API key compartilhada (env var Vercel) |
+| TLS | Depende do reverse proxy | Depende do broker (TLS opcional) | Sim, automático na Vercel |
+| Exposição em rede | Endpoint HTTP/WS aberto | Broker exposto na LAN | Endpoint HTTPS público |
+| Compatibilidade | Ampla (qualquer cliente HTTP) | Limitada (precisa de cliente MQTT) | Ampla (qualquer cliente HTTPS) |
+| Risco principal | Servidor exposto na rede | Broker comprometido vaza tudo | Throttling/abuso/custo descontrolado |
 
 ## Resultado esperado do TCC
 
 Os experimentos devem permitir identificar, com base nos CSVs e gráficos consolidados:
 
-- Qual arquitetura apresenta menor latência ponta a ponta estimada em cada cenário do clube.
-- Qual arquitetura sustenta maior throughput sob carga crescente.
-- Em qual ponto cada arquitetura **começa a degradar** (saturação) e qual o limite operacional recomendado.
+- Qual padrão de comunicação apresenta menor latência ponta a ponta estimada em cada cenário do clube.
+- Qual padrão sustenta maior throughput em diferentes frequências de envio.
+- Em qual ponto cada padrão **começa a degradar** (saturação) e qual o limite operacional recomendado.
+- Como cada padrão se comporta com **múltiplos clientes simultâneos** consumindo o mesmo backend.
 - Vantagens e limitações de cada abordagem (incluindo segurança qualitativa, compatibilidade, custo e operacionalidade).
-- **Qual arquitetura recomendaria, como desenvolvedor responsável, para cada cenário operacional do clube** — síntese final do TCC.
+- **Qual padrão de comunicação recomendaria, como desenvolvedor responsável, para cada cenário operacional do clube** (jogo em tempo real, pós-treino, treino com muitos jogadores) — síntese final do TCC.
+- Em uma seção complementar e isolada, em quais condições o serverless seria uma alternativa viável e quais seus custos (cold start, custo monetário estimado).
 
 ## Limitações declaradas
 
@@ -332,7 +379,9 @@ Os experimentos devem permitir identificar, com base nos CSVs e gráficos consol
 
 ## Documentação detalhada
 
+- [`docs/REPRODUCING.md`](docs/REPRODUCING.md) — guia ponta-a-ponta de reprodução: pré-requisitos, smoke test, campanha com ESP32 real, reprodução via simulador, critérios de validação e troubleshooting.
 - [`docs/roteiro-experimentos.md`](docs/roteiro-experimentos.md) — procedimento experimental, matriz, sincronização de relógio (SNTP), interpretação dos CSVs, execução overnight e cuidados na defesa.
+- [`docs/metricas-coletadas.md`](docs/metricas-coletadas.md) — dicionário das métricas exportadas em CSV/JSON.
 - [`arquitetura-arduino-node-api/README.md`](arquitetura-arduino-node-api/README.md) — backend Node.js (A1 e A2), endpoints, configuração `.env`, exportações.
 - [`arquitetura-serverless/README.md`](arquitetura-serverless/README.md) — função serverless (A3), Vercel Functions + Vercel KV, deploy.
 - [`arquitetura-mqtt/README.md`](arquitetura-mqtt/README.md) — broker MQTT (A4 opcional).
