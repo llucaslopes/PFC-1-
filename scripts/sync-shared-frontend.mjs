@@ -27,8 +27,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const SOURCE_DIR = join(REPO_ROOT, 'shared', 'js');
 
+// O destino oficial e o backend Node (A1+A2). O dashboard A3 (serverless)
+// reusa o mesmo backend via querystring `?target=a3&baseUrl=...`. O
+// _legacy_webserial fica fora do sync (e codigo arquivado).
 const TARGETS = [
-  join(REPO_ROOT, 'prototypes', 'webserial', 'js', '_shared'),
   join(REPO_ROOT, 'arquitetura-arduino-node-api', 'backend', 'public', 'js', '_shared'),
 ];
 

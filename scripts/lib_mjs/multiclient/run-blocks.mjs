@@ -26,12 +26,12 @@ import {
   LATENCY_ANOMALY_REASON,
   detectLatencyAnomaly,
 } from '../../lib/rollover-detection.mjs';
-import { startBackend, startWebserial, stop } from '../../lib/server-control.mjs';
-import {
-  bootstrapSerialPermission,
-  hasSerialPermission,
-  runWebserialCampaign,
-} from '../../lib/webserial-runner.mjs';
+import { startBackend, stop } from '../../lib/server-control.mjs';
+// WebSerial removido do escopo oficial. As funcoes abaixo continuam
+// importaveis via `runWebserialBlock`, mas a importacao real do
+// `webserial-runner.mjs` so acontece sob demanda dentro do bloco --
+// a maioria das CIs nao tera Playwright, e o caminho oficial e
+// `runBackendBlock` para A1/A2 e `runServerlessBlock` para A3.
 
 import { nowIsoForFile } from '../output-naming.mjs';
 import { round } from '../stats.mjs';
@@ -393,45 +393,47 @@ export function convertWebserialSummaryToAggregates({
 }
 
 /**
- * Bloco WebSerial: sobe servidor estatico do prototipo, autoriza serial,
- * delega para runWebserialCampaign e converte summaries em aggregates.
+ * Bloco WebSerial (LEGADO). Mantido apenas como caminho documental para
+ * reproduzir campanhas antigas; orquestradores oficiais nao chamam mais.
+ * Carrega `webserial-runner.mjs` lazy (so quando explicitamente invocado),
+ * para nao exigir Playwright em CIs que so rodam o caminho Wi-Fi.
  */
-export async function runWebserialBlock({
-  campaignDir, intervalsMs, clientCounts, reps, durationSeconds, source,
-  webserialPort, userDataDir, autoBootstrap, resume, campaign,
-}) {
-  if (!clientCounts.includes(1)) {
-    console.log(
-      `[multiclient] === MODO webserial === clientCounts ${clientCounts.join(',')} nao inclui 1; ` +
-        `WebSerial e single-client por design e exige N=1. Pulando.`
+export async function runWebserialBlock(options) {
+  const { runWebserialCampaign } = await import('../../lib/webserial-runner.mjs');
+  const { startWebserial } = await import('../../lib/server-control.mjs').catch(() => ({}));
+  const { hasSerialPermission, bootstrapSerialPermission } =
+    await import('../../lib/webserial-runner.mjs');
+
+  const {
+    campaignDir, intervalsMs, clientCounts, reps, durationSeconds, source,
+    webserialPort, userDataDir, autoBootstrap, resume, campaign,
+  } = options;
+
+  if (typeof startWebserial !== 'function') {
+    console.warn(
+      '[multiclient] WebSerial bloco invocado, mas startWebserial nao existe mais ' +
+        'em scripts/lib/server-control.mjs (caminho legado). Pulando.'
     );
     return;
   }
 
-  const skippedCounts = clientCounts.filter((n) => n !== 1);
-  if (skippedCounts.length > 0) {
+  if (!clientCounts.includes(1)) {
     console.log(
-      `[multiclient] === MODO webserial === ignorando clientCount ${skippedCounts.join(',')} ` +
-        `(WebSerial e single-client por design; sera executado apenas N=1).`
+      `[multiclient] === MODO webserial (legado) === clientCounts ${clientCounts.join(',')} nao inclui 1; pulando.`
     );
-  } else {
-    console.log(`[multiclient] === MODO webserial === executando N=1 (limite arquitetural)`);
+    return;
   }
 
   const webserialServer = await startWebserial({ port: webserialPort });
   try {
     const webserialBaseUrl = `http://localhost:${webserialPort}/`;
-
     if (source === 'serial' && autoBootstrap) {
       const granted = await hasSerialPermission({ baseUrl: webserialBaseUrl, userDataDir });
       if (!granted) {
-        console.log('[multiclient] WebSerial sem permissao salva; abrindo bootstrap automatico.');
         await bootstrapSerialPermission({ baseUrl: webserialBaseUrl, userDataDir });
       }
     }
-
     const beforeFiles = new Set(readdirSync(campaignDir));
-
     await runWebserialCampaign({
       baseUrl: webserialBaseUrl,
       source, reps, durationSeconds, intervalsMs,
@@ -441,28 +443,16 @@ export async function runWebserialBlock({
       continueOnError: true,
       heartbeatIntervalMs: 30_000,
     });
-
     const afterFiles = readdirSync(campaignDir);
     const newSummaries = afterFiles
       .filter((f) => !beforeFiles.has(f))
       .filter((f) => f.endsWith('_experiment-summary.json'))
       .filter((f) => f.startsWith('webserial_webserial_'));
-
-    if (newSummaries.length === 0) {
-      console.warn(
-        '[multiclient] Nenhum experiment-summary.json novo de WebSerial encontrado. ' +
-          'Pode ser que --resume ja tenha pulado tudo, ou a campanha falhou silenciosamente.'
-      );
-    } else {
-      console.log(
-        `[multiclient] Convertendo ${newSummaries.length} summary(s) de WebSerial em aggregates.`
-      );
-      for (const summaryFile of newSummaries) {
-        convertWebserialSummaryToAggregates({
-          summaryFile, campaignDir, source, durationSeconds,
-          allowedIntervalsMs: intervalsMs, campaign,
-        });
-      }
+    for (const summaryFile of newSummaries) {
+      convertWebserialSummaryToAggregates({
+        summaryFile, campaignDir, source, durationSeconds,
+        allowedIntervalsMs: intervalsMs, campaign,
+      });
     }
   } finally {
     await stop(webserialServer);

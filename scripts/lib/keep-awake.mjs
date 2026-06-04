@@ -1,21 +1,27 @@
 import { spawn } from "node:child_process";
 
+// Mantem o Windows acordado durante a campanha noturna sem forcar o
+// monitor a ficar ligado. As campanhas de 50+ minutos colidem com o
+// timeout default de suspensao do sistema; quando o PC suspende, o
+// orquestrador trava e a rep em andamento eh perdida.
+//
+// Implementacao: SetThreadExecutionState com ES_CONTINUOUS |
+// ES_SYSTEM_REQUIRED. Deliberadamente NAO usamos ES_DISPLAY_REQUIRED --
+// assim o operador pode dar Win+L ou desligar os monitores e ainda
+// assim a campanha segue rodando ate o fim.
 const POWERSHELL_KEEP_AWAKE_SCRIPT = `
 $signature = @'
 [DllImport("kernel32.dll")]
 public static extern uint SetThreadExecutionState(uint esFlags);
 '@
 $winApi = Add-Type -MemberDefinition $signature -Name 'Awake' -Namespace 'PfcWinApi' -PassThru
-# ES_CONTINUOUS (0x80000000) | ES_SYSTEM_REQUIRED (0x00000001) | ES_DISPLAY_REQUIRED (0x00000002)
-$winApi::SetThreadExecutionState(2147483651) | Out-Null
+$winApi::SetThreadExecutionState(2147483649) | Out-Null
 while ($true) { Start-Sleep -Seconds 60 }
 `;
 
-/**
- * Mantem o sistema operacional acordado enquanto o processo filho roda.
- * No Windows usa SetThreadExecutionState; em outras plataformas e no-op.
- * O estado e liberado automaticamente quando o processo filho termina.
- */
+// Usa um processo PowerShell separado para que o estado de "system
+// required" continue valido mesmo se a thread principal do Node ficar
+// ocupada -- e seja liberado automaticamente quando o filho morre.
 export function startKeepAwake() {
   if (process.platform !== "win32") {
     console.log("[orchestrator] keep-awake: plataforma nao-Windows; pulando.");

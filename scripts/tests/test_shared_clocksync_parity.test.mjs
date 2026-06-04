@@ -27,7 +27,7 @@ const ESM_PAIRS = [
   {
     name: 'webserial',
     original: join(ORIGINALS, 'webserial', 'clockSyncMath.js'),
-    current: join(REPO_ROOT, 'prototypes', 'webserial', 'js', 'clockSyncMath.js'),
+    current: join(REPO_ROOT, 'prototypes', '_legacy_webserial', 'js', 'clockSyncMath.js'),
   },
   {
     name: 'backend-public',

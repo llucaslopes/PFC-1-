@@ -1,12 +1,33 @@
 import { ClockSyncMetadata } from "./clock";
 
-// Tipos de configuracao, estado e amostras de experimentos cientificos.
-// Incluem o contrato de observacao reportado pelo frontend ao backend
-// (FrontendExperimentObservation) e o sumario final (ScientificRunSummary).
+// Modelos compartilhados entre routes, services e o cliente que
+// orquestra a campanha. As enumeracoes precisam casar 1:1 com as
+// listas em scripts/lib_mjs/cli-args.mjs e em scripts/plot_results.py
+// (por nao haver fonte de tipos comum entre Node e Python).
+//
+// Os valores "webserial" e "serial" continuam aqui mesmo sem entrarem
+// na campanha oficial atual: removelos quebraria a leitura de
+// experiment-summary.json arquivados de campanhas pre-Wi-Fi e os testes
+// que validam essa leitura.
 
-export type ExperimentArchitecture = "webserial" | "backend-node";
-export type ExperimentSource = "serial" | "simulator";
-export type ExperimentCommunicationMode = "webserial" | "rest-polling" | "websocket";
+export type ExperimentArchitecture =
+  | "backend-node"
+  | "serverless"
+  | "mqtt"
+  | "webserial";
+
+export type ExperimentSource =
+  | "wifi-http"
+  | "simulator-http"
+  | "simulator"
+  | "serial";
+
+export type ExperimentCommunicationMode =
+  | "websocket"
+  | "rest-polling"
+  | "serverless-http"
+  | "mqtt"
+  | "webserial";
 export type ExperimentStatus = "idle" | "running" | "stopped";
 
 export interface ExperimentConfig {

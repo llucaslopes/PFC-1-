@@ -1,11 +1,11 @@
 ==============================================================================
-PAR DUPLICADO: prototypes/webserial/js/clockSyncMath.js <=> arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js
-  prototypes/webserial/js/clockSyncMath.js bytes=247 sha=3e74d784b4e0
+PAR DUPLICADO: prototypes/_legacy_webserial/js/clockSyncMath.js <=> arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js
+  prototypes/_legacy_webserial/js/clockSyncMath.js bytes=247 sha=3e74d784b4e0
   arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js bytes=252 sha=851a33b376c7
   exports A: 
   exports B: 
 ------------------------------------------------------------------------------
---- prototypes/webserial/js/clockSyncMath.js
+--- prototypes/_legacy_webserial/js/clockSyncMath.js
 +++ arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js
   1:1: 
   2:2: /**
@@ -15,13 +15,13 @@ PAR DUPLICADO: prototypes/webserial/js/clockSyncMath.js <=> arquitetura-arduino-
   5:5:  * `shared/js/clockSyncMath.js` via `scripts/sync-shared-frontend.mjs`.
 
 ==============================================================================
-PAR DUPLICADO: prototypes/webserial/js/scientific.js <=> arquitetura-arduino-node-api/backend/public/js/scientific.js
-  prototypes/webserial/js/scientific.js bytes=506 sha=adbc27931ec9
+PAR DUPLICADO: prototypes/_legacy_webserial/js/scientific.js <=> arquitetura-arduino-node-api/backend/public/js/scientific.js
+  prototypes/_legacy_webserial/js/scientific.js bytes=506 sha=adbc27931ec9
   arquitetura-arduino-node-api/backend/public/js/scientific.js bytes=519 sha=127563048a2c
   exports A: 
   exports B: 
 ------------------------------------------------------------------------------
---- prototypes/webserial/js/scientific.js
+--- prototypes/_legacy_webserial/js/scientific.js
 +++ arquitetura-arduino-node-api/backend/public/js/scientific.js
   1:1: 
   2:2: /**
@@ -45,13 +45,13 @@ PAR DUPLICADO: prototypes/webserial/js/scientific.js <=> arquitetura-arduino-nod
   15:15: export * from "./_shared/scientific.js";
 
 ==============================================================================
-PAR DUPLICADO: prototypes/webserial/js/clockSync.js <=> arquitetura-arduino-node-api/backend/public/js/clockSync.js
-  prototypes/webserial/js/clockSync.js bytes=5106 sha=318a6a809c70
+PAR DUPLICADO: prototypes/_legacy_webserial/js/clockSync.js <=> arquitetura-arduino-node-api/backend/public/js/clockSync.js
+  prototypes/_legacy_webserial/js/clockSync.js bytes=5106 sha=318a6a809c70
   arquitetura-arduino-node-api/backend/public/js/clockSync.js bytes=5604 sha=3ae7fd5fed4b
   exports A: CLOCK_SYNC_ATTEMPTS, LATENCY_METHOD_FALLBACK, LATENCY_METHOD_SYNC, SYNC_DRAIN_MS, SYNC_INTER_ATTEMPT_MS, SYNC_SAFE_INTERVAL_MS, SYNC_TIMEOUT_MS, buildArduinoClockSync, cancelPendingSync, createRelativeFallbackClockSync, nextSyncId, registerPendingSync, runSyncAttempt, sleep, synchronizeArduinoClock
   exports B: CLOCK_SYNC_ATTEMPTS, LATENCY_METHOD_FALLBACK, LATENCY_METHOD_SYNC, createRelativeFallbackClockSync, mergeClockSync, sleep, synchronizeBackendClock
 ------------------------------------------------------------------------------
---- prototypes/webserial/js/clockSync.js
+--- prototypes/_legacy_webserial/js/clockSync.js
 +++ arquitetura-arduino-node-api/backend/public/js/clockSync.js
 - 1: import { appendLog } from "./dom.js";
   2:1: import { computeCristianSync } from "./clockSyncMath.js";

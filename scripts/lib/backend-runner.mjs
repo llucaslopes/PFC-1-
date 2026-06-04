@@ -1,31 +1,22 @@
-
-/**
- * Orquestrador da campanha de backend (WebSocket + REST polling).
- *
- * Refatorado na Sub-fase 2.3 (de 913 para ~250 linhas) extraindo:
- *   - `lib_mjs/backend/experiment-client.mjs` (start/stop/reset/postObservation)
- *   - `lib_mjs/backend/observers.mjs` (observeWebSocket, observeRestPolling)
- *   - `lib_mjs/backend/writers.mjs` (headers + writeCampaignFiles + buildExperimentSummary)
- *   - `lib/clock-sync.mjs` ja existia (deduplica logica antes inline)
- *
- * Schemas dos 4 arquivos gerados (sensor-data, metrics, campaign-summary,
- * experiment-summary) sao PRESERVADOS bit-a-bit. Validado por
- * `test_collection_parity.mjs` (sub-fase 2.0).
- */
+// Orquestrador das arquiteturas A1 (REST polling), A2 (WebSocket) e A4
+// (MQTT via bridge -- a bridge replica o mesmo contrato HTTP/WS do
+// backend Node, entao reusamos esse runner). A logica de cada cenario
+// vive em lib_mjs/backend/{experiment-client, observers, writers}; aqui
+// fica a coreografia: por rep, por intervalo, com warmup, heartbeat e
+// gravacao incremental dos arquivos de saida.
 
 import {
   createRelativeFallbackClockSync,
   mergeClockSync,
   synchronizeBackendClock,
 } from './clock-sync.mjs';
+import { freshnessFor, waitForFreshSamples } from './transport-warmup.mjs';
 import {
   addSaturationIndicators,
   collectEnvironment,
   createLatencyCalibrator,
   environmentToCsv,
   numericStats,
-  percent,
-  round,
 } from './scientific.mjs';
 import { createHeartbeat, isRepComplete } from './runtime-utils.mjs';
 import {
@@ -57,6 +48,14 @@ export async function runBackendCampaign({
   resume = true,
   continueOnError = true,
   heartbeatIntervalMs = 10_000,
+  // Hook usado pelo modo --source simulator-http: substitui o ESP32
+  // real por um gerador de carga local que sobe/desce a cada intervalo.
+  // Sem ESP32 fisico, esse modo permite reproduzir a campanha em CI ou
+  // em maquinas sem o hardware.
+  intervalLifecycle = null,
+  // Identifica a arquitetura nos arquivos de saida. 'backend-node' para
+  // A1/A2; 'mqtt' quando esse runner eh apontado para a bridge MQTT.
+  architecture = 'backend-node',
 } = {}) {
   await fs.mkdir(resultsDir, { recursive: true });
   const lastIntervalMs = intervalsMs[intervalsMs.length - 1];
@@ -68,7 +67,7 @@ export async function runBackendCampaign({
 
     if (resume) {
       const alreadyDone = await isRepComplete({
-        resultsDir, architecture: 'backend-node', communicationMode: mode,
+        resultsDir, architecture, communicationMode: mode,
         source, lastIntervalMs, rep, campaignType,
       });
       if (alreadyDone) {
@@ -83,6 +82,7 @@ export async function runBackendCampaign({
       await runSingleRep({
         baseUrl, mode, source, rep, reps, durationSeconds, intervalsMs,
         campaignType, resultsDir, heartbeatIntervalMs, continueOnError,
+        intervalLifecycle, architecture,
       });
     } catch (error) {
       console.warn(
@@ -98,14 +98,18 @@ export async function runBackendCampaign({
 async function runSingleRep({
   baseUrl, mode, source, rep, reps, durationSeconds, intervalsMs,
   campaignType, resultsDir, heartbeatIntervalMs, continueOnError,
+  intervalLifecycle, architecture = 'backend-node',
 }) {
   await resetExperiment(baseUrl);
   const campaignId = makeCampaignId();
   const completedRuns = [];
-  let lastExperiment = null;
-  let lastClockSync = null;
   const campaignStartedAt = new Date().toISOString();
 
+  // Gravacao por intervalo (e nao por rep): cada (rep x intervalo) vira
+  // um conjunto independente de arquivos. A versao anterior agregava
+  // todos os intervalos da rep num unico arquivo, marcado pelo ultimo
+  // intervalo -- isso causou perda silenciosa de dados na primeira
+  // campanha oficial e dificultava re-execucao individual de intervalos.
   for (const intervalMs of intervalsMs) {
     console.log(
       `[orchestrator]  interval=${intervalMs}ms  duration=${durationSeconds}s  comecando.`
@@ -115,10 +119,24 @@ async function runSingleRep({
       const result = await runSingleInterval({
         baseUrl, mode, source, rep, reps, intervalMs, durationSeconds,
         intervalsMs, campaignType, campaignId, heartbeatIntervalMs,
+        intervalLifecycle, architecture,
       });
       completedRuns.push(result.run);
-      lastExperiment = result.run.experiment;
-      lastClockSync = result.clockSync;
+
+      addSaturationIndicators([result.run.summary]);
+
+      const campaign = {
+        id: campaignId, architecture, communicationMode: mode,
+        source, type: campaignType, intervalsMs: [intervalMs],
+        replicationNumber: rep, startedAt: campaignStartedAt,
+        stoppedAt: new Date().toISOString(),
+      };
+
+      await writeCampaignFiles({
+        resultsDir, completedRuns: [result.run], lastExperiment: result.run.experiment,
+        campaign, campaignType,
+        clockSync: result.clockSync, replicationNumber: rep,
+      });
     } catch (error) {
       console.warn(
         `[orchestrator]   intervalo ${intervalMs}ms falhou: ${error.message}. ${continueOnError ? 'Pulando para o proximo intervalo.' : ''}`
@@ -131,35 +149,37 @@ async function runSingleRep({
   }
 
   if (!completedRuns.length) {
-    console.warn(`[orchestrator] rep ${rep} nao produziu nenhum intervalo bem-sucedido; pulando export.`);
+    console.warn(`[orchestrator] rep ${rep} nao produziu nenhum intervalo bem-sucedido.`);
     return;
   }
-
-  addSaturationIndicators(completedRuns.map((run) => run.summary));
-
-  const campaign = {
-    id: campaignId, architecture: 'backend-node', communicationMode: mode,
-    source, type: campaignType, intervalsMs: [...intervalsMs],
-    replicationNumber: rep, startedAt: campaignStartedAt,
-    stoppedAt: new Date().toISOString(),
-  };
-
-  await writeCampaignFiles({
-    resultsDir, completedRuns, lastExperiment, campaign, campaignType,
-    clockSync: lastClockSync, replicationNumber: rep,
-  });
 }
 
 async function runSingleInterval({
   baseUrl, mode, source, rep, reps, intervalMs, durationSeconds,
   intervalsMs, campaignType, campaignId, heartbeatIntervalMs,
+  intervalLifecycle, architecture = 'backend-node',
 }) {
   const frontendBackendSync = await synchronizeBackendClock(baseUrl);
   const payload = {
-    architecture: 'backend-node', source, communicationMode: mode,
+    architecture, source, communicationMode: mode,
     sendIntervalMs: intervalMs, durationSeconds, replicationNumber: rep,
     campaignType,
   };
+
+  // Warmup do ESP32 real. O sketch dual-active ja esta enviando bem
+  // antes do startExperiment ser chamado, e durante a transicao entre
+  // cenarios ele leva ate 2 s para detectar o novo backend. Sem essa
+  // barreira, o intervalo de transicao seria contabilizado como missing
+  // messages e contaminaria as metricas. No modo simulator-http o
+  // gerador eh subido sob demanda em beforeObserve, entao o warmup nao
+  // se aplica.
+  if (source === 'wifi-http') {
+    await waitForFreshSamples({
+      baseUrl,
+      freshnessMs: freshnessFor(intervalMs),
+      label: `warmup ${architecture}/${mode} interval=${intervalMs}ms rep=${rep}`,
+    });
+  }
 
   const experimentResponse = await startExperiment({ baseUrl, payload });
   const mergedClockSync = mergeClockSync(
@@ -168,7 +188,7 @@ async function runSingleInterval({
   );
 
   const environment = collectEnvironment({
-    architecture: 'backend-node', communicationMode: mode, source,
+    architecture, communicationMode: mode, source,
     intervalMs, campaignType,
   });
 
@@ -204,6 +224,19 @@ async function runSingleInterval({
     }),
   });
 
+  let lifecycleHandle = null;
+  if (intervalLifecycle?.beforeObserve) {
+    try {
+      lifecycleHandle = await intervalLifecycle.beforeObserve({
+        intervalMs, durationSeconds, baseUrl, mode, source,
+      });
+    } catch (err) {
+      console.warn(
+        `[orchestrator]   intervalLifecycle.beforeObserve falhou: ${err.message}. Seguindo sem ele.`
+      );
+    }
+  }
+
   heartbeat.start();
   try {
     if (mode === 'websocket') {
@@ -218,6 +251,15 @@ async function runSingleInterval({
     }
   } finally {
     heartbeat.stop();
+    if (intervalLifecycle?.afterObserve && lifecycleHandle) {
+      try {
+        await intervalLifecycle.afterObserve(lifecycleHandle);
+      } catch (err) {
+        console.warn(
+          `[orchestrator]   intervalLifecycle.afterObserve falhou: ${err.message}. Ignorando.`
+        );
+      }
+    }
   }
 
   await stopExperiment(baseUrl);
@@ -256,7 +298,3 @@ async function runSingleInterval({
     clockSync: mergedClockSync,
   };
 }
-
-// Reuse percent/round to avoid unused-import warnings in some bundlers.
-void percent;
-void round;

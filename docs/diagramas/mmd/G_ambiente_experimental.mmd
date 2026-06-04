@@ -1,0 +1,28 @@
+%% Diagrama G - Ambiente experimental completo
+%% Visão geral: ESP32 → 4 backends → resultados, comandados pelo orquestrador.
+flowchart LR
+    classDef device fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef server fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef tool   fill:#E5DAFF,stroke:#5A3A99,stroke-width:2px,color:#222
+    classDef out    fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+
+    subgraph Origem["Fonte de dados"]
+        direction TB
+        ESP["<b>ESP32 real</b><br/>Wi-Fi 2,4 GHz<br/>HTTP ou MQTT"]:::device
+        SIM["Simulador<br/>(quando não há hardware)"]:::tool
+    end
+
+    subgraph Backends["4 padrões de comunicação"]
+        direction TB
+        REST["<b>REST polling</b><br/>Backend Node"]:::server
+        WS["<b>WebSocket</b><br/>Backend Node"]:::server
+        MQTT["<b>MQTT</b><br/>Mosquitto + bridge"]:::server
+        SERV["<b>Serverless</b><br/>Vercel (complementar)"]:::server
+    end
+
+    Orq["<b>Orquestrador</b><br/>scripts/run-experiments.mjs<br/>matriz: 6 intervalos × 3 reps × 60 s"]:::tool
+    Out[("<b>resultados/</b><br/>CSV + JSON + figuras")]:::out
+
+    Origem --> Backends
+    Orq -- "inicia / coleta" --> Backends
+    Backends --> Out

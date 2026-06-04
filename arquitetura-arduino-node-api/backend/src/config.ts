@@ -20,8 +20,12 @@ function readNumberEnv(name: string, fallback: number): number {
 
 export const config = {
   port: readNumberEnv("PORT", 3000),
-  sensorSource: process.env.SENSOR_SOURCE?.trim().toLowerCase() || "auto",
+  // Fontes suportadas: "wifi-http" (padrao, ESP32 + Wi-Fi),
+  // "simulator" (para sanity-check sem hardware) e "serial" (legado USB,
+  // mantido apenas para reprocessar campanhas antigas).
+  sensorSource: process.env.SENSOR_SOURCE?.trim().toLowerCase() || "wifi-http",
   serialPort: process.env.SERIAL_PORT?.trim() || null,
   serialBaudRate: readNumberEnv("SERIAL_BAUD_RATE", 115200),
-  simulatorIntervalMs: readNumberEnv("SIMULATOR_INTERVAL_MS", 100)
+  simulatorIntervalMs: readNumberEnv("SIMULATOR_INTERVAL_MS", 100),
+  apiKey: process.env.API_KEY?.trim() || null
 };

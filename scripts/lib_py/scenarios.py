@@ -1,10 +1,14 @@
-"""Normalizacao de arquiteturas C1/C2/C3 e paletas visuais.
+"""Normalizacao de arquiteturas A1/A2/A3/A4 e paletas visuais.
 
-O TCC compara tres arquiteturas:
+O TCC atual compara quatro arquiteturas (todas alimentadas por ESP32 + Wi-Fi):
 
-- WebSerial (C1, navegador direto)
-- WebSocket (C2, backend Node + WS)
-- REST Polling (C3, backend Node + REST)
+- A1 (WebSocket, backend Node + WS)
+- A2 (REST Polling, backend Node + REST)
+- A3 (Serverless, Vercel Functions + Vercel KV)
+- A4 (MQTT, broker + bridge Node) -- opcional
+
+WebSerial/USB serial direto sao tratados como `_legacy_*` e podem aparecer
+apenas para reproduzir campanhas anteriores.
 
 Os CSVs consolidados ainda usam pares `(architecture, communication_mode)` ou
 apenas `mode` (campanha multi-cliente). As funcoes aqui devolvem o rotulo
@@ -29,29 +33,39 @@ from __future__ import annotations
 from typing import Any
 
 ARCH_LABEL_WEBSERIAL = "WebSerial"
-ARCH_LABEL_WEBSOCKET = "WebSocket"
-ARCH_LABEL_REST = "REST Polling"
+ARCH_LABEL_WEBSOCKET = "A1 — WebSocket"
+ARCH_LABEL_REST = "A2 — REST Polling"
+ARCH_LABEL_SERVERLESS = "A3 — Serverless"
+ARCH_LABEL_MQTT = "A4 — MQTT"
 
 ARCH_ORDER: list[str] = [
-    ARCH_LABEL_WEBSERIAL,
     ARCH_LABEL_WEBSOCKET,
     ARCH_LABEL_REST,
+    ARCH_LABEL_SERVERLESS,
+    ARCH_LABEL_MQTT,
+    ARCH_LABEL_WEBSERIAL,
 ]
 
 CANONICAL_ARCH_COLORS: dict[str, str] = {
-    ARCH_LABEL_WEBSERIAL: "#1f77b4",
     ARCH_LABEL_WEBSOCKET: "#2ca02c",
     ARCH_LABEL_REST: "#d62728",
+    ARCH_LABEL_SERVERLESS: "#9467bd",
+    ARCH_LABEL_MQTT: "#ff7f0e",
+    ARCH_LABEL_WEBSERIAL: "#1f77b4",
 }
 CANONICAL_ARCH_MARKERS: dict[str, str] = {
-    ARCH_LABEL_WEBSERIAL: "o",
     ARCH_LABEL_WEBSOCKET: "s",
     ARCH_LABEL_REST: "^",
+    ARCH_LABEL_SERVERLESS: "D",
+    ARCH_LABEL_MQTT: "P",
+    ARCH_LABEL_WEBSERIAL: "o",
 }
 CANONICAL_ARCH_LINESTYLES: dict[str, str] = {
-    ARCH_LABEL_WEBSERIAL: "-",
     ARCH_LABEL_WEBSOCKET: "--",
     ARCH_LABEL_REST: ":",
+    ARCH_LABEL_SERVERLESS: "-.",
+    ARCH_LABEL_MQTT: (0, (3, 1, 1, 1)),
+    ARCH_LABEL_WEBSERIAL: "-",
 }
 
 # Paleta da campanha antiga (plot_results.py / plot_scalability.py). Indexada
@@ -74,6 +88,35 @@ LEGACY_SERIES_STYLES_3KEY: dict[tuple[str, str, str], dict[str, str]] = {
         "label": "Web Serial (navegador)",
         "color": "#2ca02c",
         "marker": "^",
+        "linestyle": ":",
+    },
+    # Campanha oficial v2 (ESP32 + Wi-Fi). Cores semânticas para o
+    # artigo: vermelho para REST (custo de polling alto), azul para
+    # WebSocket (canal persistente clássico) e verde para MQTT
+    # (transporte pub/sub otimizado). Markers grandes e linestyles
+    # distintos para impressão em P&B legível.
+    ("backend-node", "rest-polling", "wifi-http"): {
+        "label": "A2 — REST polling (Node)",
+        "color": "#d62728",
+        "marker": "o",
+        "linestyle": "-",
+    },
+    ("backend-node", "websocket", "wifi-http"): {
+        "label": "A1 — WebSocket (Node)",
+        "color": "#1f77b4",
+        "marker": "s",
+        "linestyle": "--",
+    },
+    ("mqtt", "websocket", "wifi-http"): {
+        "label": "A4 — MQTT (broker)",
+        "color": "#2ca02c",
+        "marker": "^",
+        "linestyle": "-.",
+    },
+    ("serverless", "serverless-http", "wifi-http"): {
+        "label": "A3 — Serverless (HTTP)",
+        "color": "#9467bd",
+        "marker": "D",
         "linestyle": ":",
     },
 }
@@ -109,14 +152,14 @@ LEGACY_DEFAULT_STYLE: dict[str, str] = {
 
 
 def normalize_arch(architecture: str, communication_mode: str) -> str:
-    """Devolve o rotulo canonico ("WebSerial"/"WebSocket"/"REST Polling")
-    a partir do par `(architecture, communication_mode)` dos CSVs verticais.
-
-    Para combinacoes desconhecidas retorna `f"{architecture}/{communication_mode}"`,
-    igual ao comportamento de `gera_figuras_tcc.py:normalize_arch`.
-    """
+    """Devolve o rotulo canonico (A1/A2/A3/A4 + WebSerial legado) a partir
+    do par `(architecture, communication_mode)` dos CSVs verticais."""
     arch = (architecture or "").strip().lower()
     mode = (communication_mode or "").strip().lower()
+    if arch == "serverless" or mode == "serverless-http":
+        return ARCH_LABEL_SERVERLESS
+    if arch == "mqtt" or mode == "mqtt":
+        return ARCH_LABEL_MQTT
     if arch == "webserial" or mode == "webserial":
         return ARCH_LABEL_WEBSERIAL
     if mode == "websocket":
@@ -127,11 +170,12 @@ def normalize_arch(architecture: str, communication_mode: str) -> str:
 
 
 def normalize_mode_clients(mode: str) -> str:
-    """Versao usada pela campanha multi-cliente, que so tem a coluna `mode`.
-
-    Espelha `gera_figuras_tcc.py:normalize_mode_clients` byte-a-byte.
-    """
+    """Versao usada pela campanha multi-cliente, que so tem a coluna `mode`."""
     m = (mode or "").strip().lower()
+    if m in ("serverless-http", "serverless"):
+        return ARCH_LABEL_SERVERLESS
+    if m == "mqtt":
+        return ARCH_LABEL_MQTT
     if m == "webserial":
         return ARCH_LABEL_WEBSERIAL
     if m == "websocket":

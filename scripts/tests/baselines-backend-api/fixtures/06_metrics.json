@@ -35,7 +35,9 @@
         "backendArduinoClockOffsetMs": null,
         "backendArduinoClockUncertaintyMs": null,
         "processingLatencyMs": "<NUMERIC>",
-        "rolloverSuspected": false
+        "rolloverSuspected": false,
+        "wifiRssiDbm": null,
+        "wifiReconnects": null
       },
       "messagesPerSecond": "<NUMERIC>",
       "averageMessagesPerSecond": "<NUMERIC>",

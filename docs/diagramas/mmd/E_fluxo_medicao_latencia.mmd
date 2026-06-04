@@ -1,0 +1,22 @@
+%% Diagrama E - Fluxo de medição da latência ponta a ponta
+%% Visão simples: a amostra atravessa ESP32 -> Backend -> Navegador,
+%% e em cada parada o respectivo "tempo" é marcado.
+flowchart LR
+    classDef device fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef server fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef client fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+    classDef pre    fill:#FFF8C4,stroke:#A38A1A,stroke-width:1px,color:#444
+    classDef result fill:#FFD9D9,stroke:#A53A3A,stroke-width:2px,color:#222
+
+    PRE["<i>Antes da medição:</i> cada relógio é sincronizado<br/>ESP32 via <b>SNTP</b> no boot · Navegador via <b>POST /clock/sync</b> (Cristian)"]:::pre
+
+    ESP["<b>ESP32</b><br/>marca <b>t_envio</b>"]:::device
+    BE["<b>Backend</b><br/>marca <b>t_recebido</b>"]:::server
+    BR["<b>Navegador</b><br/>marca <b>t_chegada</b>"]:::client
+
+    OUT["<b>latência ≈ t_chegada − t_envio</b><br/><i>(corrigida pelos offsets dos relógios)</i>"]:::result
+
+    PRE -.- ESP
+    ESP -- "Wi-Fi · POST JSON" --> BE
+    BE -- "WebSocket · REST · MQTT" --> BR
+    BR --> OUT

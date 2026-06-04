@@ -13,8 +13,8 @@
  */
 
 export const ARCH_LABEL_WEBSERIAL = 'WebSerial';
-export const ARCH_LABEL_WEBSOCKET = 'WebSocket';
-export const ARCH_LABEL_REST = 'REST Polling';
+export const ARCH_LABEL_WEBSOCKET = 'A1 — WebSocket';
+export const ARCH_LABEL_REST = 'A2 — REST Polling';
 
 export const ARCH_ORDER = [
   ARCH_LABEL_WEBSERIAL,

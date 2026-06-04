@@ -72,6 +72,31 @@ export class SensorDataService {
       return;
     }
 
+    this.processParsedPayload(sensorPayload, startedAt);
+  }
+
+  // Ingestao via HTTP (ESP32 + Wi-Fi). Recebe um objeto JSON ja parseado
+  // (a validacao de tipos basica fica na rota /ingest/sensor; aqui apenas
+  // garantimos as faixas semanticas).
+  processJsonPayload(rawPayload: Record<string, unknown>): {
+    accepted: boolean;
+    reason?: string;
+  } {
+    const startedAt = performance.now();
+    const sensorPayload = this.normalizeJsonPayload(rawPayload);
+
+    if (!sensorPayload) {
+      const rawText = JSON.stringify(rawPayload);
+      this.metricsService.recordInvalidMessage();
+      this.experimentService?.recordInvalidMessage(rawText);
+      return { accepted: false, reason: "invalid_payload" };
+    }
+
+    this.processParsedPayload(sensorPayload, startedAt);
+    return { accepted: true };
+  }
+
+  private processParsedPayload(sensorPayload: SensorPayload, startedAt: number): void {
     const backendReceiveMs = performance.now();
     const clockSync = this.clockSyncProvider?.() ?? null;
     const arduinoOffset =
@@ -135,13 +160,72 @@ export class SensorDataService {
         clockSync?.arduinoHostUncertaintyMs ??
         null,
       processingLatencyMs,
-      rolloverSuspected: sendUsRollover
+      rolloverSuspected: sendUsRollover,
+      deviceId: sensorPayload.deviceId,
+      wifiRssiDbm: sensorPayload.wifiRssiDbm ?? null,
+      wifiReconnects: sensorPayload.wifiReconnects ?? null
     };
 
     this.latestMessage = message;
     this.metricsService.recordValidMessage(message);
     this.experimentService?.recordValidMessage(message);
     this.notifyListeners(message);
+  }
+
+  // Aceita o payload JSON do ESP32:
+  //   { deviceId, seq, send_us, hr, ax, ay, az, wifi_rssi_dbm?, wifi_reconnects? }
+  // Aplica as mesmas validacoes de faixa do parseCsvPayload.
+  private normalizeJsonPayload(raw: Record<string, unknown>): SensorPayload | null {
+    if (!raw || typeof raw !== "object") {
+      return null;
+    }
+
+    const id = Number((raw as { seq?: unknown }).seq);
+    const sendUs = Number((raw as { send_us?: unknown }).send_us ?? (raw as { sendUs?: unknown }).sendUs);
+    const heartRate = Number((raw as { hr?: unknown }).hr);
+    const x = Number((raw as { ax?: unknown }).ax);
+    const y = Number((raw as { ay?: unknown }).ay);
+    const z = Number((raw as { az?: unknown }).az);
+    const deviceIdRaw = (raw as { deviceId?: unknown }).deviceId;
+    const deviceId =
+      typeof deviceIdRaw === "string" && deviceIdRaw.trim().length > 0
+        ? deviceIdRaw.trim()
+        : undefined;
+    const rssiRaw = Number((raw as { wifi_rssi_dbm?: unknown }).wifi_rssi_dbm);
+    const reconnectsRaw = Number(
+      (raw as { wifi_reconnects?: unknown }).wifi_reconnects
+    );
+
+    const hasRequiredNumbers =
+      this.isPositiveInteger(id) &&
+      this.isNonNegativeNumber(sendUs) &&
+      this.isNumberInRange(heartRate, 40, 220) &&
+      this.isNumberInRange(x, -16, 16) &&
+      this.isNumberInRange(y, -16, 16) &&
+      this.isNumberInRange(z, -16, 16);
+
+    if (!hasRequiredNumbers) {
+      return null;
+    }
+
+    const magnitude = Number(Math.sqrt(x ** 2 + y ** 2 + z ** 2).toFixed(4));
+    const sendUnit = detectSendUnit(sendUs, null);
+
+    return {
+      id,
+      sendUs,
+      timestamp: sendUnit === "us" ? sendUs / 1000 : sendUs,
+      heartRate,
+      acceleration: {
+        x,
+        y,
+        z,
+        magnitude
+      },
+      deviceId,
+      wifiRssiDbm: Number.isFinite(rssiRaw) ? rssiRaw : null,
+      wifiReconnects: Number.isFinite(reconnectsRaw) ? reconnectsRaw : null
+    };
   }
 
   private notifyListeners(message: ProcessedSensorMessage): void {

@@ -71,7 +71,7 @@ async function waitForExit(child, timeoutMs = 10_000) {
 }
 
 export async function startBackend({
-  source = "serial",
+  source = "wifi-http",
   serialPort = process.env.SERIAL_PORT ?? "COM3",
   port = 3000,
   readyTimeoutMs = 45_000
@@ -120,35 +120,55 @@ export async function startBackend({
   return { child, label: "backend", port };
 }
 
-export async function startWebserial({ port = 8765, readyTimeoutMs = 20_000 } = {}) {
-  const cwd = resolve(rootDir, "prototypes", "webserial");
+export async function startServerless({ port = 3001, readyTimeoutMs = 60_000 } = {}) {
+  const cwd = resolve(rootDir, "arquitetura-serverless");
 
-  console.log(`[orchestrator] Iniciando webserial em :${port}.`);
+  console.log(`[orchestrator] Iniciando serverless (vercel dev) em :${port}.`);
 
-  const child = spawn("npm", ["start"], {
+  const child = spawn("npm", ["run", "dev"], {
     cwd,
     shell: true,
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env },
     stdio: ["ignore", "pipe", "pipe"],
     detached: process.platform !== "win32"
   });
 
-  child.stdout.on("data", (chunk) => prefixOutput("webserial", process.stdout, chunk));
-  child.stderr.on("data", (chunk) => prefixOutput("webserial", process.stderr, chunk));
+  child.stdout.on("data", (chunk) => prefixOutput("serverless", process.stdout, chunk));
+  child.stderr.on("data", (chunk) => prefixOutput("serverless", process.stderr, chunk));
 
   const ready = await probeReady({
-    url: `http://localhost:${port}/`,
-    timeoutMs: readyTimeoutMs
+    url: `http://localhost:${port}/api/health`,
+    timeoutMs: readyTimeoutMs,
+    predicate: (payload) => payload?.status === "ok"
   });
 
   if (!ready) {
     killProcessTree(child);
-    throw new Error(`Webserial nao ficou pronto em ${readyTimeoutMs} ms.`);
+    throw new Error(`Serverless (vercel dev) nao ficou pronto em ${readyTimeoutMs} ms.`);
   }
 
-  console.log(`[orchestrator] Webserial pronto em http://localhost:${port}/`);
+  console.log(`[orchestrator] Serverless pronto em http://localhost:${port}/api/`);
 
-  return { child, label: "webserial", port };
+  return { child, label: "serverless", port };
+}
+
+// Conexao a um serverless ja deployado (ex.: https://meu-projeto.vercel.app).
+// Nao sobe processo local; apenas valida health antes de iniciar a campanha.
+export async function attachServerless({ baseUrl, readyTimeoutMs = 30_000 } = {}) {
+  if (!baseUrl) throw new Error("attachServerless: baseUrl obrigatorio.");
+  const url = baseUrl.replace(/\/$/, "");
+  console.log(`[orchestrator] Conectando ao serverless remoto em ${url}.`);
+
+  const ready = await probeReady({
+    url: `${url}/api/health`,
+    timeoutMs: readyTimeoutMs,
+    predicate: (payload) => payload?.status === "ok"
+  });
+  if (!ready) {
+    throw new Error(`Serverless remoto ${url} nao respondeu /api/health em ${readyTimeoutMs} ms.`);
+  }
+  console.log(`[orchestrator] Serverless remoto pronto.`);
+  return { child: null, label: "serverless-remote", baseUrl: url };
 }
 
 export async function stop(handle) {

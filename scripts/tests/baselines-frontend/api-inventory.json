@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-01T18:16:13.615Z",
+  "generatedAt": "2026-06-04T22:55:51.987Z",
   "files": {
-    "prototypes/webserial/js/clockSync.js": [
+    "prototypes/_legacy_webserial/js/clockSync.js": [
       "CLOCK_SYNC_ATTEMPTS",
       "LATENCY_METHOD_FALLBACK",
       "LATENCY_METHOD_SYNC",
@@ -18,27 +18,27 @@
       "sleep",
       "synchronizeArduinoClock"
     ],
-    "prototypes/webserial/js/clockSyncMath.js": [],
-    "prototypes/webserial/js/csv.js": [],
-    "prototypes/webserial/js/dom.js": [
+    "prototypes/_legacy_webserial/js/clockSyncMath.js": [],
+    "prototypes/_legacy_webserial/js/csv.js": [],
+    "prototypes/_legacy_webserial/js/dom.js": [
       "appendLog",
       "downloadText",
       "els",
       "formatSerialSource",
       "setStatus"
     ],
-    "prototypes/webserial/js/experiment/exporter.js": [
+    "prototypes/_legacy_webserial/js/experiment/exporter.js": [
       "collectExperimentEnvironment",
       "exportExperiment"
     ],
-    "prototypes/webserial/js/experiment/lifecycle.js": [
+    "prototypes/_legacy_webserial/js/experiment/lifecycle.js": [
       "startCampaign",
       "startExperiment",
       "startSingleExperiment",
       "stopExperiment",
       "stopExperimentTimer"
     ],
-    "prototypes/webserial/js/experiment/metrics-builder.js": [
+    "prototypes/_legacy_webserial/js/experiment/metrics-builder.js": [
       "createCampaignSummaryCsv",
       "createExperimentRunsHeader",
       "createMetricsCsv",
@@ -48,14 +48,14 @@
       "getLatencyType",
       "storeCompletedRun"
     ],
-    "prototypes/webserial/js/experiment/observation-recorder.js": [
+    "prototypes/_legacy_webserial/js/experiment/observation-recorder.js": [
       "recordExperimentInvalid",
       "recordExperimentSample"
     ],
-    "prototypes/webserial/js/experiment/summary-builder.js": [
+    "prototypes/_legacy_webserial/js/experiment/summary-builder.js": [
       "createSummary"
     ],
-    "prototypes/webserial/js/experiment/ui-helpers.js": [
+    "prototypes/_legacy_webserial/js/experiment/ui-helpers.js": [
       "formatDuration",
       "readCampaignConfig",
       "readReplicationNumber",
@@ -64,7 +64,7 @@
       "stopExperimentTimers",
       "updateRunningExperimentUi"
     ],
-    "prototypes/webserial/js/experiment.js": [
+    "prototypes/_legacy_webserial/js/experiment.js": [
       "exportExperiment",
       "recordExperimentInvalid",
       "recordExperimentSample",
@@ -73,7 +73,7 @@
       "stopExperiment",
       "stopExperimentTimer"
     ],
-    "prototypes/webserial/js/metrics.js": [
+    "prototypes/_legacy_webserial/js/metrics.js": [
       "applyDisplayUpdate",
       "applySystemMetrics",
       "ensureDisplayTicker",
@@ -86,14 +86,14 @@
       "stopDisplayTicker",
       "tail"
     ],
-    "prototypes/webserial/js/parser.js": [
+    "prototypes/_legacy_webserial/js/parser.js": [
       "consumeSyncReply",
       "handleParsedLine",
       "parseAndConsumeLines",
       "parseCsvPayload"
     ],
-    "prototypes/webserial/js/scientific.js": [],
-    "prototypes/webserial/js/serial.js": [
+    "prototypes/_legacy_webserial/js/scientific.js": [],
+    "prototypes/_legacy_webserial/js/serial.js": [
       "assertSerialControlLines",
       "connectSerial",
       "disconnectSerial",
@@ -102,14 +102,14 @@
       "sendSerialIntervalCommand",
       "writeSerialCommand"
     ],
-    "prototypes/webserial/js/simulator.js": [
+    "prototypes/_legacy_webserial/js/simulator.js": [
       "cleanupSimulator",
       "setSimulatorInterval",
       "simTick",
       "startSimulator",
       "stopSimulator"
     ],
-    "prototypes/webserial/js/state.js": [
+    "prototypes/_legacy_webserial/js/state.js": [
       "DISPLAY_TICK_MS",
       "MAX_DISPLAY_STATS_SAMPLES",
       "MAX_SAMPLES",
@@ -119,6 +119,7 @@
       "simulatorState"
     ],
     "arquitetura-arduino-node-api/backend/public/js/api.js": [
+      "get",
       "refreshMetricsOnly",
       "refreshSnapshots"
     ],
@@ -200,6 +201,17 @@
     "arquitetura-arduino-node-api/backend/public/js/scientific.js": [],
     "arquitetura-arduino-node-api/backend/public/js/state.js": [
       "state"
+    ],
+    "arquitetura-arduino-node-api/backend/public/js/target.js": [
+      "ALL_TARGETS",
+      "getActiveTarget",
+      "getBaseUrl",
+      "getTargetProfile",
+      "getWebsocketUrl",
+      "readQueryParam",
+      "resolveUrl",
+      "setActiveTarget",
+      "setBaseUrl"
     ]
   }
 }

@@ -93,7 +93,7 @@ test("config: normalizeConfig aplica defaults e enums", () => {
   const result = configMod.normalizeConfig({});
   assert.deepEqual(result, {
     architecture: "backend-node",
-    source: "simulator",
+    source: "wifi-http",
     communicationMode: "websocket",
     sendIntervalMs: 100,
     durationSeconds: 60,

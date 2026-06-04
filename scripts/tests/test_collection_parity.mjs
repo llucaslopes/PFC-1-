@@ -24,7 +24,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,9 +37,13 @@ function loadJson(p) {
   return JSON.parse(readFileSync(p, 'utf8'));
 }
 
+// Normaliza CRLF -> LF antes de hashear. Sem isso, baselines gerados no
+// Windows (working tree pode estar com CRLF herdado) nao batem com o
+// checkout do CI Linux (sempre LF via .gitattributes eol=lf).
 function sha256(p) {
+  const text = readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
   const hash = createHash('sha256');
-  hash.update(readFileSync(p));
+  hash.update(text, 'utf8');
   return hash.digest('hex');
 }
 

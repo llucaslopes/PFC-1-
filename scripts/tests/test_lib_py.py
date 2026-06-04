@@ -64,12 +64,27 @@ class ScenariosTests(unittest.TestCase):
         self.assertEqual(normalize_arch("anything", "webserial"), "WebSerial")
 
     def test_normalize_arch_backend(self) -> None:
-        from lib_py.scenarios import normalize_arch
+        from lib_py.scenarios import (
+            ARCH_LABEL_REST,
+            ARCH_LABEL_WEBSOCKET,
+            normalize_arch,
+        )
 
-        self.assertEqual(normalize_arch("backend-node", "websocket"), "WebSocket")
-        self.assertEqual(normalize_arch("backend-node", "rest-polling"), "REST Polling")
-        self.assertEqual(normalize_arch("backend-node", "rest_polling"), "REST Polling")
-        self.assertEqual(normalize_arch("backend-node", "rest"), "REST Polling")
+        self.assertEqual(normalize_arch("backend-node", "websocket"), ARCH_LABEL_WEBSOCKET)
+        self.assertEqual(normalize_arch("backend-node", "rest-polling"), ARCH_LABEL_REST)
+        self.assertEqual(normalize_arch("backend-node", "rest_polling"), ARCH_LABEL_REST)
+        self.assertEqual(normalize_arch("backend-node", "rest"), ARCH_LABEL_REST)
+
+    def test_normalize_arch_serverless_and_mqtt(self) -> None:
+        from lib_py.scenarios import (
+            ARCH_LABEL_MQTT,
+            ARCH_LABEL_SERVERLESS,
+            normalize_arch,
+        )
+
+        self.assertEqual(normalize_arch("serverless", "serverless-http"), ARCH_LABEL_SERVERLESS)
+        self.assertEqual(normalize_arch("serverless", "anything"), ARCH_LABEL_SERVERLESS)
+        self.assertEqual(normalize_arch("mqtt", "mqtt"), ARCH_LABEL_MQTT)
 
     def test_normalize_arch_unknown_pair(self) -> None:
         from lib_py.scenarios import normalize_arch
@@ -77,27 +92,48 @@ class ScenariosTests(unittest.TestCase):
         self.assertEqual(normalize_arch("foo", "bar"), "foo/bar")
 
     def test_normalize_mode_clients(self) -> None:
-        from lib_py.scenarios import normalize_mode_clients
+        from lib_py.scenarios import (
+            ARCH_LABEL_REST,
+            ARCH_LABEL_SERVERLESS,
+            ARCH_LABEL_WEBSERIAL,
+            ARCH_LABEL_WEBSOCKET,
+            normalize_mode_clients,
+        )
 
-        self.assertEqual(normalize_mode_clients("webserial"), "WebSerial")
-        self.assertEqual(normalize_mode_clients("websocket"), "WebSocket")
-        self.assertEqual(normalize_mode_clients("rest-polling"), "REST Polling")
+        self.assertEqual(normalize_mode_clients("webserial"), ARCH_LABEL_WEBSERIAL)
+        self.assertEqual(normalize_mode_clients("websocket"), ARCH_LABEL_WEBSOCKET)
+        self.assertEqual(normalize_mode_clients("rest-polling"), ARCH_LABEL_REST)
+        self.assertEqual(normalize_mode_clients("serverless-http"), ARCH_LABEL_SERVERLESS)
         self.assertEqual(normalize_mode_clients("custom-thing"), "custom-thing")
 
     def test_canonical_palette_order(self) -> None:
         from lib_py.scenarios import (
+            ARCH_LABEL_MQTT,
+            ARCH_LABEL_REST,
+            ARCH_LABEL_SERVERLESS,
+            ARCH_LABEL_WEBSERIAL,
+            ARCH_LABEL_WEBSOCKET,
             ARCH_ORDER,
             CANONICAL_ARCH_COLORS,
             CANONICAL_ARCH_LINESTYLES,
             CANONICAL_ARCH_MARKERS,
         )
 
-        self.assertEqual(ARCH_ORDER, ["WebSerial", "WebSocket", "REST Polling"])
-        self.assertEqual(CANONICAL_ARCH_COLORS["WebSerial"], "#1f77b4")
-        self.assertEqual(CANONICAL_ARCH_COLORS["WebSocket"], "#2ca02c")
-        self.assertEqual(CANONICAL_ARCH_COLORS["REST Polling"], "#d62728")
-        self.assertEqual(CANONICAL_ARCH_MARKERS["WebSerial"], "o")
-        self.assertEqual(CANONICAL_ARCH_LINESTYLES["WebSocket"], "--")
+        self.assertEqual(
+            ARCH_ORDER,
+            [
+                ARCH_LABEL_WEBSOCKET,
+                ARCH_LABEL_REST,
+                ARCH_LABEL_SERVERLESS,
+                ARCH_LABEL_MQTT,
+                ARCH_LABEL_WEBSERIAL,
+            ],
+        )
+        self.assertEqual(CANONICAL_ARCH_COLORS[ARCH_LABEL_WEBSOCKET], "#2ca02c")
+        self.assertEqual(CANONICAL_ARCH_COLORS[ARCH_LABEL_REST], "#d62728")
+        self.assertEqual(CANONICAL_ARCH_COLORS[ARCH_LABEL_SERVERLESS], "#9467bd")
+        self.assertEqual(CANONICAL_ARCH_MARKERS[ARCH_LABEL_WEBSOCKET], "s")
+        self.assertEqual(CANONICAL_ARCH_LINESTYLES[ARCH_LABEL_WEBSOCKET], "--")
 
     def test_legacy_style_3key_known_and_unknown(self) -> None:
         from lib_py.scenarios import LEGACY_DEFAULT_STYLE, style_for_legacy_3key
@@ -287,6 +323,11 @@ class ResultsIoTests(unittest.TestCase):
         import tempfile
 
         from lib_py.results_io import VERTICAL_CAMPAIGN_DIR, load_vertical_df
+        from lib_py.scenarios import (
+            ARCH_LABEL_REST,
+            ARCH_LABEL_WEBSERIAL,
+            ARCH_LABEL_WEBSOCKET,
+        )
 
         with tempfile.TemporaryDirectory() as tmp_str:
             tmp = Path(tmp_str)
@@ -296,7 +337,10 @@ class ResultsIoTests(unittest.TestCase):
             df = load_vertical_df(tmp)
             self.assertEqual(len(df), 12)
             self.assertIn("arch_label", df.columns)
-            self.assertEqual(set(df["arch_label"].unique()), {"WebSerial", "WebSocket", "REST Polling"})
+            self.assertEqual(
+                set(df["arch_label"].unique()),
+                {ARCH_LABEL_WEBSERIAL, ARCH_LABEL_WEBSOCKET, ARCH_LABEL_REST},
+            )
             self.assertEqual(df["interval_ms"].dtype.kind, "i")
 
     def test_load_horizontal_df_via_fixture(self) -> None:
@@ -304,6 +348,11 @@ class ResultsIoTests(unittest.TestCase):
         import tempfile
 
         from lib_py.results_io import HORIZONTAL_CAMPAIGN_DIR_CORRECTED, load_horizontal_df
+        from lib_py.scenarios import (
+            ARCH_LABEL_REST,
+            ARCH_LABEL_WEBSERIAL,
+            ARCH_LABEL_WEBSOCKET,
+        )
 
         with tempfile.TemporaryDirectory() as tmp_str:
             tmp = Path(tmp_str)
@@ -314,7 +363,11 @@ class ResultsIoTests(unittest.TestCase):
             self.assertEqual(len(df), 10)
             self.assertIn("arch_label", df.columns)
             self.assertEqual(df["client_count"].dtype.kind, "i")
-            self.assertTrue(set(df["arch_label"].unique()).issubset({"WebSerial", "WebSocket", "REST Polling"}))
+            self.assertTrue(
+                set(df["arch_label"].unique()).issubset(
+                    {ARCH_LABEL_WEBSERIAL, ARCH_LABEL_WEBSOCKET, ARCH_LABEL_REST}
+                )
+            )
 
 
 @unittest.skipUnless(_lib_py_available(), "lib_py ainda nao foi criado (Sub-fase 1.1)")
@@ -350,6 +403,7 @@ class AggregationsTests(unittest.TestCase):
 
     def test_aggregate_vertical_df_has_expected_groups(self) -> None:
         from lib_py.aggregations import aggregate_vertical_df
+        from lib_py.scenarios import ARCH_LABEL_WEBSOCKET
 
         agg = aggregate_vertical_df(self.vertical_df)
         self.assertEqual(len(agg), 12, "12 = 3 archs x 4 intervalos, com 1 rep cada")
@@ -360,7 +414,9 @@ class AggregationsTests(unittest.TestCase):
             "n_reps",
         ):
             self.assertIn(column, agg.columns)
-        websocket_100 = agg[(agg["arch_label"] == "WebSocket") & (agg["interval_ms"] == 100)].iloc[0]
+        websocket_100 = agg[
+            (agg["arch_label"] == ARCH_LABEL_WEBSOCKET) & (agg["interval_ms"] == 100)
+        ].iloc[0]
         self.assertEqual(websocket_100["throughput_percent_mean"], 100.0)
         self.assertEqual(websocket_100["latency_avg_ms_mean"], 4.119)
 
@@ -373,16 +429,15 @@ class AggregationsTests(unittest.TestCase):
         self.assertIn("throughput_aggregate_type", agg.columns)
 
     def test_compute_stress_points_df_returns_arch_order(self) -> None:
-        from lib_py.aggregations import compute_stress_points_df
-
-        from lib_py.aggregations import aggregate_vertical_df
+        from lib_py.aggregations import aggregate_vertical_df, compute_stress_points_df
+        from lib_py.scenarios import ARCH_ORDER
 
         agg = aggregate_vertical_df(self.vertical_df)
         sps = compute_stress_points_df(agg)
         self.assertGreaterEqual(len(sps), 1)
         labels = [sp.arch_label for sp in sps]
         for label in labels:
-            self.assertIn(label, ("WebSerial", "WebSocket", "REST Polling"))
+            self.assertIn(label, ARCH_ORDER)
 
     def test_summarize_stress_points_returns_dataframe(self) -> None:
         from lib_py.aggregations import aggregate_vertical_df, summarize_stress_points

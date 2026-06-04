@@ -1,6 +1,6 @@
-// Tipos relacionados ao payload de sensor (Arduino -> backend -> clientes)
-// e ao estado da fonte serial/simulador. Separado de experiment/clock para
-// reduzir acoplamento entre dominios.
+// Tipos relacionados ao payload de sensor (ESP32/Wi-Fi -> backend ->
+// clientes) e ao estado da fonte de ingestao. Separado de
+// experiment/clock para reduzir acoplamento entre dominios.
 
 export interface AccelerationPayload {
   x: number;
@@ -15,6 +15,9 @@ export interface SensorPayload {
   timestamp: number;
   heartRate: number;
   acceleration: AccelerationPayload;
+  deviceId?: string;
+  wifiRssiDbm?: number | null;
+  wifiReconnects?: number | null;
 }
 
 export interface ProcessedSensorMessage {
@@ -26,16 +29,23 @@ export interface ProcessedSensorMessage {
   backendArduinoClockOffsetMs: number | null;
   backendArduinoClockUncertaintyMs: number | null;
   processingLatencyMs: number;
-  // Marcado quando o backend detecta que o sendUs caiu abaixo do anterior
-  // (rollover do micros() do Arduino a cada ~71,58 min). Latencia desta
-  // amostra fica indefinida e nao deve ser usada nas estatisticas.
   rolloverSuspected?: boolean;
+  deviceId?: string;
+  wifiRssiDbm?: number | null;
+  wifiReconnects?: number | null;
+  httpStatus?: number;
 }
 
+// Estado da fonte de dados. Mantemos o nome historico SerialStatus para nao
+// quebrar baselines/tests, mas o `source` agora cobre tambem as fontes Wi-Fi.
 export interface SerialStatus {
-  source: "serial" | "simulator";
+  source: "wifi-http" | "serial" | "simulator";
   configuredPort: string | null;
   baudRate: number;
   connected: boolean;
   lastError: string | null;
+  // Diagnostico opcional para fontes HTTP (Wi-Fi).
+  lastDeviceId?: string | null;
+  lastReceiveAt?: string | null;
+  totalIngested?: number;
 }

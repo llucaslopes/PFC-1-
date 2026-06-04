@@ -1,0 +1,20 @@
+%% Diagrama F - Cenário multi-cliente (vários navegadores no mesmo backend)
+%% Mede como o backend se comporta com 1, 2, 5, 10 e 20 clientes simultâneos.
+flowchart TB
+    classDef device fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef server fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef client fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+
+    ESP["<b>ESP32</b><br/>1 dispositivo · Wi-Fi"]:::device
+    BE["<b>Backend único</b><br/>REST · WebSocket · MQTT<br/><i>(serve N clientes ao mesmo tempo)</i>"]:::server
+
+    C1["Cliente 1"]:::client
+    C2["Cliente 2"]:::client
+    CD["..."]:::client
+    CN["Cliente N&nbsp;&nbsp;<i>(N = 1, 2, 5, 10, 20)</i>"]:::client
+
+    ESP --> BE
+    BE --> C1
+    BE --> C2
+    BE --> CD
+    BE --> CN

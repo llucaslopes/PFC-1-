@@ -1,10 +1,10 @@
 import http from "node:http";
 import path from "node:path";
 import cors from "cors";
-import express from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { config } from "./config";
+import { HttpIntake } from "./http/httpIntake";
 import { createRoutes } from "./http/routes";
-import { SerialReader } from "./serial/serialReader";
 import { SensorSimulator } from "./serial/sensorSimulator";
 import { ExperimentService } from "./services/experimentService";
 import { MetricsService } from "./services/metricsService";
@@ -22,24 +22,42 @@ const sensorDataService = new SensorDataService(
   () => experimentService.getCurrentClockSync()
 );
 const websocketServer = new SensorWebSocketServer(httpServer);
-const useSimulator =
-  config.sensorSource === "simulator" || (config.sensorSource === "auto" && !config.serialPort);
+
+// Em A1/A2 (Wi-Fi), a fonte default eh HttpIntake. O simulador interno
+// continua disponivel APENAS como sanity-check sem hardware (nao vale como
+// dado oficial do TCC). A fonte "serial" foi removida do caminho default
+// e seu codigo ficou em src/_legacy_serial/ apenas para reproduzir
+// campanhas anteriores.
+const useSimulator = config.sensorSource === "simulator";
 
 const sensorInput = useSimulator
   ? new SensorSimulator({
       intervalMs: config.simulatorIntervalMs,
       onLine: (line) => sensorDataService.processSerialLine(line)
     })
-  : new SerialReader({
-      portPath: config.serialPort,
-      baudRate: config.serialBaudRate,
-      onLine: (line) => sensorDataService.processSerialLine(line)
-    });
+  : new HttpIntake();
 
 const publicPath = path.join(process.cwd(), "public");
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
+
+// Hardening minimo: se API_KEY estiver configurada, exige no header
+// `X-Api-Key` para endpoints de ingestao. Demais endpoints (dashboard,
+// health, metrics) ficam abertos para nao quebrar o frontend.
+if (config.apiKey) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === "POST" && req.path.startsWith("/ingest")) {
+      const provided = req.header("x-api-key");
+      if (provided !== config.apiKey) {
+        res.status(401).json({ accepted: false, reason: "unauthorized" });
+        return;
+      }
+    }
+    next();
+  });
+}
+
 app.use(express.static(publicPath));
 app.use(
   createRoutes({
@@ -55,44 +73,28 @@ sensorDataService.onMessage((message) => {
   websocketServer.broadcastSensorMessage(message);
 });
 
-// Ressincronizacao de relogio automatica quando o backend detecta rollover
-// do micros() do Arduino (~71,58 min). Estrategia conservadora:
-//   - chamamos synchronizeClock para realinhar offset Arduino<->backend;
-//   - notificamos clientes via WebSocket (campo opcional do payload);
-//   - se o sketch nao for sincronizavel, pelo menos logamos para que a
-//     execucao em andamento possa ser tratada como contaminada na analise.
-sensorDataService.onRolloverDetected(async (event) => {
-  console.warn(
-    `[serial] [rollover] seq=${event.seq} prev=${event.previousSendUs}us cur=${event.currentSendUs}us. ` +
-      `Disparando ressincronizacao de relogio.`
-  );
-  if (typeof (sensorInput as { synchronizeClock?: unknown }).synchronizeClock === "function") {
-    try {
-      const reader = sensorInput as unknown as {
-        synchronizeClock: (attempts?: number) => Promise<unknown>;
-      };
-      await reader.synchronizeClock(5);
-      console.log("[serial] [rollover] ressincronizacao concluida.");
-    } catch (error) {
-      console.error(
-        `[serial] [rollover] ressincronizacao falhou: ${(error as Error).message}. ` +
-          `Execucao em andamento deve ser sinalizada como contaminada.`
-      );
-    }
-  } else {
-    console.warn(
-      "[serial] [rollover] fonte atual (simulador?) nao expoe synchronizeClock; " +
-        "execucao em andamento deve ser sinalizada como contaminada."
-    );
-  }
-});
-
 httpServer.listen(config.port, () => {
   console.log(`[http] Backend iniciado em http://localhost:${config.port}`);
   console.log("[http] Dashboard: GET /");
   console.log(
-    "[http] Endpoints: GET /health, GET /data/latest, GET /metrics, POST /experiments/start, POST /experiments/stop, POST /experiments/reset, POST /experiments/observations, GET /experiments/current, GET /experiments/export"
+    "[http] Endpoints: POST /ingest/sensor, GET /config, GET /health, " +
+      "GET /data/latest, GET /metrics, POST /clock/sync, POST /experiments/{start,stop,reset,observations}, " +
+      "GET /experiments/{current,export}"
   );
   console.log(`[ws] WebSocket disponivel em ws://localhost:${config.port}`);
+  if (useSimulator) {
+    console.log(
+      "[backend] Fonte: SIMULATOR (sanity-check sem hardware). ESP32/Wi-Fi nao sera consumido."
+    );
+  } else {
+    console.log(
+      "[backend] Fonte: WIFI-HTTP (aguardando POST /ingest/sensor do ESP32)."
+    );
+    if (!config.apiKey) {
+      console.log(
+        "[backend] AVISO: API_KEY nao configurada. /ingest/sensor aceita qualquer cliente."
+      );
+    }
+  }
   sensorInput.start();
 });

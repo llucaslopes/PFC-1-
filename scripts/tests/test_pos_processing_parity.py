@@ -108,6 +108,27 @@ class BaselineConsistencyTests(unittest.TestCase):
                 f"Baseline ainda nao foi criado. Rode: python scripts/tests/snapshot_baselines.py"
             )
         cls.manifest = load_manifest(MANIFEST_PATH)
+        # Os tracked_roots originais (`resultados/figuras_tcc`,
+        # `resultados/graficos-artigo`) podem ter sido removidos do
+        # working tree por uma limpeza intencional de campanhas
+        # exploratorias (ver commit e991008). Se NENHUM dos roots
+        # mencionados no manifest existe mais, o baseline esta obsoleto
+        # e o teste precisa skipar com mensagem clara em vez de falhar
+        # com 80+ "actual file is missing". O baseline em si fica
+        # preservado caso o usuario decida re-tracker as pastas
+        # depois (e regenerar via snapshot_baselines.py --update).
+        tracked_roots = cls.manifest.get("tracked_roots", [])
+        if tracked_roots:
+            missing_roots = [r for r in tracked_roots
+                             if not (ROOT_DIR / r).exists()]
+            if len(missing_roots) == len(tracked_roots):
+                raise unittest.SkipTest(
+                    "Baseline esta obsoleto: nenhum dos diretorios "
+                    f"{tracked_roots} existe no working tree. "
+                    "Regenere via `python scripts/tests/snapshot_baselines.py "
+                    "--update` ou apague `scripts/tests/baselines/` se o "
+                    "pacote ja nao for parte do escopo."
+                )
 
     def test_all_tracked_files_match_baseline(self) -> None:
         diffs = _compare_against_manifest(ROOT_DIR, self.manifest)

@@ -1,0 +1,17 @@
+%% Diagrama B - Arquitetura WebSocket (interno A1)
+%% O backend "empurra" cada amostra para todos os navegadores conectados.
+flowchart LR
+    classDef device  fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef server  fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+
+    ESP["<b>ESP32</b><br/>sensor (HR, ax/ay/az)"]:::device
+    BE["<b>Backend Node</b><br/>WebSocket Server"]:::server
+    C1["Navegador 1"]:::client
+    C2["Navegador 2"]:::client
+    CN["Navegador N"]:::client
+
+    ESP -- "Wi-Fi · POST JSON" --> BE
+    BE == "broadcast WebSocket" ==> C1
+    BE == "broadcast WebSocket" ==> C2
+    BE == "broadcast WebSocket" ==> CN

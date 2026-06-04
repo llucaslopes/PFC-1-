@@ -26,14 +26,18 @@
  */
 
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync,
+import { execFileSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, readdirSync,
          writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, join, relative, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
-const RESULTS_DIR = join(REPO_ROOT, 'resultados');
+// Inclui `_legacy_resultados/` para preservar cobertura de categorias historicas
+// (scalability-summary, multiclient-aggregate, per-client, resources) ainda
+// citadas pelos contratos de schema testados em test_collection_parity.mjs.
+const SCAN_DIRS = ['resultados', '_legacy_resultados'];
 const BASELINE_DIR = join(__dirname, 'baselines-mjs');
 const SAMPLES_DIR = join(BASELINE_DIR, 'samples');
 
@@ -69,10 +73,52 @@ function categorize(filePath) {
   return null;
 }
 
+// Lista arquivos rastreados pelo git (caminhos POSIX, com `/`), usada
+// pra restringir o `manifest.json` a arquivos que tambem chegam ao
+// checkout do CI. Sem isso, artefato bruto de campanha gerado local
+// (`*_sensor-data.csv` etc., todos cobertos pelo .gitignore) entra no
+// baseline e vira MISSING em test_collection_parity.mjs no Linux.
+function loadTrackedFiles() {
+  try {
+    const out = execFileSync('git',
+      ['-C', REPO_ROOT, 'ls-files', '-z'],
+      { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 });
+    const tracked = new Set();
+    let start = 0;
+    for (let i = 0; i < out.length; i++) {
+      if (out[i] === 0) {
+        if (i > start) tracked.add(out.slice(start, i).toString('utf8'));
+        start = i + 1;
+      }
+    }
+    if (start < out.length) tracked.add(out.slice(start).toString('utf8'));
+    return tracked;
+  } catch (err) {
+    console.warn(`[baseline-mjs] aviso: nao foi possivel listar ` +
+                 `git-tracked files (${err.message}); manifest pode incluir ` +
+                 `arquivos gitignored.`);
+    return null;
+  }
+}
+
+// Le o arquivo normalizando CRLF -> LF. Os baselines sao gerados no Windows
+// (working tree pode ter CRLF herdado de commits antigos) mas o CI roda em
+// Linux (checkout via .gitattributes eol=lf -> sempre LF). Sem normalizar,
+// o SHA256 diverge entre as duas plataformas mesmo que o conteudo logico
+// seja identico.
+function readNormalized(filePath) {
+  const text = readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+  return Buffer.from(text, 'utf8');
+}
+
 function sha256(filePath) {
   const hash = createHash('sha256');
-  hash.update(readFileSync(filePath));
+  hash.update(readNormalized(filePath));
   return hash.digest('hex');
+}
+
+function normalizedSize(filePath) {
+  return readNormalized(filePath).length;
 }
 
 function csvHeader(filePath) {
@@ -111,27 +157,38 @@ function main() {
   }
 
   const byCategory = Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, []]));
-  for (const file of walk(RESULTS_DIR)) {
-    const kind = categorize(file);
-    if (!kind) continue;
-    byCategory[kind].push(file);
+  for (const sub of SCAN_DIRS) {
+    const root = join(REPO_ROOT, sub);
+    if (!existsSync(root)) continue;
+    for (const file of walk(root)) {
+      const kind = categorize(file);
+      if (!kind) continue;
+      byCategory[kind].push(file);
+    }
   }
 
-  // Manifest com SHA256 de todos os arquivos.
+  // Manifest com SHA256 de todos os arquivos -- filtrado por arquivos
+  // rastreados pelo git (vide loadTrackedFiles).
+  const tracked = loadTrackedFiles();
   const manifest = { generatedAt: new Date().toISOString(), files: {} };
   const counts = {};
+  const countsTracked = {};
   for (const [kind, files] of Object.entries(byCategory)) {
     counts[kind] = files.length;
+    countsTracked[kind] = 0;
     for (const file of files) {
       const rel = relative(REPO_ROOT, file).replace(/\\/g, '/');
+      if (tracked && !tracked.has(rel)) continue;
+      countsTracked[kind] += 1;
       manifest.files[rel] = {
         kind,
-        size: statSync(file).size,
+        size: normalizedSize(file),
         sha256: sha256(file),
       };
     }
   }
   manifest.counts = counts;
+  manifest.countsTracked = countsTracked;
 
   // Schema snapshot: 1 representante por categoria.
   const schema = { generatedAt: new Date().toISOString(), categories: {} };
@@ -205,9 +262,12 @@ function main() {
   writeFileSync(join(BASELINE_DIR, 'schema-snapshot.json'),
     JSON.stringify(schema, null, 2) + '\n', 'utf8');
 
-  console.log('[baseline-mjs] arquivos por categoria:');
-  for (const [k, n] of Object.entries(counts)) console.log(`  ${k.padEnd(25)} ${n}`);
-  console.log(`[baseline-mjs] manifest gerado: ${Object.keys(manifest.files).length} arquivos`);
+  console.log('[baseline-mjs] arquivos por categoria (scan / rastreados pelo git):');
+  for (const [k, n] of Object.entries(counts)) {
+    const t = countsTracked[k] ?? 0;
+    console.log(`  ${k.padEnd(25)} ${String(n).padStart(4)} / ${String(t).padStart(4)}`);
+  }
+  console.log(`[baseline-mjs] manifest gerado: ${Object.keys(manifest.files).length} arquivos rastreados`);
   console.log(`[baseline-mjs] schema gerado: ${Object.keys(schema.categories).length} categorias`);
 }
 

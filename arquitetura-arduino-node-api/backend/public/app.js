@@ -10,8 +10,32 @@ import {
   stopExperiment
 } from "./js/experiments.js";
 import { state } from "./js/state.js";
+import {
+  getActiveTarget,
+  getTargetProfile,
+  setActiveTarget
+} from "./js/target.js";
+
+function syncCommunicationModeToTarget() {
+  const profile = getTargetProfile();
+  if (elements.communicationMode && profile.communicationMode) {
+    elements.communicationMode.value = profile.communicationMode;
+  }
+}
+
+const targetSelector = document.getElementById("targetSelector");
+if (targetSelector) {
+  targetSelector.value = getActiveTarget();
+  targetSelector.addEventListener("change", () => {
+    setActiveTarget(targetSelector.value);
+    syncCommunicationModeToTarget();
+    configureCommunicationMode();
+    refreshSnapshots();
+  });
+}
 
 drawChart();
+syncCommunicationModeToTarget();
 refreshSnapshots();
 configureCommunicationMode();
 state.metricsTimer = window.setInterval(refreshMetricsOnly, 3000);

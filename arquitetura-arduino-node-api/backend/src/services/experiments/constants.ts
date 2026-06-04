@@ -21,7 +21,7 @@ export interface ExperimentRuntimeState {
 
 export const DEFAULT_EXPERIMENT: ExperimentConfig = {
   architecture: "backend-node",
-  source: "simulator",
+  source: "wifi-http",
   communicationMode: "websocket",
   sendIntervalMs: 100,
   durationSeconds: 60,

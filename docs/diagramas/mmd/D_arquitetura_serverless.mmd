@@ -1,0 +1,17 @@
+%% Diagrama D - Arquitetura Serverless (interno A3) - subseção complementar
+%% Sem servidor próprio: cada requisição "acorda" uma função na Vercel.
+flowchart LR
+    classDef device  fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2px,color:#222
+    classDef cloud   fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef storage fill:#E5E5E5,stroke:#666,stroke-width:2px,color:#222
+    classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+
+    ESP["<b>ESP32</b><br/>sensor"]:::device
+    FN["<b>Vercel Function</b><br/>POST /api/ingest<br/>GET /api/data/latest"]:::cloud
+    KV[("<b>Vercel KV</b><br/>guarda as últimas<br/>N amostras")]:::storage
+    NA["<b>Navegador</b><br/>(dashboard)"]:::client
+
+    ESP -- "Wi-Fi → Internet · POST" --> FN
+    FN <-- "grava / lê" --> KV
+    NA == "GET periódico" ==> FN
+    FN -. "responde JSON" .-> NA

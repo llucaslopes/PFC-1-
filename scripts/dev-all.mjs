@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 const npmCommand = 'npm';
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+// Sobe os servidores de desenvolvimento das arquiteturas A1/A2 (backend
+// Node) e A3 (serverless via `vercel dev`). A4 (MQTT) e tratado em
+// `arquitetura-mqtt/` separadamente, apenas quando habilitado.
 const apps = [
   {
     name: 'backend',
@@ -12,9 +15,9 @@ const apps = [
     args: ['run', 'dev'],
   },
   {
-    name: 'webserial',
-    cwd: 'prototypes/webserial',
-    args: ['start'],
+    name: 'serverless',
+    cwd: 'arquitetura-serverless',
+    args: ['run', 'dev'],
   },
 ];
 

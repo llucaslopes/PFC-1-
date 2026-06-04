@@ -1,0 +1,54 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
+  "functions": {
+    "api/ingest.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "api/data/latest.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "api/metrics.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "api/clock/sync.ts": {
+      "memory": 128,
+      "maxDuration": 5
+    },
+    "api/experiments/start.ts": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/experiments/stop.ts": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/experiments/current.ts": {
+      "memory": 256,
+      "maxDuration": 5
+    },
+    "api/experiments/export.ts": {
+      "memory": 512,
+      "maxDuration": 10
+    },
+    "api/experiments/observations.ts": {
+      "memory": 256,
+      "maxDuration": 10
+    },
+    "api/experiments/reset.ts": {
+      "memory": 128,
+      "maxDuration": 5
+    },
+    "api/health.ts": {
+      "memory": 128,
+      "maxDuration": 5
+    },
+    "api/config.ts": {
+      "memory": 128,
+      "maxDuration": 5
+    }
+  }
+}

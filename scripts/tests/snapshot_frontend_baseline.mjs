@@ -34,25 +34,36 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 const BASELINE_DIR = join(__dirname, 'baselines-frontend');
 
 const FRONTEND_DIRS = [
-  'prototypes/webserial/js',
+  'prototypes/_legacy_webserial/js',
   'arquitetura-arduino-node-api/backend/public/js',
 ];
 
-// Pares conhecidos com mesma intencao mas implementacao divergente
-// (alvos das sub-fases 3.1 e 3.2).
 const KNOWN_DUPLICATE_PAIRS = [
-  ['prototypes/webserial/js/clockSyncMath.js',
+  ['prototypes/_legacy_webserial/js/clockSyncMath.js',
    'arquitetura-arduino-node-api/backend/public/js/clockSyncMath.js'],
-  ['prototypes/webserial/js/scientific.js',
+  ['prototypes/_legacy_webserial/js/scientific.js',
    'arquitetura-arduino-node-api/backend/public/js/scientific.js'],
-  ['prototypes/webserial/js/clockSync.js',
+  ['prototypes/_legacy_webserial/js/clockSync.js',
    'arquitetura-arduino-node-api/backend/public/js/clockSync.js'],
 ];
 
+// Le o arquivo normalizando CRLF -> LF. O baseline e gerado no Windows
+// (working tree pode estar com CRLF herdado) e o CI roda em Linux
+// (checkout via .gitattributes eol=lf -> sempre LF). Sem normalizar, o
+// SHA256 e o size divergem entre as duas plataformas.
+function readNormalized(filePath) {
+  const text = readFileSync(filePath, 'utf8').replace(/\r\n/g, '\n');
+  return Buffer.from(text, 'utf8');
+}
+
 function sha256(filePath) {
   const hash = createHash('sha256');
-  hash.update(readFileSync(filePath));
+  hash.update(readNormalized(filePath));
   return hash.digest('hex');
+}
+
+function normalizedSize(filePath) {
+  return readNormalized(filePath).length;
 }
 
 function inventoryExports(filePath) {
@@ -165,7 +176,7 @@ function main() {
       if (!name.endsWith('.js')) continue;
       const rel = relative(REPO_ROOT, full).replace(/\\/g, '/');
       manifest.files[rel] = {
-        size: st.size,
+        size: normalizedSize(full),
         sha256: sha256(full),
       };
       inventory.files[rel] = inventoryExports(full);
