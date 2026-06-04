@@ -1,0 +1,19 @@
+{
+  "name": "tcc-mqtt-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bridge MQTT -> WebSocket/REST que reutiliza o backend A1/A2 (arquitetura A4).",
+  "main": "index.mjs",
+  "scripts": {
+    "dev": "node index.mjs",
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "aedes": "^0.51.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.3",
+    "mqtt": "^5.7.0",
+    "ws": "^8.16.0"
+  }
+}

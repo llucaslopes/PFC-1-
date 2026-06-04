@@ -1,0 +1,27 @@
+# Broker MQTT local (Eclipse Mosquitto 2.x) para a arquitetura A4.
+#
+# Uso:
+#   cd arquitetura-mqtt
+#   docker compose up -d            # sobe o broker em :1883 (TCP) e :9001 (WS)
+#   docker compose logs -f          # acompanha
+#   docker compose down             # derruba
+#
+# A `mosquitto.conf` desabilita auth de proposito (analise de seguranca
+# eh qualitativa neste TCC); vide arquitetura-mqtt/broker.md para a
+# justificativa e alternativa com password_file + TLS.
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: pfc-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"   # MQTT puro (ESP32, bridge, simulator)
+      - "9001:9001"   # MQTT sobre WebSocket (frontend, debug via mqtt.js no navegador)
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:

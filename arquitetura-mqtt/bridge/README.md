@@ -1,64 +1,71 @@
-# Bridge MQTT → WebSocket (placeholder)
+# Bridge MQTT -> WebSocket/REST (arquitetura A4)
 
-> **Status:** placeholder. A implementação efetiva acontece em uma
-> iteração separada do TCC (vide [../README.md](../README.md)).
+Implementacao da bridge que liga o broker MQTT ao mesmo dashboard,
+metricas e contrato de mensagens do backend A1/A2.
 
-## Esboço da implementação
+## Por que existe
 
-```ts
-import mqtt from "mqtt";
-import { SensorDataService } from "../../arquitetura-arduino-node-api/backend/src/services/sensorDataService";
-import { SensorWebSocketServer } from "../../arquitetura-arduino-node-api/backend/src/ws/sensorWebSocketServer";
+A4 publica via MQTT, mas o frontend e os runners de campanha sao os
+mesmos de A1 (consomem WebSocket + REST). A bridge faz o "tradutor":
 
-const url = process.env.MQTT_URL ?? "mqtt://localhost:1883";
-const topic = process.env.MQTT_TOPIC ?? "clube/+/sensor";
+1. Assina `clube/+/sensor` no broker.
+2. Para cada mensagem, processa via `SensorDataService.processJsonPayload`
+   reutilizando o `dist/` do backend.
+3. Faz broadcast via `SensorWebSocketServer` na porta da bridge (default
+   `:4002`).
+4. Expoe os mesmos endpoints REST do backend (`/health`, `/metrics`,
+   `/data/latest`, `/experiments/*`).
 
-const sensorService = new SensorDataService(/* ... */);
-const wss = new SensorWebSocketServer({ port: Number(process.env.BRIDGE_PORT ?? 4002) });
+Isso garante comparacao justa A1 vs A4: mesmo pipeline de processamento,
+mesmo schema de CSV/JSON; a unica diferenca eh o canal de entrega.
 
-const client = mqtt.connect(url);
-client.on("connect", () => client.subscribe(topic, { qos: Number(process.env.MQTT_QOS ?? 0) }));
-client.on("message", (_topic, payload) => {
-  try {
-    const json = JSON.parse(payload.toString("utf-8"));
-    sensorService.processJsonPayload(json);
-  } catch (err) {
-    console.error("[mqtt-bridge] payload inválido:", err);
-  }
-});
+## Como rodar manualmente
 
-sensorService.onProcessedMessage((msg) => wss.broadcast(msg));
+Pre-requisitos:
+
+- Backend compilado: `npm run build` em
+  `arquitetura-arduino-node-api/backend/`.
+- Bridge instalada: `npm install` aqui.
+- Broker MQTT em `:1883` (opcoes abaixo).
+
+```powershell
+# Opcao A -- Mosquitto via Docker (recomendado para campanha oficial)
+cd ../  # arquitetura-mqtt
+docker compose up -d
+cd bridge
+npm start
+
+# Opcao B -- broker embarcado (aedes) na propria bridge (dev/CI sem Docker)
+$env:MQTT_EMBEDDED_BROKER='true'; npm start
 ```
 
-A bridge reaproveita `SensorDataService.processJsonPayload` — o mesmo
-ponto de entrada usado pelo `POST /ingest/sensor` em A1/A2 — então **o
-dashboard, as métricas e o contrato de mensagens são idênticos**, o
-que mantém a comparação justa entre A1 (HTTP push direto) e A4 (publish
-via broker).
+Variaveis de ambiente suportadas:
 
-## Por que isso ainda não está pronto
+| Variavel                  | Default                  | Descricao |
+|---------------------------|--------------------------|-----------|
+| `BRIDGE_PORT`             | `4002`                   | porta HTTP/WS da bridge |
+| `MQTT_URL`                | `mqtt://localhost:1883`  | URL do broker MQTT |
+| `MQTT_TOPIC`              | `clube/+/sensor`         | topico assinado |
+| `MQTT_QOS`                | `0`                      | QoS da subscricao |
+| `MQTT_USERNAME`           | (vazio)                  | usuario MQTT (opcional) |
+| `MQTT_PASSWORD`           | (vazio)                  | senha MQTT (opcional) |
+| `MQTT_EMBEDDED_BROKER`    | `false`                  | se `true`, sobe broker aedes no mesmo processo (dev/CI) |
+| `MQTT_EMBEDDED_BROKER_PORT` | `1883`                 | porta do broker embarcado |
 
-A1, A2 e A3 já cobrem os três cenários operacionais do clube descritos
-no [README raiz](../../README.md):
+## Usando dentro da campanha automatizada
 
-- A1 → cenário "tempo real durante o jogo".
-- A2 → cenário "dashboard pós-treino".
-- A3 → cenário "telemetria massiva multi-jogador / multi-clube".
+O `scripts/run-experiments.mjs` ja sabe orquestrar A4:
 
-A4 é uma alternativa para o cenário 3 quando o requisito é **ingestão
-intra-LAN** (CT do clube, sem internet pública). Ela enriquece a
-comparação, mas não é obrigatória para responder à pergunta de pesquisa.
+```powershell
+node scripts/run-experiments.mjs --scenarios a4 --reps 1 --duration 4 --intervals 200
+```
 
-## Quando ativar
+O orquestrador tenta primeiro `docker compose up -d mosquitto`. Se o
+Docker nao estiver disponivel ou o engine Linux nao estiver rodando,
+cai automaticamente para o broker embarcado na bridge (passando
+`MQTT_EMBEDDED_BROKER=true`). Para a campanha oficial, **mantenha o
+Mosquitto rodando** -- o broker embarcado eh uma muleta para dev/CI.
 
-Quando houver tempo de hardware/ambiente para:
-
-1. Recompilar o sketch ESP32 com `PubSubClient`.
-2. Subir Mosquitto local em Docker.
-3. Implementar este `bridge/index.ts`.
-4. Adicionar o runner em `scripts/lib/mqtt-runner.mjs`.
-5. Estender `scripts/run-experiments.mjs` para reconhecer `--scenarios a4`.
-
-Cada um desses passos é local a esta pasta + um único ponto de
-extensão fora dela (`run-experiments.mjs`), o que mantém a A4
-isolável conforme o plano.
+Quando combinada com `--source simulator-http`, o `scripts/esp32-simulator.mjs`
+eh spawnado em modo `--architecture a4` (publica no broker em vez de
+HTTP), validando o pipeline completo MQTT antes do ESP32 chegar.
