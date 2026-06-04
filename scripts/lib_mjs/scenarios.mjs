@@ -12,9 +12,14 @@
  * `lib_py.scenarios.normalize_arch`. Teste em `tests/test_lib_mjs.test.mjs`.
  */
 
+// Identificadores A1/A2 sao internos da metodologia (mapeam para as 4
+// arquiteturas da campanha) e ainda aparecem como nomes de variavel / CLI,
+// mas o VALOR exposto -- usado como rotulo em qualquer figura/tabela
+// destinada ao artigo do PFC -- foi simplificado para apenas o nome do
+// padrao de comunicacao, espelhando `lib_py/scenarios.py`.
 export const ARCH_LABEL_WEBSERIAL = 'WebSerial';
-export const ARCH_LABEL_WEBSOCKET = 'A1 — WebSocket';
-export const ARCH_LABEL_REST = 'A2 — REST Polling';
+export const ARCH_LABEL_WEBSOCKET = 'WebSocket';
+export const ARCH_LABEL_REST = 'REST Polling';
 
 export const ARCH_ORDER = [
   ARCH_LABEL_WEBSERIAL,

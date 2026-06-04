@@ -52,9 +52,14 @@ import matplotlib.pyplot as plt
 # Estilo visual canonico do artigo
 # ---------------------------------------------------------------------------
 
-ARCH_WEBSOCKET = "A1 \u2014 WebSocket"
-ARCH_REST = "A2 \u2014 REST polling"
-ARCH_MQTT = "A4 \u2014 MQTT"
+# Rotulos visiveis nas tabelas/PNGs do artigo. Os codigos internos A1/A2/A4
+# ainda existem como identificadores no codigo (constantes ARCH_WEBSOCKET,
+# ARCH_REST, ARCH_MQTT) e em comentarios/CLI, mas foram removidos do texto
+# que vai para o entregavel do PFC -- o artigo final usa apenas os nomes
+# canonicos dos padroes de comunicacao.
+ARCH_WEBSOCKET = "WebSocket"
+ARCH_REST = "REST polling"
+ARCH_MQTT = "MQTT"
 
 ARCH_ORDER = [ARCH_WEBSOCKET, ARCH_REST, ARCH_MQTT]
 
@@ -310,8 +315,8 @@ def _render_table_png(df: pd.DataFrame, *,
     - Cabecalho com fundo escuro e texto branco
     - Linhas alternadas (zebra) para leitura mais facil
     - Quando `arch_column` for informado, a coluna da arquitetura recebe
-      uma faixa colorida (A1=azul, A2=vermelho, A4=verde) para o leitor
-      reconhecer cada bloco rapidamente
+      uma faixa colorida (WebSocket=azul, REST polling=vermelho, MQTT=verde)
+      para o leitor reconhecer cada bloco rapidamente
     - Titulo em negrito acima e caption em italico abaixo
     - Larguras de coluna dimensionadas pelo conteudo (max(header, celulas))
       para evitar tanto truncamento quanto whitespace excessivo

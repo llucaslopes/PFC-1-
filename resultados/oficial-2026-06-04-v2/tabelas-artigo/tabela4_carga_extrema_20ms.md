@@ -4,6 +4,6 @@ Comportamento das três arquiteturas sob o intervalo mais agressivo da matriz (2
 
 | Arquitetura | Mensagens esperadas (3000/rep) | Mensagens entregues (média) | Throughput (%) | Perdas (%) | Latência média (ms) | Latência P95 (ms) |
 |---|---|---|---|---|---|---|
-| A1 — WebSocket | 3000 | 665 | 22.16 ± 0.73 | 77.84 ± 0.73 | 33.33 ± 4.54 | 105.70 ± 14.94 |
-| A2 — REST polling | 3000 | 660 | 22.00 ± 0.70 | 78.00 ± 0.70 | 57.72 ± 3.61 | 125.89 ± 9.99 |
-| A4 — MQTT | 3000 | 2934 | 97.81 ± 0.10 | 2.19 ± 0.10 | 14.98 ± 1.91 | 69.78 ± 3.88 |
+| WebSocket | 3000 | 665 | 22.16 ± 0.73 | 77.84 ± 0.73 | 33.33 ± 4.54 | 105.70 ± 14.94 |
+| REST polling | 3000 | 660 | 22.00 ± 0.70 | 78.00 ± 0.70 | 57.72 ± 3.61 | 125.89 ± 9.99 |
+| MQTT | 3000 | 2934 | 97.81 ± 0.10 | 2.19 ± 0.10 | 14.98 ± 1.91 | 69.78 ± 3.88 |

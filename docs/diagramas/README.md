@@ -8,13 +8,19 @@ relance — poucos nós, poucas cores e rótulos curtos.
 
 | ID | Tema | Substitui (legado) |
 | --- | --- | --- |
-| `A` | Arquitetura **REST polling** (interno A2) | `C_arquitetura_rest_polling` |
-| `B` | Arquitetura **WebSocket** (interno A1) | `B_arquitetura_websocket` |
-| `C` | Arquitetura **MQTT / Pub-Sub** (interno A4) | *(novo)* |
-| `D` | Arquitetura **Serverless** (interno A3, complementar) | *(novo)* |
+| `A` | Arquitetura **REST polling** | `C_arquitetura_rest_polling` |
+| `B` | Arquitetura **WebSocket** | `B_arquitetura_websocket` |
+| `C` | Arquitetura **MQTT / Pub-Sub** | *(novo)* |
+| `D` | Arquitetura **Serverless** (complementar) | *(novo)* |
 | `E` | **Fluxo de medição da latência** ponta a ponta (SNTP + Cristian) | `D_fluxo_medicao_latencia` |
 | `F` | **Cenário multi-cliente** (1, 2, 5, 10, 20 navegadores) | `E_cenario_multi_cliente` |
 | `G` | **Ambiente experimental** completo | `F_ambiente_experimental` |
+
+> Os identificadores internos `A1` (WebSocket), `A2` (REST polling),
+> `A3` (Serverless) e `A4` (MQTT) ainda aparecem nos scripts da campanha
+> (variáveis Python, argumentos CLI `--scenarios a1,a2,a3,a4`,
+> comentários `%% ... (interno Ax)` nos `.mmd`) — eles **não** aparecem
+> no artigo final nem nas figuras/tabelas geradas.
 
 > Os diagramas antigos (Arduino Uno + USB Serial + WebSerial) ficaram preservados
 > em `_legacy_resultados/figuras_tcc/diagramas/` apenas como histórico.

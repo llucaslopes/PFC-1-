@@ -44,15 +44,15 @@ barras de erro indicam o desvio-padrao. Linha tracejada horizontal em
 95% marca o limite de saude adotado.
 
 **Texto de referencia.** A Figura 01 sintetiza o comportamento das
-arquiteturas A1, A2 e A3 sob carga crescente, evidenciando em qual
-intervalo cada uma deixa de entregar 95% das mensagens.
+arquiteturas WebSocket, REST polling e Serverless sob carga crescente,
+evidenciando em qual intervalo cada uma deixa de entregar 95% das mensagens.
 
-**Explicacao tecnica.** Em A1 (WebSocket) o limitante e a taxa que o
-backend Node consegue assinar e propagar via broadcast. Em A2 (REST
-polling) o cliente consulta `/data/latest` a cada 1 ms; o limite vem
-da janela de polling vs frequencia do ESP32. Em A3 (Serverless) cada
-amostra dispara uma invocacao Vercel; o limite eh dominado pelo throughput
-de invocacoes simultaneas e pela latencia da regiao Vercel selecionada.
+**Explicacao tecnica.** Em WebSocket o limitante e a taxa que o
+backend Node consegue assinar e propagar via broadcast. Em REST polling
+o cliente consulta `/data/latest` a cada 1 ms; o limite vem da janela
+de polling vs frequencia do ESP32. Em Serverless cada amostra dispara
+uma invocacao Vercel; o limite eh dominado pelo throughput de invocacoes
+simultaneas e pela latencia da regiao Vercel selecionada.
 
 ---
 
@@ -67,11 +67,11 @@ saude.
 ponto de vista oposto: a curva de perdas cresce a partir do mesmo ponto
 em que o throughput deixa de saturar.
 
-**Explicacao tecnica.** Em A3, perdas tipicamente vem de `429 Too Many
-Requests` (Vercel throttling) ou timeouts; o `http_status_distribution`
-no JSON de saida discrimina cada caso. Em A1/A2, perdas vem
-predominantemente do ESP32 nao conseguir manter a cadencia HTTP em
-intervalos < 50 ms.
+**Explicacao tecnica.** Em Serverless, perdas tipicamente vem de
+`429 Too Many Requests` (Vercel throttling) ou timeouts; o
+`http_status_distribution` no JSON de saida discrimina cada caso. Em
+WebSocket e REST polling, perdas vem predominantemente do ESP32 nao
+conseguir manter a cadencia HTTP em intervalos < 50 ms.
 
 ---
 
@@ -80,10 +80,10 @@ intervalos < 50 ms.
 **Legenda academica.** Latencia end-to-end media (ms) por execucao,
 estimada por sincronizacao SNTP no ESP32 + Cristian/NTP no servidor.
 
-**Texto de referencia.** A Figura 03 mostra que A1 (WebSocket) entrega
-a menor latencia media em intervalos saudaveis; A2 (REST polling)
-adiciona meio-ciclo de polling; A3 (Serverless) acrescenta o tempo
-de chegada na regiao Vercel + roundtrip do KV.
+**Texto de referencia.** A Figura 03 mostra que WebSocket entrega a
+menor latencia media em intervalos saudaveis; REST polling adiciona
+meio-ciclo de polling; Serverless acrescenta o tempo de chegada na
+regiao Vercel + roundtrip do KV.
 
 **Explicacao tecnica.** Latencia por amostra eh
 `t_recv_navegador - (send_us / 1000) - offset_navegador<->servidor`.
@@ -102,20 +102,20 @@ mostrando o pior 5% das amostras.
 o comportamento de cauda: quando a arquitetura entra em estresse, o P95
 cresce mais rapido que a media, indicando burstiness da fila.
 
-**Explicacao tecnica.** Em A3, picos de P95 normalmente coincidem com
-cold starts -- a campanha auxiliar de cold start (Tabela 6) isola
-esses casos. Em A1, picos maiores correspondem ao backend serializando
-broadcasts com clientes lentos.
+**Explicacao tecnica.** Em Serverless, picos de P95 normalmente
+coincidem com cold starts -- a campanha auxiliar de cold start
+(Tabela 6) isola esses casos. Em WebSocket, picos maiores correspondem
+ao backend serializando broadcasts com clientes lentos.
 
 ---
 
 ## PARTE 2 -- Escalabilidade horizontal (multi-cliente)
 
-> Producao constante a {ims} ms (regime saudavel para A1 e A2);
+> Producao constante a {ims} ms (regime saudavel para WebSocket e REST polling);
 > N \u2208 {{1, 2, 5, 10, 20}}; 3 repeticoes por configuracao;
-> ESP32 fixo no mesmo `BACKEND_URL` durante toda a campanha. A3
+> ESP32 fixo no mesmo `BACKEND_URL` durante toda a campanha. Serverless
 > nao tem servidor proprio e escala implicitamente do lado da
-> plataforma; figuras horizontais cobrem A1 e A2.
+> plataforma; figuras horizontais cobrem WebSocket e REST polling.
 
 ### Figura 05 -- Throughput agregado por numero de clientes
 
@@ -123,10 +123,10 @@ broadcasts com clientes lentos.
 respostas HTTP por segundo, somado entre os N clientes) em funcao do
 numero de clientes simultaneos. Producao do ESP32 fixa em {ims} ms.
 
-**Texto de referencia.** A Figura 05 mostra que A1 (WebSocket) cresce
+**Texto de referencia.** A Figura 05 mostra que WebSocket cresce
 linearmente em N (cada cliente recebe a mesma amostra por broadcast),
-enquanto A2 (REST polling) cresce de forma controlada pela frequencia
-de polling do cliente.
+enquanto REST polling cresce de forma controlada pela frequencia de
+polling do cliente.
 
 ---
 
@@ -137,7 +137,7 @@ individualmente, em mensagens por segundo, em funcao de N. Producao
 a {ims} ms.
 
 **Texto de referencia.** A Figura 06 mostra como cada cliente percebe
-o servico em A1 e A2.
+o servico em WebSocket e REST polling.
 
 ---
 
@@ -145,12 +145,12 @@ o servico em A1 e A2.
 
 **Legenda academica.** Percentual de uso medio de CPU do processo Node
 durante a execucao, amostrado a 500 ms via `process.cpuUsage()` e
-endpoint `/health/process`, para A1 e A2 em funcao de N.
+endpoint `/health/process`, para WebSocket e REST polling em funcao de N.
 
 **Texto de referencia.** A Figura 07 estabelece o custo computacional
-de manter N clientes conectados. A3 nao aparece nessa figura porque
-cada invocacao de funcao serverless eh stateless e o "custo" relevante
-nessa arquitetura eh por execucao, nao por cliente conectado.
+de manter N clientes conectados. Serverless nao aparece nessa figura
+porque cada invocacao de funcao serverless eh stateless e o "custo"
+relevante nessa arquitetura eh por execucao, nao por cliente conectado.
 
 ---
 
@@ -175,27 +175,27 @@ execucao, em funcao de N. Producao a {ims} ms.
 
 ---
 
-### Figura 11 -- Cobertura unica do stream em WebSocket (A1)
+### Figura 11 -- Cobertura unica do stream em WebSocket
 
 **Legenda academica.** Cobertura unica entre clientes (% das mensagens
 esperadas pelo produtor que foram entregues a pelo menos um cliente)
-em A1, em funcao de N. 100% indica reconstrucao perfeita do stream
-pela uniao dos clientes.
+em WebSocket, em funcao de N. 100% indica reconstrucao perfeita do
+stream pela uniao dos clientes.
 
 ---
 
-## PARTE 3 -- Cold start (apenas A3)
+## PARTE 3 -- Cold start (apenas Serverless)
 
 ### Figura 12 -- Distribuicao de cold_start_ms por tempo de inatividade
 
 **Legenda academica.** Distribuicao de `cold_start_ms` medido na
-arquitetura A3 (Vercel Functions) em funcao do tempo de inatividade
-desde a ultima invocacao (1 s, 30 s, 60 s, 5 min, 10 min). Cada caixa
-agrega 3 amostras independentes.
+arquitetura Serverless (Vercel Functions) em funcao do tempo de
+inatividade desde a ultima invocacao (1 s, 30 s, 60 s, 5 min, 10 min).
+Cada caixa agrega 3 amostras independentes.
 
 **Texto de referencia.** A Figura 12 caracteriza a variabilidade do
-cold start, importante para decidir se A3 e adequada ao cenario de
-"jogo em tempo real" do clube ou se ela favorece os cenarios de
+cold start, importante para decidir se Serverless e adequada ao cenario
+de "jogo em tempo real" do clube ou se ela favorece os cenarios de
 "telemetria massiva" e "pos-treino" (latencia tolerante).
 
 **Explicacao tecnica.** `cold_start_ms` e medido por `lib/cold-start.ts`
@@ -207,14 +207,14 @@ sao "warm". Esse comportamento eh inerente a plataforma Vercel.
 
 ## PARTE 4 -- Diagramas
 
-### Figura A -- Arquitetura A1 (Backend Node + WebSocket)
+### Figura A -- Arquitetura WebSocket (Backend Node)
 
-**Legenda academica.** Diagrama de blocos da arquitetura A1: ESP32
-envia amostras via Wi-Fi para o backend Node, que faz broadcast para
-todos os clientes conectados via WebSocket.
+**Legenda academica.** Diagrama de blocos da arquitetura WebSocket:
+ESP32 envia amostras via Wi-Fi para o backend Node, que faz broadcast
+para todos os clientes conectados via WebSocket.
 
-**Texto de referencia.** A Figura A descreve a arquitetura A1, foco
-para o cenario "jogo em tempo real" do clube.
+**Texto de referencia.** A Figura A descreve a arquitetura WebSocket,
+foco para o cenario "jogo em tempo real" do clube.
 
 **Explicacao tecnica.** Implementada em `arquitetura-arduino-node-api/backend/`.
 `SensorWebSocketServer.broadcast` itera sobre todos os clientes a cada
@@ -222,14 +222,14 @@ mensagem; o custo computacional cresce com N (Figura 07).
 
 ---
 
-### Figura B -- Arquitetura A2 (Backend Node + REST polling)
+### Figura B -- Arquitetura REST polling (Backend Node)
 
-**Legenda academica.** Diagrama de blocos da arquitetura A2: backend
-mantem apenas a ultima mensagem (`latestMessage`); cada cliente faz
-`GET /data/latest` ativamente em intervalo de 1 ms.
+**Legenda academica.** Diagrama de blocos da arquitetura REST polling:
+backend mantem apenas a ultima mensagem (`latestMessage`); cada cliente
+faz `GET /data/latest` ativamente em intervalo de 1 ms.
 
-**Texto de referencia.** A Figura B mostra a A2, em que o backend nao
-envia ativamente; o cliente puxa.
+**Texto de referencia.** A Figura B mostra a arquitetura REST polling,
+em que o backend nao envia ativamente; o cliente puxa.
 
 **Explicacao tecnica.** Padrao pull, simples de implementar e de servir
 por proxy/CDN. Cenario favorecido: "pos-treino" / dashboard do staff
@@ -237,16 +237,16 @@ tecnico, em que latencia tolerante sobrevive.
 
 ---
 
-### Figura C -- Arquitetura A3 (Serverless / Vercel Functions)
+### Figura C -- Arquitetura Serverless (Vercel Functions)
 
-**Legenda academica.** Diagrama de blocos da arquitetura A3: ESP32
-envia direto para uma funcao serverless via Wi-Fi; a funcao valida,
-persiste em Vercel KV e responde rapido. O frontend consulta as amostras
-via HTTP REST.
+**Legenda academica.** Diagrama de blocos da arquitetura Serverless:
+ESP32 envia direto para uma funcao serverless via Wi-Fi; a funcao
+valida, persiste em Vercel KV e responde rapido. O frontend consulta
+as amostras via HTTP REST.
 
-**Texto de referencia.** A Figura C mostra a arquitetura A3, foco para
-"telemetria massiva" multi-jogador / multi-clube. Cresce horizontalmente
-sem servidor proprio.
+**Texto de referencia.** A Figura C mostra a arquitetura Serverless,
+foco para "telemetria massiva" multi-jogador / multi-clube. Cresce
+horizontalmente sem servidor proprio.
 
 **Explicacao tecnica.** Implementada em `arquitetura-serverless/`.
 `api/ingest.ts` recebe POSTs do ESP32; `lib/storage.ts` usa Vercel KV
@@ -301,8 +301,8 @@ def write_revisao_final(out_dir: Path, *, default_horizontal_interval_ms: int) -
     txt = f"""# Revisao final -- Cobertura, ordem e recomendacoes
 
 Tema do TCC: **Analise de arquiteturas para um sistema de monitoramento
-esportivo de um clube de futebol** (A1, A2, A3 alimentadas por ESP32 +
-Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
+esportivo de um clube de futebol** (WebSocket, REST Polling e Serverless
+alimentadas por ESP32 + Wi-Fi; MQTT opcional, isolada em pasta propria).
 
 ## 1. Comentarios do orientador (lista de checagem)
 
@@ -313,9 +313,9 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
 | Comparar arquiteturas em pontos comparaveis | 01-04 (mesmo X) | Tabela 5 |
 | Custo do backend ao escalar clientes | 07, 08 | Tabela 4 |
 | Justica entre clientes / fairness | 06 | Tabela 3 |
-| Diferenca entre throughput agregado e por cliente em A1 vs A2 | 05, 06, 11 | Tabela 3 |
-| Cold start em serverless (A3) | 12 | Tabela 6 |
-| Custo financeiro estimado (A3) | -- | Tabela 7 |
+| Diferenca entre throughput agregado e por cliente em WebSocket vs REST polling | 05, 06, 11 | Tabela 3 |
+| Cold start em Serverless | 12 | Tabela 6 |
+| Custo financeiro estimado (Serverless) | -- | Tabela 7 |
 | Validar que os dados sao reais (sem invencao) | Todas; CSVs sao a fonte | Todas |
 | Diagrama da arquitetura testada | A, B, C | -- |
 | Como a latencia e medida | D | -- |
@@ -327,9 +327,9 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
 | Ordem | Conteudo |
 |---:|---|
 | 1 | Figura F -- ambiente experimental completo |
-| 2 | Figura A -- A1 (Backend Node + WebSocket) |
-| 3 | Figura B -- A2 (Backend Node + REST polling) |
-| 4 | Figura C -- A3 (Serverless / Vercel) |
+| 2 | Figura A -- WebSocket (Backend Node) |
+| 3 | Figura B -- REST polling (Backend Node) |
+| 4 | Figura C -- Serverless (Vercel) |
 | 5 | Figura D -- fluxo de medicao da latencia |
 | 6 | Figura 01 -- throughput x intervalo |
 | 7 | Figura 02 -- perdas x intervalo |
@@ -339,14 +339,14 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
 | 11 | Figura 05 -- throughput agregado x N |
 | 12 | Figura 07 -- CPU x N |
 | 13 | Figura 09 -- latencia media x N |
-| 14 | Figura 12 -- distribuicao de cold_start_ms (A3) |
+| 14 | Figura 12 -- distribuicao de cold_start_ms (Serverless) |
 
 ## 3. Figuras OPCIONAIS (apendice)
 
 - Figura 06 -- throughput por cliente (complementa 05)
 - Figura 08 -- memoria RSS x N
 - Figura 10 -- P95 do pior cliente x N
-- Figura 11 -- cobertura unica em A1
+- Figura 11 -- cobertura unica em WebSocket
 
 ## 4. Limitacoes que devem ser citadas
 
@@ -364,8 +364,8 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
    e existem apenas para validar o pipeline e ter um baseline
    comparativo. **Nao substituem** a campanha oficial: latencias em
    localhost sao ordens de magnitude menores que ESP32 sobre Wi-Fi, o
-   `wifi_rssi_dbm` eh sintetico, e o broker MQTT da A4 pode estar em
-   modo embarcado (aedes) em vez do Mosquitto oficial. Quando o ESP32
+   `wifi_rssi_dbm` eh sintetico, e o broker da arquitetura MQTT pode
+   estar em modo embarcado (aedes) em vez do Mosquitto oficial. Quando o ESP32
    chegar, basta repetir a campanha com `--source wifi-http` e usar o
    utilitario `scripts/compare-sources.py` para gerar o delta
    simulador-vs-ESP32.
@@ -373,13 +373,14 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
 ## 5. Resumo do pipeline de reproducao
 
 ```powershell
-# (a) Campanha vertical (A1+A2+A3, intervalos 1000..20 ms):
+# (a) Campanha vertical (WebSocket + REST polling + Serverless,
+#     intervalos 1000..20 ms):
 node scripts/run-experiments.mjs --reps 3
 
-# (b) Campanha horizontal (A1+A2, multi-cliente):
+# (b) Campanha horizontal (WebSocket + REST polling, multi-cliente):
 node scripts/run-multiclient-scalability.mjs
 
-# (c) Campanha de cold start (A3):
+# (c) Campanha de cold start (Serverless):
 node scripts/run-experiments.mjs --campaign coldstart --scenarios a3
 
 # (d) Consolidar e gerar figuras:
@@ -416,7 +417,7 @@ def write_readme(out_dir: Path, mermaid_status: dict) -> None:
 
 Pacote completo de figuras, tabelas e diagramas para o TCC, gerado
 exclusivamente a partir dos resultados experimentais reais coletados
-sobre Wi-Fi (A1+A2+A3, com A4 MQTT opcional).
+sobre Wi-Fi (WebSocket, REST polling e Serverless; MQTT opcional).
 
 ## Tema
 
@@ -443,7 +444,7 @@ figuras_tcc/
     tabela3_*.csv | xlsx | md
     tabela4_*.csv | xlsx | md
     tabela5_*.csv | xlsx | md
-    tabela6_*.csv | xlsx | md  (cold start, apenas A3)
+    tabela6_*.csv | xlsx | md  (cold start, apenas Serverless)
   legendas.md                  Legenda academica + texto de referencia + explicacao
   revisao_final.md             Mapeamento ao orientador + ordem + slides
   README.md                    Este arquivo

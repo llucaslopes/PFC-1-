@@ -32,11 +32,17 @@ from __future__ import annotations
 
 from typing import Any
 
+# Os nomes de variavel A1/A2/A3/A4 permanecem como identificadores internos
+# (mapeiam diretamente as 4 arquiteturas da metodologia interna do TCC), mas
+# o VALOR exposto ao leitor -- usado como rotulo em legendas, eixos, captions
+# e tabelas geradas para o artigo do PFC -- nao carrega mais o prefixo
+# "A1 -- "/"A2 -- "/etc. O artigo final referencia cada padrao apenas pelo
+# nome canonico (WebSocket, REST Polling, MQTT, Serverless).
 ARCH_LABEL_WEBSERIAL = "WebSerial"
-ARCH_LABEL_WEBSOCKET = "A1 — WebSocket"
-ARCH_LABEL_REST = "A2 — REST Polling"
-ARCH_LABEL_SERVERLESS = "A3 — Serverless"
-ARCH_LABEL_MQTT = "A4 — MQTT"
+ARCH_LABEL_WEBSOCKET = "WebSocket"
+ARCH_LABEL_REST = "REST Polling"
+ARCH_LABEL_SERVERLESS = "Serverless"
+ARCH_LABEL_MQTT = "MQTT"
 
 ARCH_ORDER: list[str] = [
     ARCH_LABEL_WEBSOCKET,
@@ -96,25 +102,25 @@ LEGACY_SERIES_STYLES_3KEY: dict[tuple[str, str, str], dict[str, str]] = {
     # (transporte pub/sub otimizado). Markers grandes e linestyles
     # distintos para impressão em P&B legível.
     ("backend-node", "rest-polling", "wifi-http"): {
-        "label": "A2 — REST polling (Node)",
+        "label": "REST polling (Node)",
         "color": "#d62728",
         "marker": "o",
         "linestyle": "-",
     },
     ("backend-node", "websocket", "wifi-http"): {
-        "label": "A1 — WebSocket (Node)",
+        "label": "WebSocket (Node)",
         "color": "#1f77b4",
         "marker": "s",
         "linestyle": "--",
     },
     ("mqtt", "websocket", "wifi-http"): {
-        "label": "A4 — MQTT (broker)",
+        "label": "MQTT (broker)",
         "color": "#2ca02c",
         "marker": "^",
         "linestyle": "-.",
     },
     ("serverless", "serverless-http", "wifi-http"): {
-        "label": "A3 — Serverless (HTTP)",
+        "label": "Serverless (HTTP)",
         "color": "#9467bd",
         "marker": "D",
         "linestyle": ":",

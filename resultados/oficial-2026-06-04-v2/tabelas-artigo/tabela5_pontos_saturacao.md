@@ -4,6 +4,6 @@ Critério saudável: throughput ≥ 95% E perdas ≤ 1%. "Menor intervalo saudá
 
 | Arquitetura | Menor intervalo saudável (ms) | Primeiro stress (ms) | Motivos do primeiro stress | Intervalo mais agressivo testado (ms) | Throughput nesse intervalo (%) |
 |---|---|---|---|---|---|
-| A1 — WebSocket | 1000 | 500 | perdas 2.5% > 1% | 20 | 22.16 ± 0.73 |
-| A2 — REST polling | indef. | 1000 | perdas 3.3% > 1% | 20 | 22.00 ± 0.70 |
-| A4 — MQTT | 100 | 50 | perdas 1.6% > 1% | 20 | 97.81 ± 0.10 |
+| WebSocket | 1000 | 500 | perdas 2.5% > 1% | 20 | 22.16 ± 0.73 |
+| REST polling | indef. | 1000 | perdas 3.3% > 1% | 20 | 22.00 ± 0.70 |
+| MQTT | 100 | 50 | perdas 1.6% > 1% | 20 | 97.81 ± 0.10 |
