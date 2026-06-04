@@ -122,10 +122,20 @@ jobs:
             --no-keep-awake
 
       - name: Assert smoke output exists
+        # `test -f <glob>` falha com "binary operator expected" quando o glob
+        # expande para 2+ arquivos (caso aqui: a1 e a2 geram 1 CSV cada).
+        # Usamos arrays bash + nullglob para contar quantos arquivos casaram.
+        shell: bash
         run: |
-          test -f resultados/ci-smoke/*_metrics.csv && \
-          test -f resultados/ci-smoke/*_experiment-summary.json && \
-          echo "Smoke OK"
+          shopt -s nullglob
+          metrics=(resultados/ci-smoke/*_metrics.csv)
+          summaries=(resultados/ci-smoke/*_experiment-summary.json)
+          if [ ${#metrics[@]} -eq 0 ] || [ ${#summaries[@]} -eq 0 ]; then
+            echo "ERRO: saida do smoke ausente (metrics=${#metrics[@]}, summaries=${#summaries[@]})" >&2
+            ls -la resultados/ci-smoke/ || true
+            exit 1
+          fi
+          echo "Smoke OK (metrics=${#metrics[@]}, summaries=${#summaries[@]})"
 
       - name: Upload smoke artifacts
         if: always()
