@@ -2,13 +2,46 @@ import { performance } from "node:perf_hooks";
 import { checkApiKey, type VercelRequest, type VercelResponse } from "../lib/auth.js";
 import { consumeColdStartMs } from "../lib/cold-start.js";
 import {
-  getMetrics,
   pushSample,
   setJson,
   updateMetrics,
+  type MetricsCounters,
   type StoredSample
 } from "../lib/storage.js";
 import { validateSensorPayload } from "../lib/validate.js";
+
+// Numero de mensagens "puladas" entre o ultimo seq registrado para o
+// dispositivo e o seq atual. Funcao pura para deixar a aritmetica
+// testavel sem precisar simular o KV nem o request HTTP.
+export function gapBetween(previousSeq: number | null, currentSeq: number): number {
+  if (previousSeq === null) return 0;
+  if (currentSeq <= previousSeq + 1) return 0;
+  return currentSeq - previousSeq - 1;
+}
+
+// Aplica a atualizacao do contador de metricas para uma amostra aceita.
+// Mantido fora do handler para que o callback de updateMetrics fique
+// uma linha so e o "como atualizar" tenha um nome.
+export function applyAcceptedIngest(
+  metrics: MetricsCounters,
+  payload: { deviceId: string; seq: number },
+  receivedAtMs: number
+): MetricsCounters {
+  const previousSeq = metrics.lastSeqByDevice[payload.deviceId] ?? null;
+  const gap = metrics.sequenceGapMessages + gapBetween(previousSeq, payload.seq);
+  return {
+    ...metrics,
+    totalReceived: metrics.totalReceived + 1,
+    startedAtMs: metrics.startedAtMs ?? receivedAtMs,
+    lastReceivedAtMs: receivedAtMs,
+    lastSeqByDevice: {
+      ...metrics.lastSeqByDevice,
+      [payload.deviceId]: payload.seq
+    },
+    sequenceGapMessages: gap,
+    httpStatus2xx: metrics.httpStatus2xx + 1
+  };
+}
 
 // POST /api/ingest
 //
@@ -51,28 +84,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     coldStartMs
   };
 
+  const receivedAtMs = sample.receivedAtMs;
   await Promise.all([
     pushSample(payload.deviceId, sample),
     setJson(`latest:${payload.deviceId}`, sample),
-    updateMetrics((m) => {
-      const lastSeq = m.lastSeqByDevice[payload.deviceId] ?? null;
-      let gap = m.sequenceGapMessages;
-      if (lastSeq !== null && payload.seq > lastSeq + 1) {
-        gap += payload.seq - lastSeq - 1;
-      }
-      return {
-        ...m,
-        totalReceived: m.totalReceived + 1,
-        startedAtMs: m.startedAtMs ?? Date.now(),
-        lastReceivedAtMs: Date.now(),
-        lastSeqByDevice: {
-          ...m.lastSeqByDevice,
-          [payload.deviceId]: payload.seq
-        },
-        sequenceGapMessages: gap,
-        httpStatus2xx: m.httpStatus2xx + 1
-      };
-    })
+    updateMetrics((m) => applyAcceptedIngest(m, payload, receivedAtMs))
   ]);
 
   if (coldStartMs !== null) {
@@ -85,7 +101,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     serverlessProcessingLatencyMs: sample.serverlessProcessingLatencyMs
   });
 }
-
-// Re-export para evitar warnings de unused import em ambientes de build
-// que eliminam helpers nao referenciados.
-void getMetrics;

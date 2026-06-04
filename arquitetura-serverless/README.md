@@ -1,20 +1,28 @@
-# A3 — Arquitetura Serverless (Vercel Functions + Vercel KV)
+# Arquitetura Serverless (Vercel Functions + Vercel KV) — subseção complementar
 
-A3 do TCC. ESP32 envia amostras direto para uma funcao Vercel via Wi-Fi;
-a funcao valida, persiste em Vercel KV e responde rapido. O frontend
-consulta as amostras via HTTP REST.
+Subseção complementar do TCC, **avaliada isoladamente** (não comparada
+lado a lado com REST polling, WebSocket e MQTT). O ESP32 envia amostras
+direto para uma função Vercel via Wi-Fi; a função valida, persiste em
+Vercel KV e responde rápido. O frontend consulta as amostras via HTTP REST.
 
 ```text
 ESP32 -> POST https://<projeto>.vercel.app/api/ingest -> Vercel KV
-Front -> GET  /api/data/latest                 -> Vercel KV
+Front -> GET  /api/data/latest                       -> Vercel KV
 ```
 
-## Cenario do clube favorecido
+> Por que é complementar e não um padrão de comunicação principal:
+> serverless é um **modelo operacional** (FaaS, pay-per-use, sem servidor
+> próprio) que se sobrepõe a um padrão de comunicação (no caso, REST).
+> Comparar lado a lado com REST/WS/MQTT misturaria duas dimensões
+> diferentes — então o serverless é tratado como exploração paralela,
+> com métricas próprias (cold start, custo estimado).
 
-Telemetria massiva: dezenas/centenas de jogadores em campos diferentes,
-possivelmente varios clubes na mesma plataforma. A funcao serverless
-escala automaticamente, paga-se por invocacao e nao requer manutencao
-de servidor.
+## Cenário do clube favorecido (apenas como ilustração)
+
+Cenário em que o clube **não quer manter servidor próprio**: a função
+serverless escala automaticamente, paga-se por invocação. Útil para
+discutir custo operacional vs latência mínima — não para defender que
+"serverless é melhor que MQTT" (são camadas diferentes).
 
 ## Endpoints
 

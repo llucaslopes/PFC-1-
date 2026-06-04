@@ -32,11 +32,17 @@
     "test:experiments": "node scripts/run-experiments.mjs",
     "experiment:refinement": "node scripts/run-experiments.mjs --campaign refinement",
     "experiment:coldstart": "node scripts/run-experiments.mjs --campaign coldstart --scenarios a3",
+    "experiment:smoke": "node scripts/run-experiments.mjs --source simulator-http --scenarios a1,a2,a4 --reps 1 --duration 15 --intervals 100 --results-dir resultados/smoke-validation --skip-analysis",
+    "experiment:smoke-real": "node scripts/run-experiments.mjs --scenarios a1,a2,a4 --reps 1 --duration 15 --intervals 100 --results-dir resultados/smoke-validation-real --skip-analysis",
+    "experiment:smoke-multi": "node scripts/run-experiments.mjs --scenarios a1,a2,a4 --reps 1 --duration 20 --intervals 1000,100,20 --results-dir resultados/smoke-multi-interval --skip-analysis",
+    "experiment:oficial": "node scripts/run-experiments.mjs --scenarios a1,a2,a4 --reps 3 --duration 60 --intervals 1000,500,200,100,50,20 --results-dir resultados/oficial-2026-06-04-v2 --log-file logs/campanha-oficial-2026-06-04-v2.log",
     "experiment:scalability": "node scripts/run-scalability-campaign.mjs",
     "experiment:multiclient": "node scripts/run-multiclient-scalability.mjs",
+    "esp32-sim": "node scripts/esp32-simulator.mjs",
     "install:all": "npm --prefix arquitetura-arduino-node-api/backend install && npm --prefix arquitetura-serverless install"
   },
   "devDependencies": {
+    "mqtt": "^5.15.1",
     "ws": "^8.21.0"
   }
 }

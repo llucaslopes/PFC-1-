@@ -90,6 +90,35 @@ LEGACY_SERIES_STYLES_3KEY: dict[tuple[str, str, str], dict[str, str]] = {
         "marker": "^",
         "linestyle": ":",
     },
+    # Campanha oficial v2 (ESP32 + Wi-Fi). Cores semânticas para o
+    # artigo: vermelho para REST (custo de polling alto), azul para
+    # WebSocket (canal persistente clássico) e verde para MQTT
+    # (transporte pub/sub otimizado). Markers grandes e linestyles
+    # distintos para impressão em P&B legível.
+    ("backend-node", "rest-polling", "wifi-http"): {
+        "label": "A2 — REST polling (Node)",
+        "color": "#d62728",
+        "marker": "o",
+        "linestyle": "-",
+    },
+    ("backend-node", "websocket", "wifi-http"): {
+        "label": "A1 — WebSocket (Node)",
+        "color": "#1f77b4",
+        "marker": "s",
+        "linestyle": "--",
+    },
+    ("mqtt", "websocket", "wifi-http"): {
+        "label": "A4 — MQTT (broker)",
+        "color": "#2ca02c",
+        "marker": "^",
+        "linestyle": "-.",
+    },
+    ("serverless", "serverless-http", "wifi-http"): {
+        "label": "A3 — Serverless (HTTP)",
+        "color": "#9467bd",
+        "marker": "D",
+        "linestyle": ":",
+    },
 }
 
 # Variante usada por `plot_scalability.py` (2-aria, sem `source`) e com

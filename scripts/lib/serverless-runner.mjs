@@ -1,18 +1,14 @@
-/**
- * Orquestrador da campanha A3 (Serverless / Vercel Functions).
- *
- * Reaproveita as primitivas do backend-runner (clock-sync.mjs,
- * scientific.mjs, runtime-utils.mjs, writers.mjs), apenas trocando os
- * paths para o prefixo `/api/...` e o `mode` para `serverless-http`.
- *
- * Diferencas conceituais:
- *   - Sem WebSocket: o frontend (e o orquestrador) consultam por REST.
- *   - O ESP32 envia direto para a funcao Vercel (`POST /api/ingest`),
- *     sem passar pelo backend Node.
- *   - Cada interval da campanha pode aproveitar warm starts; o orquestrador
- *     pode forcar cold start opcionalmente esperando N segundos antes
- *     de comecar a coleta.
- */
+// Orquestrador da arquitetura A3 (Serverless / Vercel Functions),
+// considerada complementar no estudo. Compartilha primitivas com o
+// backend-runner (clock-sync, writers, observers), trocando o caminho
+// das rotas para o prefixo `/api/...` e adaptando a coleta para HTTP
+// puro (sem WebSocket).
+//
+// O parametro forceColdStartMs permite injetar um sleep antes da
+// observacao para invalidar o warm start do runtime serverless. Sem
+// isso, somente o primeiro intervalo da campanha mediria cold start;
+// os demais estariam viesados para baixo. Em troca, eleva o tempo
+// total da rodada e nao deve ser usado durante a campanha oficial.
 
 import fs from 'node:fs/promises';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -23,6 +19,10 @@ import {
   synchronizeBackendClock,
 } from './clock-sync.mjs';
 import {
+  freshnessFor,
+  waitForFreshSamplesServerless,
+} from './transport-warmup.mjs';
+import {
   addSaturationIndicators,
   collectEnvironment,
   createLatencyCalibrator,
@@ -30,12 +30,6 @@ import {
   numericStats,
 } from './scientific.mjs';
 import { createHeartbeat, isRepComplete } from './runtime-utils.mjs';
-import {
-  postObservation,
-  resetExperiment,
-  startExperiment,
-  stopExperiment,
-} from '../lib_mjs/backend/experiment-client.mjs';
 import {
   buildSummary,
   makeCampaignId,
@@ -45,7 +39,6 @@ import {
 const ARCHITECTURE = 'serverless';
 const COMMUNICATION_MODE = 'serverless-http';
 
-// Constroi cliente HTTP com prefixo /api e header opcional X-Api-Key.
 function makeHttp(baseUrl, apiKey) {
   const root = baseUrl.replace(/\/$/, '');
   const headers = { 'Content-Type': 'application/json' };
@@ -80,6 +73,7 @@ export async function runServerlessCampaign({
   continueOnError = true,
   heartbeatIntervalMs = 10_000,
   forceColdStartMs = 0,
+  intervalLifecycle = null,
 } = {}) {
   await fs.mkdir(resultsDir, { recursive: true });
   const lastIntervalMs = intervalsMs[intervalsMs.length - 1];
@@ -109,7 +103,7 @@ export async function runServerlessCampaign({
       await runSingleRep({
         baseUrl, apiKey, source, rep, reps, durationSeconds, intervalsMs,
         campaignType, resultsDir, heartbeatIntervalMs, continueOnError,
-        forceColdStartMs,
+        forceColdStartMs, intervalLifecycle,
       });
     } catch (error) {
       console.warn(
@@ -123,17 +117,17 @@ export async function runServerlessCampaign({
 async function runSingleRep({
   baseUrl, apiKey, source, rep, reps, durationSeconds, intervalsMs,
   campaignType, resultsDir, heartbeatIntervalMs, continueOnError,
-  forceColdStartMs,
+  forceColdStartMs, intervalLifecycle,
 }) {
   const http = makeHttp(baseUrl, apiKey);
   await resetExperimentServerless(http);
 
   const campaignId = makeCampaignId();
   const completedRuns = [];
-  let lastExperiment = null;
-  let lastClockSync = null;
   const campaignStartedAt = new Date().toISOString();
 
+  // Mesma estrategia do backend-runner: um arquivo por (rep, intervalo).
+  // Ver comentario la para o motivo (perda silenciosa na campanha v1).
   for (const intervalMs of intervalsMs) {
     if (forceColdStartMs > 0) {
       console.log(`[orchestrator]   aguardando ${forceColdStartMs}ms para forcar cold start...`);
@@ -148,10 +142,29 @@ async function runSingleRep({
       const result = await runSingleInterval({
         http, baseUrl, source, rep, reps, intervalMs, durationSeconds,
         intervalsMs, campaignType, campaignId, heartbeatIntervalMs,
+        intervalLifecycle,
       });
       completedRuns.push(result.run);
-      lastExperiment = result.run.experiment;
-      lastClockSync = result.clockSync;
+
+      addSaturationIndicators([result.run.summary]);
+
+      const campaign = {
+        id: campaignId,
+        architecture: ARCHITECTURE,
+        communicationMode: COMMUNICATION_MODE,
+        source,
+        type: campaignType,
+        intervalsMs: [intervalMs],
+        replicationNumber: rep,
+        startedAt: campaignStartedAt,
+        stoppedAt: new Date().toISOString(),
+      };
+
+      await writeCampaignFiles({
+        resultsDir, completedRuns: [result.run], lastExperiment: result.run.experiment,
+        campaign, campaignType,
+        clockSync: result.clockSync, replicationNumber: rep,
+      });
     } catch (error) {
       console.warn(
         `[orchestrator]   intervalo ${intervalMs}ms falhou: ${error.message}.`
@@ -162,36 +175,19 @@ async function runSingleRep({
   }
 
   if (!completedRuns.length) {
-    console.warn(`[orchestrator] rep ${rep} sem intervalos validos; pulando export.`);
+    console.warn(`[orchestrator] rep ${rep} sem intervalos validos.`);
     return;
   }
-
-  addSaturationIndicators(completedRuns.map((run) => run.summary));
-
-  const campaign = {
-    id: campaignId,
-    architecture: ARCHITECTURE,
-    communicationMode: COMMUNICATION_MODE,
-    source,
-    type: campaignType,
-    intervalsMs: [...intervalsMs],
-    replicationNumber: rep,
-    startedAt: campaignStartedAt,
-    stoppedAt: new Date().toISOString(),
-  };
-
-  await writeCampaignFiles({
-    resultsDir, completedRuns, lastExperiment, campaign, campaignType,
-    clockSync: lastClockSync, replicationNumber: rep,
-  });
 }
 
 async function runSingleInterval({
   http, baseUrl, source, rep, reps, intervalMs, durationSeconds,
   intervalsMs, campaignType, campaignId, heartbeatIntervalMs,
+  intervalLifecycle,
 }) {
-  // synchronizeBackendClock chama POST /clock/sync. Como o serverless usa
-  // /api/clock/sync, montamos um baseUrl efetivo com /api ja embutido.
+  // synchronizeBackendClock assume que o endpoint de sync esta em
+  // /clock/sync. Como o runtime serverless serve sob /api, montamos um
+  // baseUrl efetivo com esse prefixo ja embutido.
   const apiBase = `${baseUrl.replace(/\/$/, '')}/api`;
   const frontendBackendSync = await synchronizeBackendClock(apiBase);
 
@@ -205,8 +201,21 @@ async function runSingleInterval({
     campaignType,
   };
 
-  // Configura o intervalo no servidor (ESP32 puxa via /api/config no boot).
+  // Atualiza o intervalo vigente para que o ESP32 (ou simulador) puxe
+  // o novo valor via GET /api/config no proximo poll.
   await http.post('/api/config', { intervalMs });
+
+  // Mesmo motivo do warmup do backend-runner: barreira para nao
+  // contabilizar a janela de transicao dual-active como missingMessages.
+  if (source === 'wifi-http') {
+    await waitForFreshSamplesServerless({
+      baseUrl: apiBase,
+      apiKey: http.headers['x-api-key'] ?? '',
+      freshnessMs: freshnessFor(intervalMs),
+      label: `warmup serverless interval=${intervalMs}ms rep=${rep}`,
+    });
+  }
+
   const startResponse = await http.post('/api/experiments/start', payload);
   const experimentResponse = await startResponse.json();
 
@@ -256,11 +265,33 @@ async function runSingleInterval({
     }),
   });
 
+  let lifecycleHandle = null;
+  if (intervalLifecycle?.beforeObserve) {
+    try {
+      lifecycleHandle = await intervalLifecycle.beforeObserve({
+        intervalMs, durationSeconds, baseUrl, mode: COMMUNICATION_MODE, source,
+      });
+    } catch (err) {
+      console.warn(
+        `[orchestrator]   intervalLifecycle.beforeObserve falhou: ${err.message}. Seguindo sem ele.`
+      );
+    }
+  }
+
   heartbeat.start();
   try {
     await observeServerless({ http, durationMs, intervalMs, state, clockSync: mergedClockSync, latencyCalibrator });
   } finally {
     heartbeat.stop();
+    if (intervalLifecycle?.afterObserve && lifecycleHandle) {
+      try {
+        await intervalLifecycle.afterObserve(lifecycleHandle);
+      } catch (err) {
+        console.warn(
+          `[orchestrator]   intervalLifecycle.afterObserve falhou: ${err.message}. Ignorando.`
+        );
+      }
+    }
   }
 
   await stopExperimentServerless(http);
@@ -301,9 +332,12 @@ async function runSingleInterval({
   };
 }
 
-// Polling do /api/data/latest com deduplicacao por seq, mesma logica do
-// observeRestPolling, mas adaptada ao prefixo /api e sem dependencia de
-// sensorMessage canonico (montamos a partir do StoredSample).
+// Equivalente do observeRestPolling para a A3. Le /api/data/latest e
+// desduplica por seq -- a funcao serverless nao mantem stream, entao
+// nao da para reaproveitar o observador WebSocket. A escolha de poll
+// rapido (1/4 do intervalo de envio) busca registrar cada amostra
+// proximo de quando ela chega, sem martelar a funcao a ponto de gerar
+// invocacoes que nao correspondem a amostras novas.
 async function observeServerless({ http, durationMs, intervalMs, state, clockSync, latencyCalibrator }) {
   const pollIntervalMs = Math.max(5, Math.min(50, Math.floor(intervalMs / 4)));
   const deadline = Date.now() + durationMs;
@@ -343,11 +377,23 @@ async function observeServerless({ http, durationMs, intervalMs, state, clockSyn
     }
     state.lastObservedSeq = sample.seq;
 
+    // Calculo de latencia end-to-end:
+    //   frontendReceiveMs = Date.now() (epoch ms do orquestrador)
+    //   sendMs            = send_us/1000 (epoch ms do ESP32 via SNTP)
+    //
+    // Ambos estao na mesma escala (epoch absoluto), entao NAO se aplica
+    // o offset de Cristian -- ele esta em escala performance.now(),
+    // relativa ao boot do processo, e somar misturava as duas escalas
+    // (foi a causa das latencias de -247 s na campanha preliminar).
+    //
+    // O drift NTP residual entre PC e ESP32 (tipicamente sub-100 ms em
+    // LAN local) fica registrado como clockUncertaintyMs no schema, e
+    // estabelece a margem de incerteza das medidas de latencia.
     const frontendReceiveMs = Date.now();
     const sendUs = Number(sample.sendUs);
     const sendMs = sendUs / 1000;
     const offsetMs = clockSync?.frontendBackendOffsetMs ?? 0;
-    const estimatedFrontendSendMs = sendMs + offsetMs;
+    const estimatedFrontendSendMs = sendMs;
     const endToEndLatencyMs = frontendReceiveMs - estimatedFrontendSendMs;
     latencyCalibrator?.observe?.(endToEndLatencyMs);
 
@@ -391,8 +437,3 @@ async function resetExperimentServerless(http) {
 async function stopExperimentServerless(http) {
   await http.post('/api/experiments/stop', {});
 }
-
-void resetExperiment;
-void startExperiment;
-void stopExperiment;
-void postObservation;

@@ -1,36 +1,38 @@
-// Configuracao de qual arquitetura o dashboard esta consumindo.
-//
-// O dashboard original assumia BASE_URL = "" (mesmo origin do backend
-// Node). Agora suportamos:
-//   A1 (default) - mesmo origin do backend Node, prefixo vazio
-//   A2 - igual A1 (so muda o communicationMode no formulario)
-//   A3 - prefixo "/api" (Vercel Functions, mesmo origin OU outro host)
-//
-// O usuario escolhe via querystring `?target=a1|a2|a3` ou via select
-// no canto superior. A escolha persiste em localStorage. Em a3 com
-// host externo, opcionalmente passa-se `?baseUrl=https://...vercel.app`.
+// Resolve o alvo do dashboard (a1, a2, a3 ou a4) e a URL base. A
+// escolha eh aceita via querystring (?target=, ?baseUrl=) com fallback
+// para localStorage. Manter um unico bundle frontend para as quatro
+// arquiteturas evita o problema antigo de divergir UI entre A1/A2 e A3
+// -- todas as integracoes ficam neste arquivo, e cada arquitetura
+// difere apenas pelo apiPrefix e pelo protocolo de tempo real (WS ou
+// nenhum, no caso da serverless que so tem REST).
 
 const STORAGE_KEY_TARGET = "pfc1.target";
 const STORAGE_KEY_BASE_URL = "pfc1.baseUrl";
 
 const TARGET_PROFILES = {
   a1: {
-    label: "A1 — Backend Node + WebSocket",
+    label: "WebSocket (Backend Node)",
     apiPrefix: "",
     communicationMode: "websocket",
     websocketProtocol: "ws"
   },
   a2: {
-    label: "A2 — Backend Node + REST polling",
+    label: "REST polling (Backend Node)",
     apiPrefix: "",
     communicationMode: "rest-polling",
     websocketProtocol: "ws"
   },
   a3: {
-    label: "A3 — Serverless (Vercel Functions)",
+    label: "Serverless (Vercel) — complementar",
     apiPrefix: "/api",
     communicationMode: "serverless-http",
     websocketProtocol: null
+  },
+  a4: {
+    label: "MQTT (broker + bridge)",
+    apiPrefix: "",
+    communicationMode: "websocket",
+    websocketProtocol: "ws"
   }
 };
 
@@ -79,8 +81,9 @@ export function setBaseUrl(url) {
   window.localStorage?.setItem(STORAGE_KEY_BASE_URL, url.replace(/\/$/, ""));
 }
 
-// Resolve uma URL relativa contra (BASE_URL + apiPrefix do alvo). Caminhos
-// que comecam com http(s) sao retornados sem alteracao.
+// Concatena base + prefixo + caminho. URLs absolutas passam intactas
+// para acomodar dashboards apontando direto para deployments Vercel
+// sem precisar mexer em apiPrefix.
 export function resolveUrl(path, target = getActiveTarget()) {
   if (/^https?:\/\//i.test(path)) return path;
   const profile = getTargetProfile(target);

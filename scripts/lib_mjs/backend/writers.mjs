@@ -1,17 +1,15 @@
-
-/**
- * Construcao de summaries e escrita de arquivos da campanha backend.
- *
- * Extraido de `lib/backend-runner.mjs:361-472, 797-908`:
- *   - `CAMPAIGN_SUMMARY_HEADER` / `SENSOR_DATA_HEADER`: 28 e 18 colunas.
- *   - `buildSummary`: alias para createRunSummary.
- *   - `buildExperimentSummary`: monta o objeto enriquecido salvo em JSON.
- *   - `writeCampaignFiles`: grava 4 arquivos (sensor-data, metrics,
- *     campaign-summary, experiment-summary).
- *   - `makeCampaignId`: identificador estavel por rep.
- *
- * Schemas NAO podem mudar (validado em `tests/test_collection_parity.mjs`).
- */
+// Persistencia dos artefatos de cada (rep x intervalo) da campanha.
+// Cada combinacao gera quatro arquivos: sensor-data.csv (linha por
+// amostra recebida), metrics.csv e campaign-summary.csv (resumo
+// agregado, formatos diferentes mantidos por compatibilidade com
+// pipelines historicos), e experiment-summary.json (objeto rico com
+// summaries por interval, saturation analysis e clockSync).
+//
+// O schema dos cabecalhos NAO pode mudar -- existe um teste de paridade
+// (tests/test_collection_parity.mjs) que falha se a ordem ou os nomes
+// das colunas divergirem. Qualquer coluna nova precisa ser adicionada
+// ao final, e nunca removida, para nao quebrar a leitura de campanhas
+// antigas pelo plot_results.py e pelo consolidador.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -73,8 +71,23 @@ export function buildExperimentSummary({ runs, lastExperiment, campaign, clockSy
   const exportBlock = primarySummary ? createExperimentExportBlock(primarySummary) : null;
   const { saturationAnalysis, saturation } = createSaturationAnalysis(annotated);
 
+  // Distingue rodadas com simulador local de rodadas com ESP32 real.
+  // A campanha oficial exige hardware; sem essa marcacao, dados
+  // exploratorios poderiam ser inadvertidamente plotados ao lado dos
+  // oficiais e referenciados no relatorio sem qualifica-los.
+  const isSimulatorSource =
+    lastExperiment.source === "simulator-http" || lastExperiment.source === "simulator";
+  const notes = {
+    preliminary: isSimulatorSource,
+    preliminaryReason: isSimulatorSource
+      ? "Campanha exploratoria com gerador de carga (esp32-simulator.mjs) compativel com o payload do ESP32. NAO substitui campanha com ESP32 real."
+      : null,
+    officialSourceExpected: isSimulatorSource ? "wifi-http" : null,
+  };
+
   return {
     ...(exportBlock ?? {}),
+    notes,
     campaign: campaign
       ? { ...campaign, applicationVersion: SCIENTIFIC_CONFIG.applicationVersion }
       : null,
@@ -121,16 +134,10 @@ export function buildExperimentSummary({ runs, lastExperiment, campaign, clockSy
   };
 }
 
-/**
- * Grava 4 arquivos da rep:
- *   - <base>_sensor-data.csv
- *   - <base>_metrics.csv
- *   - <base>_campaign-summary.csv
- *   - <base>_experiment-summary.json
- *
- * `base` segue convencao de `createDownloadFilename`. Comportamento bit-a-bit
- * identico ao original.
- */
+// Grava o quarteto de arquivos para um (rep, interval). O nome base
+// vem de createDownloadFilename, que codifica architecture, mode,
+// source, intervalMs, replication e campaign type -- assim cada arquivo
+// eh identificavel sem precisar do conteudo.
 export async function writeCampaignFiles({
   resultsDir, completedRuns, lastExperiment, campaign, campaignType,
   clockSync, replicationNumber,

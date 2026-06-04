@@ -10,16 +10,17 @@
     <main class="shell">
       <section class="topbar">
         <div>
-          <p class="eyebrow">ESP32 -> Wi-Fi -> &lt;A1 | A2 | A3&gt; -> Dashboard</p>
+          <p class="eyebrow">ESP32 -> Wi-Fi -> &lt;REST | WebSocket | MQTT | Serverless&gt; -> Dashboard</p>
           <h1>Monitor Esportivo do Clube</h1>
         </div>
         <div class="topbar-actions">
           <label class="target-selector">
             <span>Arquitetura</span>
             <select id="targetSelector">
-              <option value="a1">A1 — Backend Node WebSocket</option>
-              <option value="a2">A2 — Backend Node REST polling</option>
-              <option value="a3">A3 — Serverless (Vercel)</option>
+              <option value="a1">WebSocket (Backend Node)</option>
+              <option value="a2">REST polling (Backend Node)</option>
+              <option value="a4">MQTT (broker + bridge)</option>
+              <option value="a3">Serverless (Vercel) — complementar</option>
             </select>
           </label>
           <div class="status" id="connectionStatus">

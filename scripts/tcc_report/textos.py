@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Texto auxiliar: legendas academicas, revisao final e README do pacote.
+"""Templates dos textos auxiliares do pacote de figuras do TCC.
 
-Versao reescrita para o tema "Analise de arquiteturas para um sistema de
-monitoramento esportivo de um clube de futebol" com a matriz Wi-Fi
-(A1=WebSocket, A2=REST polling, A3=Serverless, A4=MQTT opcional).
+As funcoes write_* materializam markdown longo (legendas academicas,
+revisao final e README do pacote) com placeholders parametricos --
+principalmente o intervalo padrao do experimento horizontal. O texto
+em si eh estabilizado intencionalmente: qualquer alteracao aparece
+em diff e portanto pode ser auditada lado a lado com o relatorio.
 
-Os textos antigos referentes a campanha v1 (USB serial, WebSerial,
-intervalos <=10 ms) ficaram preservados em historico via Git e nao
-sao re-emitidos pelo gerador de figuras.
+A versao anterior, voltada para WebSerial / USB serial, fica no
+historico do git mas nao eh emitida porque saiu do escopo da analise.
 """
 
 from __future__ import annotations
@@ -356,6 +357,18 @@ Wi-Fi; A4 MQTT opcional, isolada em pasta propria).
 5. RSSI e reconnects sao reportados pelo ESP32 -- sem instrumentacao externa.
 6. Resultados validos para o ambiente medido (uma rede Wi-Fi, uma regiao Vercel).
 7. WebSerial / USB serial direto saiu do escopo; aparece apenas como trabalho anterior.
+8. **Dados preliminares (source=simulator-http)** foram coletados antes
+   da chegada do ESP32 fisico, usando o gerador de carga
+   `scripts/esp32-simulator.mjs` que reproduz bit-a-bit o payload e a
+   taxa do firmware. Esses dados ficam em `resultados/plots/preliminar/`
+   e existem apenas para validar o pipeline e ter um baseline
+   comparativo. **Nao substituem** a campanha oficial: latencias em
+   localhost sao ordens de magnitude menores que ESP32 sobre Wi-Fi, o
+   `wifi_rssi_dbm` eh sintetico, e o broker MQTT da A4 pode estar em
+   modo embarcado (aedes) em vez do Mosquitto oficial. Quando o ESP32
+   chegar, basta repetir a campanha com `--source wifi-http` e usar o
+   utilitario `scripts/compare-sources.py` para gerar o delta
+   simulador-vs-ESP32.
 
 ## 5. Resumo do pipeline de reproducao
 
@@ -373,7 +386,23 @@ node scripts/run-experiments.mjs --campaign coldstart --scenarios a3
 python scripts/consolidate_results.py resultados
 python scripts/scalability_metrics.py resultados/escalabilidade-2026-06-wifi
 python scripts/gera_figuras_tcc.py
+
+# (e) Campanha PRELIMINAR (antes do ESP32 chegar, com gerador de carga):
+node scripts/run-experiments.mjs --source simulator-http `
+    --scenarios a1,a2,a3,a4 --reps 3 --duration 60 `
+    --results-dir resultados/preliminar-simulador
+
+# (f) Comparativo simulador vs ESP32 (rodar depois das duas campanhas):
+python scripts/compare-sources.py `
+    --preliminary resultados/preliminar-simulador `
+    --official    resultados/oficial-esp32 `
+    --output      resultados/comparativo
 ```
+
+> Bloco (e) carimba `source=simulator-http` e `notes.preliminary=true`
+> em cada `experiment-summary.json`. O bloco (f) produz
+> `delta_metricas.csv` e PNGs lado a lado, fechando a discussao
+> "simulador atende como baseline ou nao?" no capitulo de discussao.
 
 > Producao constante a {ims} ms eh o ponto de ancora das figuras horizontais.
 """

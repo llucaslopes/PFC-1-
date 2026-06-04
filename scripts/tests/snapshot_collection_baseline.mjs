@@ -33,7 +33,10 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
-const RESULTS_DIR = join(REPO_ROOT, 'resultados');
+// Inclui `_legacy_resultados/` para preservar cobertura de categorias historicas
+// (scalability-summary, multiclient-aggregate, per-client, resources) ainda
+// citadas pelos contratos de schema testados em test_collection_parity.mjs.
+const SCAN_DIRS = ['resultados', '_legacy_resultados'];
 const BASELINE_DIR = join(__dirname, 'baselines-mjs');
 const SAMPLES_DIR = join(BASELINE_DIR, 'samples');
 
@@ -111,10 +114,14 @@ function main() {
   }
 
   const byCategory = Object.fromEntries(Object.keys(CATEGORIES).map(k => [k, []]));
-  for (const file of walk(RESULTS_DIR)) {
-    const kind = categorize(file);
-    if (!kind) continue;
-    byCategory[kind].push(file);
+  for (const sub of SCAN_DIRS) {
+    const root = join(REPO_ROOT, sub);
+    if (!existsSync(root)) continue;
+    for (const file of walk(root)) {
+      const kind = categorize(file);
+      if (!kind) continue;
+      byCategory[kind].push(file);
+    }
   }
 
   // Manifest com SHA256 de todos os arquivos.

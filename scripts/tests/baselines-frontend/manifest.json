@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-03T14:04:53.487Z",
+  "generatedAt": "2026-06-04T20:44:50.985Z",
   "files": {
     "prototypes/_legacy_webserial/js/clockSync.js": {
       "size": 5106,
@@ -134,8 +134,8 @@
       "sha256": "8bfd0820d0cad2aede791ef5940e370a61479b3bc68ff3b474c6394c8a2fc92d"
     },
     "arquitetura-arduino-node-api/backend/public/js/target.js": {
-      "size": 3489,
-      "sha256": "8fe2b0bb345c8b91a4dfb3a077d375ed8ce7877af72059e4e46221d355938e22"
+      "size": 3644,
+      "sha256": "467f24437978584b69944bcbf9e4897236cfda80a85f7b9cd2ab432a27d022cc"
     }
   }
 }

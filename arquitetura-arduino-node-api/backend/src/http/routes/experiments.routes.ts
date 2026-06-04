@@ -2,14 +2,14 @@ import { Router } from "express";
 import { createRelativeFallbackClockSync } from "./relative-clock-sync";
 import { CreateRoutesOptions } from "./types";
 
-// Rotas do ciclo de vida de experimentos: start/stop/reset/current/
-// observations/export.
-//
-// Wi-Fi: nao executamos mais o handshake SYNC,<id> via porta serial. O
-// ESP32 sincroniza via SNTP no boot, e a fonte HttpIntake retorna um
-// clockSync de fallback indicando que `send_us` ja esta em epoch absoluto.
-// O alinhamento backend<->frontend continua sendo feito por POST /clock/sync
-// (Cristian) executado pelo cliente antes de iniciar.
+// Ciclo de vida de cada experimento (start/stop/reset/current/
+// observations/export). O alinhamento de relogio depende do source:
+// no caminho oficial (wifi-http) o ESP32 sincroniza via SNTP no boot e
+// `send_us` ja vai em epoch absoluto, entao a sincronizacao em
+// /experiments/start so calcula o offset interno do processo Node;
+// no caminho legado serial executavamos um handshake SYNC,<id> que
+// nao existe mais no firmware atual mas continua disponivel para
+// reproduzir campanhas pre-Wi-Fi a partir do git.
 export function createExperimentsRouter(options: CreateRoutesOptions): Router {
   const router = Router();
 
@@ -20,12 +20,18 @@ export function createExperimentsRouter(options: CreateRoutesOptions): Router {
     let clockSync;
     const source = String(requestedConfig.source ?? "wifi-http");
     if (source === "serial" && options.serialReader.synchronizeClock) {
-      // Caminho legado preservado para reproduzir campanhas antigas com
-      // SerialReader/USB. Nao deve ser usado em novas campanhas.
+      // Caminho legado mantido apenas para reproducao de campanhas
+      // antigas via USB. O parametro 10 era o numero de tentativas do
+      // handshake serial -- ignorado pelo firmware Wi-Fi atual.
       clockSync = await options.serialReader.synchronizeClock(10, requestedIntervalMs);
-    } else if (source === "wifi-http" && options.serialReader.synchronizeClock) {
-      // Caminho oficial: HttpIntake.synchronizeClock devolve fallback com
-      // syncFailed=false e fallbackReason="wifi_sntp_absolute_epoch".
+    } else if (
+      (source === "wifi-http" || source === "simulator-http") &&
+      options.serialReader.synchronizeClock
+    ) {
+      // Tanto ESP32 real quanto o simulador HTTP local enviam send_us
+      // em epoch absoluto. Aqui pedimos zero tentativas porque nao ha
+      // handshake -- so calculamos o offset Date.now/performance.now
+      // do proprio processo Node e propagamos ao experimentService.
       clockSync = await options.serialReader.synchronizeClock(0, requestedIntervalMs);
     } else {
       options.serialReader.setIntervalMs?.(requestedIntervalMs);

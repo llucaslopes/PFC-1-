@@ -68,16 +68,16 @@ test('scenarios: ARCH_ORDER e canonico', () => {
 });
 
 test('scenarios: normalizeArch cobre casos canonicos', () => {
-  assert.equal(normalizeArch('webserial', 'webserial'), 'WebSerial');
-  assert.equal(normalizeArch('backend-node', 'websocket'), 'WebSocket');
-  assert.equal(normalizeArch('backend-node', 'rest-polling'), 'REST Polling');
-  assert.equal(normalizeArch('backend-node', 'rest_polling'), 'REST Polling');
-  assert.equal(normalizeArch('backend-node', 'rest'), 'REST Polling');
+  assert.equal(normalizeArch('webserial', 'webserial'), ARCH_LABEL_WEBSERIAL);
+  assert.equal(normalizeArch('backend-node', 'websocket'), ARCH_LABEL_WEBSOCKET);
+  assert.equal(normalizeArch('backend-node', 'rest-polling'), ARCH_LABEL_REST);
+  assert.equal(normalizeArch('backend-node', 'rest_polling'), ARCH_LABEL_REST);
+  assert.equal(normalizeArch('backend-node', 'rest'), ARCH_LABEL_REST);
 });
 
 test('scenarios: normalizeArch trim/case-insensitive', () => {
-  assert.equal(normalizeArch('  WebSerial ', 'WEBSERIAL'), 'WebSerial');
-  assert.equal(normalizeArch('backend-node', '  WebSocket  '), 'WebSocket');
+  assert.equal(normalizeArch('  WebSerial ', 'WEBSERIAL'), ARCH_LABEL_WEBSERIAL);
+  assert.equal(normalizeArch('backend-node', '  WebSocket  '), ARCH_LABEL_WEBSOCKET);
 });
 
 test('scenarios: normalizeArch desconhecido cai no fallback', () => {
@@ -85,9 +85,9 @@ test('scenarios: normalizeArch desconhecido cai no fallback', () => {
 });
 
 test('scenarios: normalizeModeClients (so mode)', () => {
-  assert.equal(normalizeModeClients('webserial'), 'WebSerial');
-  assert.equal(normalizeModeClients('websocket'), 'WebSocket');
-  assert.equal(normalizeModeClients('rest-polling'), 'REST Polling');
+  assert.equal(normalizeModeClients('webserial'), ARCH_LABEL_WEBSERIAL);
+  assert.equal(normalizeModeClients('websocket'), ARCH_LABEL_WEBSOCKET);
+  assert.equal(normalizeModeClients('rest-polling'), ARCH_LABEL_REST);
   assert.equal(normalizeModeClients('foo'), 'foo');
   assert.equal(normalizeModeClients(null), null);
 });

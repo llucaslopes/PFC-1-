@@ -1,20 +1,21 @@
+import { performance } from "node:perf_hooks";
 import { ClockSyncMetadata, SerialStatus } from "../types";
 
-/**
- * Fonte de sensor por HTTP (Wi-Fi, ESP32). Substitui o SerialReader USB
- * em A1 e A2. Implementa o mesmo contrato (`SensorInputStatusProvider`)
- * para reaproveitar todas as rotas, services e tests existentes.
- *
- * Diferencas:
- *   - Nao abre porta serial.
- *   - `start()`/`getStatus()` reportam o ultimo POST /ingest/sensor recebido.
- *   - `synchronizeClock` retorna fallback relativo: o ESP32 ja se sincroniza
- *     via SNTP no boot. O alinhamento backend<->ESP32 e feito implicitamente
- *     pelo timestamp absoluto enviado no payload (`send_us` em microssegundos
- *     UNIX epoch quando SNTP estiver OK).
- *   - `setIntervalMs` apenas armazena o intervalo desejado para que o
- *     endpoint /config sirva ao ESP32 no proximo boot/poll.
- */
+// Adaptador da fonte HTTP (POST /ingest/sensor) ao contrato
+// SensorInputStatusProvider que o backend Node ja consumia para a
+// fonte serial. Implementar a mesma interface manteve toda a stack
+// (services, routes, tests) sem mudancas, e a unica logica especifica
+// do transporte fica concentrada em synchronizeClock -- ver detalhes
+// no comentario daquele metodo.
+//
+// Esta classe tem uma irma em arquitetura-mqtt/bridge/mqttIntake.mjs
+// com o mesmo shape (start/getStatus/setIntervalMs/markIngested/
+// markError/synchronizeClock). A duplicacao eh intencional: a bridge
+// MQTT eh um deployment separado escrito em .mjs puro para nao
+// depender do build do backend. Qualquer mudanca de contrato aqui
+// (e.g. um novo campo em SerialStatus) precisa ser refletida la --
+// e o teste scripts/tests/test_collection_parity.mjs verifica a
+// equivalencia entre os dois pipelines.
 export class HttpIntake {
   private connected = false;
   private lastError: string | null = null;
@@ -57,10 +58,6 @@ export class HttpIntake {
     return this.currentIntervalMs;
   }
 
-  /**
-   * Marca uma amostra como recebida com sucesso. Chamado pela rota
-   * /ingest/sensor depois que o sensorDataService aceitar o payload.
-   */
   markIngested(deviceId: string | null | undefined): void {
     this.connected = true;
     this.lastError = null;
@@ -73,13 +70,18 @@ export class HttpIntake {
     this.lastError = error;
   }
 
-  /**
-   * Compatibilidade com a interface SensorInputStatusProvider. Em A1/A2
-   * sobre Wi-Fi nao executamos o handshake SYNC,<id> serial; retornamos
-   * um clockSync de fallback indicando que a referencia temporal vem
-   * direto do `send_us` (epoch absoluto via SNTP no ESP32) ou marcando
-   * fallback relativo.
-   */
+  // O ESP32 ja sincroniza com SNTP no boot, entao send_us chega em
+  // epoch absoluto (microssegundos desde 1970). O pipeline de metricas
+  // do backend, porem, raciocina em performance.now() -- relativo ao
+  // boot do processo Node. Sem reconciliar as duas escalas, a subtracao
+  // que estima latencia fim-a-fim retorna ~ -1.78e12 ms; o codigo de
+  // metricas grampeava esse negativo em zero, ocultando o problema e
+  // produzindo as latencias zeradas vistas na campanha preliminar.
+  //
+  // O offset reportado segue a convencao "host_ms = remote_ms + offset"
+  // do clock-sync.mjs: offset = performance.now() - Date.now(). Em
+  // horizonte de uma rep (segundos a minutos) a deriva entre as duas
+  // fontes eh sub-ms e cabe na incerteza ja documentada no relatorio.
   async synchronizeClock(
     _attempts = 10,
     targetIntervalMs?: number
@@ -87,11 +89,16 @@ export class HttpIntake {
     if (typeof targetIntervalMs === "number") {
       this.setIntervalMs(targetIntervalMs);
     }
+
+    const epochMs = Date.now();
+    const perfMs = performance.now();
+    const arduinoToBackendOffsetMs = perfMs - epochMs;
+
     return {
-      arduinoToBackendOffsetMs: 0,
+      arduinoToBackendOffsetMs,
       arduinoToBackendRttMs: null,
       arduinoToBackendUncertaintyMs: null,
-      arduinoHostOffsetMs: 0,
+      arduinoHostOffsetMs: arduinoToBackendOffsetMs,
       arduinoHostRttMs: null,
       arduinoHostUncertaintyMs: null,
       arduinoRemoteUnit: "us",
