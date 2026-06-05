@@ -308,7 +308,7 @@ por hardware/Wi-Fi, mas as **conclusões qualitativas** devem se manter:
 | Em **20 ms**, perdas A1/A2 ≫ A4 | A1/A2 ≈ 78 %, A4 ≈ 2 % |
 
 A **tabela executiva de referência** (com ± 1 σ sobre 3 reps) está em
-[`resultados/oficial-2026-06-04-v2/tabelas-artigo/tabela1_comparacao_executiva.csv`](../resultados/oficial-2026-06-04-v2/tabelas-artigo/tabela1_comparacao_executiva.csv).
+[`resultados/oficial-2026-06-04-v2/tabelas-artigo/tabela2_comparacao_executiva.csv`](../resultados/oficial-2026-06-04-v2/tabelas-artigo/tabela2_comparacao_executiva.csv).
 
 > Diferenças **quantitativas** de ±10 % em latência e ±5 % em
 > throughput são esperadas (depende do PC, do roteador Wi-Fi e da

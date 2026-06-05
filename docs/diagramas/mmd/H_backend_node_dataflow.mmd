@@ -1,0 +1,37 @@
+%% Diagrama H - Fluxo de dados no backend Node.js (seção 3.3 do artigo).
+%% Foco: ingestão única vinda do ESP32 e as duas vias de entrega ao cliente
+%% (WebSocket e REST polling) servidas pelo mesmo processo. O bloco "comandos
+%% para o ESP32" é citado no texto mas omitido aqui por ser fluxo de controle
+%% no sentido inverso e por não fazer parte do "fluxo de dados".
+flowchart LR
+    classDef device  fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2.5px,color:#222
+    classDef server  fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef store   fill:#EDEDED,stroke:#777,stroke-width:2px,color:#222
+    classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2.5px,color:#222
+
+    ESP["<b>ESP32</b><br/>HR · ax/ay/az<br/>send_us absoluto"]:::device
+
+    subgraph BE["Backend&nbsp;Node.js&nbsp;·&nbsp;porta&nbsp;3000"]
+        direction LR
+        ING["<b>Ingestão HTTP</b><br/>POST /ingest/sensor<br/>valida payload"]:::server
+        PROC["<b>Processamento</b><br/>registra seq<br/>aplica offset de clock<br/>atualiza métricas"]:::server
+        WS["<b>Camada WebSocket</b><br/>caminho dedicado<br/>push imediato"]:::server
+        LAST[("última amostra<br/>sobrescrita entre polls")]:::store
+        REST["<b>Camada REST</b><br/>GET /sensor/latest"]:::server
+
+        ING --> PROC
+        PROC ==> WS
+        PROC --> LAST
+        REST -. "consulta" .-> LAST
+    end
+
+    subgraph CLIS["Clientes"]
+        direction TB
+        CWS["<b>Cliente WebSocket</b><br/>push em tempo real"]:::client
+        CRP["<b>Cliente REST polling</b><br/>GET periódico"]:::client
+    end
+
+    ESP == "Wi-Fi · JSON" ==> ING
+    WS ==> CWS
+    CRP == "GET" ==> REST
+    REST -. "JSON" .-> CRP

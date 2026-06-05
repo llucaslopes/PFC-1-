@@ -1,4 +1,4 @@
-# Tabela 1 — Comparação executiva entre arquiteturas
+# Tabela 2 — Comparação executiva entre arquiteturas
 
 Síntese da campanha oficial (ESP32 + Wi-Fi, 3 repetições de 60 s). Coluna esquerda mostra o comportamento no intervalo saudável de 100 ms (cada padrão no seu "melhor caso"); coluna direita mostra o comportamento sob carga agressiva de 20 ms (5× o baseline). Valores são média ± desvio padrão das 3 repetições. Fonte: resultados/oficial-2026-06-04-v2/consolidated_metrics.csv.
 

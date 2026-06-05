@@ -15,6 +15,8 @@ relance — poucos nós, poucas cores e rótulos curtos.
 | `E` | **Fluxo de medição da latência** ponta a ponta (SNTP + Cristian) | `D_fluxo_medicao_latencia` |
 | `F` | **Cenário multi-cliente** (1, 2, 5, 10, 20 navegadores) | `E_cenario_multi_cliente` |
 | `G` | **Ambiente experimental** completo | `F_ambiente_experimental` |
+| `H` | **Fluxo de dados no backend Node.js** (ingestão única + duas vias de entrega) | *(novo, seção 3.3 do artigo)* |
+| `I` | **Fluxo de dados no bridge MQTT** (subscribe + pipeline reaproveitado + WebSocket) | *(novo, seção 3.4 do artigo)* |
 
 > Os identificadores internos `A1` (WebSocket), `A2` (REST polling),
 > `A3` (Serverless) e `A4` (MQTT) ainda aparecem nos scripts da campanha
@@ -32,8 +34,8 @@ elas:
 
 - **Laranja** — dispositivo embarcado (ESP32);
 - **Azul** — servidor / função / bridge;
-- **Roxo** — broker MQTT (apenas no diagrama C);
-- **Cinza** — armazenamento (apenas no diagrama D);
+- **Roxo** — broker MQTT (diagramas C e I);
+- **Cinza** — armazenamento (diagrama D e cache da última amostra no diagrama H);
 - **Verde** — cliente / dashboard / saída;
 - **Lilás** — ferramenta auxiliar (orquestrador, simulador).
 
@@ -63,7 +65,7 @@ Pré-requisito: Python 3.10+ e conexão com internet (usa o serviço público
 python docs/diagramas/_render.py
 ```
 
-Saída esperada: `SVG 7/7 | PNG 7/7`. Se não houver internet, os `.mmd`
+Saída esperada: `SVG 9/9 | PNG 9/9`. Se não houver internet, os `.mmd`
 permanecem como fonte canônica e podem ser renderizados depois.
 
 Para editar um diagrama:
@@ -83,3 +85,5 @@ Para editar um diagrama:
 | E — Fluxo de latência | ![E](png/E_fluxo_medicao_latencia.png) |
 | F — Multi-cliente | ![F](png/F_cenario_multi_cliente.png) |
 | G — Ambiente experimental | ![G](png/G_ambiente_experimental.png) |
+| H — Fluxo de dados no backend Node.js | ![H](png/H_backend_node_dataflow.png) |
+| I — Fluxo de dados no bridge MQTT | ![I](png/I_mqtt_bridge_dataflow.png) |

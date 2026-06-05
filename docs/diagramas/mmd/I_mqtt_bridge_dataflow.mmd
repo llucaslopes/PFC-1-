@@ -1,0 +1,31 @@
+%% Diagrama I - Fluxo de dados no bridge MQTT (seção 3.4 do artigo).
+%% Análogo ao diagrama H, evidenciando que o bridge reaproveita o mesmo
+%% pipeline de processamento do backend Node.js (validação, ajuste de
+%% send_us pela sincronização e atualização de métricas) e expõe o canal
+%% WebSocket para o frontend. O foco é o caminho da amostra entre o ESP32
+%% e o navegador, passando pelo broker como ponto central de ingestão.
+flowchart LR
+    classDef device  fill:#FFE2B8,stroke:#CC7A1F,stroke-width:2.5px,color:#222
+    classDef broker  fill:#F2D5F2,stroke:#8E3A8E,stroke-width:2px,color:#222
+    classDef server  fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2.5px,color:#222
+
+    ESP["<b>ESP32</b><br/>HR · ax/ay/az<br/>send_us absoluto<br/>publisher"]:::device
+
+    BR[["<b>Broker MQTT</b><br/>Mosquitto<br/>tópico: clube/&lt;id&gt;/sensor"]]:::broker
+
+    subgraph BG["Bridge&nbsp;Node.js&nbsp;·&nbsp;porta&nbsp;4002"]
+        direction LR
+        SUB["<b>Subscriber MQTT</b><br/>assina clube/+/sensor<br/>recebe payload JSON"]:::server
+        PROC["<b>Processamento</b><br/>valida payload<br/>registra seq<br/>aplica offset de clock<br/>atualiza métricas"]:::server
+        WS["<b>Camada WebSocket</b><br/>caminho dedicado<br/>broadcast imediato"]:::server
+
+        SUB --> PROC
+        PROC ==> WS
+    end
+
+    NA["<b>Navegador</b><br/>(dashboard)<br/>cliente WebSocket"]:::client
+
+    ESP == "Wi-Fi · PUBLISH JSON" ==> BR
+    BR == "SUBSCRIBE" ==> SUB
+    WS ==> NA

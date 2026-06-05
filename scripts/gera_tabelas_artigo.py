@@ -12,11 +12,12 @@ Cada tabela e gravada em quatro formatos com o mesmo basename:
 Tabelas geradas
 ---------------
 
-1. Comparacao executiva A1/A2/A4 (1 linha por arquitetura) -- tabela sintese
-   do artigo: resume o resultado das tres arquiteturas no melhor caso
-   (100 ms) e no pior caso (20 ms).
-2. Resumo detalhado por (arquitetura x intervalo) -- media +/- desvio das 3
-   reps; tabela de apoio com todos os pontos da curva.
+1. Resumo detalhado por (arquitetura x intervalo) -- media +/- desvio das 3
+   reps com throughput %, mensagens/s e perdas %; eh a Tabela 1 do artigo,
+   alimenta a Figura de throughput da Secao 4.1.
+2. Comparacao executiva A1/A2/A4 (1 linha por arquitetura) -- tabela sintese
+   que resume as tres arquiteturas no melhor caso (100 ms) e no pior caso
+   (20 ms); usada como tabela de fechamento de secao ou na conclusao.
 3. Latencia ponta a ponta no baseline saudavel (100 ms) -- defende a tese
    "MQTT entrega latencia ~10-30x menor que REST polling".
 4. Confiabilidade sob alta carga (20 ms) -- defende a tese "REST polling e
@@ -36,6 +37,7 @@ Uso
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Iterable
@@ -305,6 +307,21 @@ def _style_cells(tbl, cell_text, col_labels, arch_column, n_rows):
                 cell.set_text_props(weight="bold", color="#111")
 
 
+_TABLE_NUMBER_PREFIX_RE = re.compile(r"^Tabela\s+\d+\s*[\u2014\u2013\-]\s*")
+
+
+def _strip_table_number_prefix(title: str) -> str:
+    """Remove o prefixo ``"Tabela N \u2014 "`` do titulo.
+
+    A numeracao da tabela e responsabilidade do editor do artigo
+    (Word/LaTeX). No PNG, o titulo grande exibido na figura deve
+    conter apenas a descricao semantica, sem o numero, para evitar
+    redundancia/incoerencia quando a tabela for inserida em uma
+    secao com numeracao automatica.
+    """
+    return _TABLE_NUMBER_PREFIX_RE.sub("", title, count=1)
+
+
 def _render_table_png(df: pd.DataFrame, *,
                       out_path: Path,
                       title: str,
@@ -385,7 +402,7 @@ def _render_table_png(df: pd.DataFrame, *,
     title_y = 1.0 - (
         TABLE_LAYOUT["margin_top_in"] + TABLE_LAYOUT["title_h_in"] * 0.5
     ) / fig_h
-    fig.text(0.5, title_y, title,
+    fig.text(0.5, title_y, _strip_table_number_prefix(title),
              ha="center", va="center",
              fontsize=TABLE_LAYOUT["title_fontsize"], fontweight="bold", color="#111")
 
@@ -470,7 +487,47 @@ def aggregate_by_arch_interval(df: pd.DataFrame) -> pd.DataFrame:
     return agg.reset_index(drop=True)
 
 
-def tabela1_comparacao_executiva(agg: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
+def tabela1_resumo_detalhado(agg: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
+    rows = []
+    for _, r in agg.iterrows():
+        rows.append({
+            "Arquitetura": r["arch_label"],
+            "Intervalo (ms)": int(r["interval_ms"]),
+            "Throughput (%)": fmt_mean_std(r["throughput_pct_mean"],
+                                            r["throughput_pct_std"], 2),
+            "Mensagens/s (msg/s)": fmt_mean_std(r["msgps_mean"],
+                                                  r["msgps_std"], 2),
+            "Perdas (%)": fmt_mean_std(r["loss_pct_mean"],
+                                        r["loss_pct_std"], 2),
+            "Latência média (ms)": fmt_mean_std(r["lat_avg_ms_mean"],
+                                                  r["lat_avg_ms_std"], 2),
+            "Latência P95 (ms)": fmt_mean_std(r["lat_p95_ms_mean"],
+                                                r["lat_p95_ms_std"], 2),
+            "N reps": int(r["n_reps"]),
+        })
+    df = pd.DataFrame(rows)
+
+    save_table_all_formats(
+        df,
+        out_dir=out_dir,
+        base_name="tabela1_resumo_detalhado",
+        title="Tabela 1 \u2014 Resumo detalhado por arquitetura × intervalo",
+        caption=(
+            "Média ± desvio padrão das 3 repetições para cada combinação de "
+            "arquitetura e intervalo de envio do produtor. Intervalos menores "
+            "implicam taxa maior de envio (carga). A coluna \"Mensagens/s\" "
+            "é a vazão efetiva entregue ao cliente (cabe diretamente no texto "
+            "da Seção 4.1), enquanto \"Throughput (%)\" é a mesma vazão "
+            "normalizada pela taxa-alvo do produtor. Tabela de apoio que "
+            "alimenta a Figura de throughput e a Figura de latência do artigo."
+        ),
+        latex_label="tab:resumo-detalhado",
+        arch_column="Arquitetura",
+    )
+    return df
+
+
+def tabela2_comparacao_executiva(agg: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
     rows = []
     for arch in ARCH_ORDER:
         sub = agg[agg["arch_label"] == arch]
@@ -502,8 +559,8 @@ def tabela1_comparacao_executiva(agg: pd.DataFrame, out_dir: Path) -> pd.DataFra
     save_table_all_formats(
         df,
         out_dir=out_dir,
-        base_name="tabela1_comparacao_executiva",
-        title="Tabela 1 \u2014 Comparação executiva entre arquiteturas",
+        base_name="tabela2_comparacao_executiva",
+        title="Tabela 2 \u2014 Comparação executiva entre arquiteturas",
         caption=(
             "Síntese da campanha oficial (ESP32 + Wi-Fi, 3 repetições de 60 s). "
             "Coluna esquerda mostra o comportamento no intervalo saudável de "
@@ -513,41 +570,6 @@ def tabela1_comparacao_executiva(agg: pd.DataFrame, out_dir: Path) -> pd.DataFra
             "resultados/oficial-2026-06-04-v2/consolidated_metrics.csv."
         ),
         latex_label="tab:comparacao-executiva",
-        arch_column="Arquitetura",
-    )
-    return df
-
-
-def tabela2_resumo_detalhado(agg: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
-    rows = []
-    for _, r in agg.iterrows():
-        rows.append({
-            "Arquitetura": r["arch_label"],
-            "Intervalo (ms)": int(r["interval_ms"]),
-            "Throughput (%)": fmt_mean_std(r["throughput_pct_mean"],
-                                            r["throughput_pct_std"], 2),
-            "Perdas (%)": fmt_mean_std(r["loss_pct_mean"],
-                                        r["loss_pct_std"], 2),
-            "Latência média (ms)": fmt_mean_std(r["lat_avg_ms_mean"],
-                                                  r["lat_avg_ms_std"], 2),
-            "Latência P95 (ms)": fmt_mean_std(r["lat_p95_ms_mean"],
-                                                r["lat_p95_ms_std"], 2),
-            "N reps": int(r["n_reps"]),
-        })
-    df = pd.DataFrame(rows)
-
-    save_table_all_formats(
-        df,
-        out_dir=out_dir,
-        base_name="tabela2_resumo_detalhado",
-        title="Tabela 2 \u2014 Resumo detalhado por arquitetura × intervalo",
-        caption=(
-            "Média ± desvio padrão das 3 repetições para cada combinação de "
-            "arquitetura e intervalo de envio do produtor. Intervalos menores "
-            "implicam taxa maior de envio (carga). Tabela de apoio que "
-            "alimenta a Figura de throughput e a Figura de latência do artigo."
-        ),
-        latex_label="tab:resumo-detalhado",
         arch_column="Arquitetura",
     )
     return df
@@ -730,8 +752,8 @@ def main(argv: Iterable[str] | None = None) -> int:
     agg = aggregate_by_arch_interval(df_raw)
 
     print("Gerando 5 tabelas em 4 formatos (csv, md, tex, png):\n")
-    tabela1_comparacao_executiva(agg, out_dir)
-    tabela2_resumo_detalhado(agg, out_dir)
+    tabela1_resumo_detalhado(agg, out_dir)
+    tabela2_comparacao_executiva(agg, out_dir)
     tabela3_latencia_baseline(agg, out_dir)
     tabela4_carga_extrema(df_raw, agg, out_dir)
     tabela5_pontos_saturacao(df_raw, agg, out_dir)
