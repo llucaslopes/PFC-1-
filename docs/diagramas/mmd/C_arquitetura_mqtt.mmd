@@ -7,7 +7,7 @@ flowchart LR
     classDef client  fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
 
     ESP["<b>ESP32</b><br/>publisher"]:::device
-    BR[["<b>Broker MQTT</b><br/>Mosquitto<br/>tópico: clube/&lt;id&gt;/sensor"]]:::broker
+    BR[["<b>Broker MQTT</b><br/>Mosquitto<br/>tópico: iot/&lt;id&gt;/sensor"]]:::broker
     BG["<b>Bridge Node</b><br/>subscriber → WebSocket"]:::bridge
     NA["<b>Navegador</b><br/>(dashboard)"]:::client
 

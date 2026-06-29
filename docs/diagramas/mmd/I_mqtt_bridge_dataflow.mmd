@@ -12,11 +12,11 @@ flowchart LR
 
     ESP["<b>ESP32</b><br/>HR · ax/ay/az<br/>send_us absoluto<br/>publisher"]:::device
 
-    BR[["<b>Broker MQTT</b><br/>Mosquitto<br/>tópico: clube/&lt;id&gt;/sensor"]]:::broker
+    BR[["<b>Broker MQTT</b><br/>Mosquitto<br/>tópico: iot/&lt;id&gt;/sensor"]]:::broker
 
     subgraph BG["Bridge&nbsp;Node.js&nbsp;·&nbsp;porta&nbsp;4002"]
         direction LR
-        SUB["<b>Subscriber MQTT</b><br/>assina clube/+/sensor<br/>recebe payload JSON"]:::server
+        SUB["<b>Subscriber MQTT</b><br/>assina iot/+/sensor<br/>recebe payload JSON"]:::server
         PROC["<b>Processamento</b><br/>valida payload<br/>registra seq<br/>aplica offset de clock<br/>atualiza métricas"]:::server
         WS["<b>Camada WebSocket</b><br/>caminho dedicado<br/>broadcast imediato"]:::server
 

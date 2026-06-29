@@ -26,7 +26,7 @@ export class MqttIntake {
 
   start() {
     this.connected = false;
-    console.log("[mqtt-intake] Pronto para receber mensagens em clube/+/sensor.");
+    console.log("[mqtt-intake] Pronto para receber mensagens em iot/+/sensor.");
   }
 
   getStatus() {
@@ -46,7 +46,7 @@ export class MqttIntake {
     if (!Number.isInteger(intervalMs) || intervalMs <= 0) return;
     this.currentIntervalMs = intervalMs;
     console.log(
-      `[mqtt-intake] Intervalo configurado para ${intervalMs} ms (enviado em clube/<deviceId>/config quando suportado).`
+      `[mqtt-intake] Intervalo configurado para ${intervalMs} ms (enviado em iot/<deviceId>/config quando suportado).`
     );
   }
 

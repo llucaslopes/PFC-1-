@@ -47,7 +47,7 @@ Opcoes A1/A2/A3 (HTTP):
 
 Opcoes A4 (MQTT):
   --broker-url mqtt://localhost:1883  URL do broker MQTT
-  --topic clube/{deviceId}/sensor     template do topico
+  --topic iot/{deviceId}/sensor       template do topico
   --mqtt-username <u>           usuario opcional
   --mqtt-password <p>           senha opcional
   --mqtt-qos 0|1|2              QoS (default 0)
@@ -88,7 +88,7 @@ async function buildSender(args, architecture) {
     return createMqttSender({
       brokerUrl,
       deviceId,
-      topicTemplate: args.topic ?? "clube/{deviceId}/sensor",
+      topicTemplate: args.topic ?? "iot/{deviceId}/sensor",
       username: args["mqtt-username"],
       password: args["mqtt-password"],
       qos,

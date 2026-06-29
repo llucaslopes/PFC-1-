@@ -12,27 +12,27 @@
 > O serverless (`a3`) é que passa a ser tratado como subseção
 > complementar, em pasta separada.
 
-## Cenário-alvo do clube
+## Cenario-alvo IoT
 
-Treino com muitos jogadores publicando simultaneamente no centro de
-treinamento (vestiário/CT). O broker desacopla os ESP32 do backend e
-permite consumidores adicionais (analytics, gravação em disco,
-dashboards distintos) sem que o ESP32 precise saber quantos clientes
-existem — característica central do padrão Pub-Sub.
+Ingestao IoT centralizada, com um ou mais dispositivos publicando
+amostras em topicos organizados por `deviceId`. O broker desacopla os
+ESP32 do backend e permite consumidores adicionais (analytics, gravacao
+em disco, dashboards distintos) sem que o ESP32 precise saber quantos
+clientes existem -- caracteristica central do padrao Pub-Sub.
 
 ```mermaid
 flowchart LR
-    ESP32A["ESP32 jogador #1"]
-    ESP32B["ESP32 jogador #2"]
-    ESP32N["ESP32 jogador #N"]
+    ESP32A["ESP32 device #1"]
+    ESP32B["ESP32 device #2"]
+    ESP32N["ESP32 device #N"]
     Broker["Broker MQTT<br/>(Mosquitto local ou HiveMQ Cloud free tier)"]
     Bridge["Bridge Node<br/>(MQTT subscriber → WebSocket broadcaster)"]
     Front["Dashboard web<br/>(mesmo frontend de A1)"]
 
-    ESP32A -- "publish clube/<id>/sensor" --> Broker
-    ESP32B -- "publish clube/<id>/sensor" --> Broker
-    ESP32N -- "publish clube/<id>/sensor" --> Broker
-    Broker -- "subscribe clube/+/sensor" --> Bridge
+    ESP32A -- "publish iot/<id>/sensor" --> Broker
+    ESP32B -- "publish iot/<id>/sensor" --> Broker
+    ESP32N -- "publish iot/<id>/sensor" --> Broker
+    Broker -- "subscribe iot/+/sensor" --> Bridge
     Bridge -- "WebSocket broadcast" --> Front
 ```
 
@@ -43,7 +43,7 @@ flowchart LR
   sobe um broker `aedes` embarcado no mesmo processo quando recebe
   `MQTT_EMBEDDED_BROKER=true` — vide [bridge/README.md](./bridge/README.md).
   Endpoint configurável via `MQTT_URL`.
-- **`bridge/`**: serviço Node que assina `clube/+/sensor`, reaproveita o
+- **`bridge/`**: serviço Node que assina `iot/+/sensor`, reaproveita o
   pipeline de validação/processamento do backend (`SensorDataService`,
   `MetricsService`, `ExperimentService`) e expõe `SensorWebSocketServer`
   + todas as rotas REST do backend em `:4002` — inclusive `GET /config`,
@@ -53,7 +53,7 @@ flowchart LR
   é **dual-active**: carrega HTTP e MQTT (`PubSubClient`) no boot e
   alterna entre `HTTP_BACKEND → HTTP_SERVERLESS → MQTT` por failover
   automático (probe a cada `FAIL_THRESHOLD` falhas consecutivas). Sem
-  recompilação entre cenários. Publica JSON em `clube/{deviceId}/sensor`
+  recompilação entre cenários. Publica JSON em `iot/{deviceId}/sensor`
   com o mesmo schema do POST HTTP — comparação justa com REST/WS — e
   `send_us` em epoch absoluto via SNTP no boot.
 - **Simulador externo**: [`scripts/esp32-simulator.mjs --architecture a4`](../scripts/esp32-simulator.mjs)
@@ -70,7 +70,7 @@ distribuição HTTP) ficam disponíveis no mesmo schema. Métricas próprias
 adicionais para análise específica de MQTT:
 
 - Latência fim a fim ESP32 → bridge (publish → onMessage).
-- Throughput agregado por tópico (`clube/+/sensor`).
+- Throughput agregado por tópico (`iot/+/sensor`).
 - Backpressure do broker (`broker.queued_messages`).
 - Confiabilidade por QoS (0 padrão na campanha; 1 e 2 ficam como trabalho futuro com biblioteca diferente — `PubSubClient` só implementa QoS 0).
 - Custo do broker (Mosquitto self-hosted vs HiveMQ Cloud free tier) — análise qualitativa.

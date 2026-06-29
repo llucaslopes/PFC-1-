@@ -26,8 +26,8 @@ Este arquivo agrupa, para cada figura e diagrama gerado, tres blocos:
 - **Texto de referencia:** mencao curta para inserir no corpo do artigo.
 - **Explicacao tecnica:** o que a figura demonstra do ponto de vista experimental.
 
-Tema do TCC: **Analise de arquiteturas para um sistema de monitoramento
-esportivo de um clube de futebol**. Todas as arquiteturas sao alimentadas
+Tema do TCC: **Analise de arquiteturas para integracao de sensores IoT
+com aplicacoes web**. Todas as arquiteturas sao alimentadas
 pelo mesmo dispositivo embarcado (ESP32 + Wi-Fi) usando o mesmo payload
 JSON, para que a comparacao seja justa.
 
@@ -194,9 +194,9 @@ inatividade desde a ultima invocacao (1 s, 30 s, 60 s, 5 min, 10 min).
 Cada caixa agrega 3 amostras independentes.
 
 **Texto de referencia.** A Figura 12 caracteriza a variabilidade do
-cold start, importante para decidir se Serverless e adequada ao cenario
-de "jogo em tempo real" do clube ou se ela favorece os cenarios de
-"telemetria massiva" e "pos-treino" (latencia tolerante).
+cold start, importante para decidir se Serverless e adequada ao perfil
+de aplicacao web em tempo real ou se ela favorece os perfis de ingestao
+IoT centralizada e dashboard periodico (latencia tolerante).
 
 **Explicacao tecnica.** `cold_start_ms` e medido por `lib/cold-start.ts`
 no primeiro handler call de cada container. A primeira invocacao apos
@@ -214,7 +214,7 @@ ESP32 envia amostras via Wi-Fi para o backend Node, que faz broadcast
 para todos os clientes conectados via WebSocket.
 
 **Texto de referencia.** A Figura A descreve a arquitetura WebSocket,
-foco para o cenario "jogo em tempo real" do clube.
+foco para o perfil de aplicacao web em tempo real.
 
 **Explicacao tecnica.** Implementada em `arquitetura-arduino-node-api/backend/`.
 `SensorWebSocketServer.broadcast` itera sobre todos os clientes a cada
@@ -232,8 +232,8 @@ faz `GET /data/latest` ativamente em intervalo de 1 ms.
 em que o backend nao envia ativamente; o cliente puxa.
 
 **Explicacao tecnica.** Padrao pull, simples de implementar e de servir
-por proxy/CDN. Cenario favorecido: "pos-treino" / dashboard do staff
-tecnico, em que latencia tolerante sobrevive.
+por proxy/CDN. Cenario favorecido: dashboard web periodico,
+em que latencia tolerante sobrevive.
 
 ---
 
@@ -245,7 +245,7 @@ valida, persiste em Vercel KV e responde rapido. O frontend consulta
 as amostras via HTTP REST.
 
 **Texto de referencia.** A Figura C mostra a arquitetura Serverless,
-foco para "telemetria massiva" multi-jogador / multi-clube. Cresce
+foco para ingestao IoT centralizada com multiplos dispositivos. Cresce
 horizontalmente sem servidor proprio.
 
 **Explicacao tecnica.** Implementada em `arquitetura-serverless/`.
@@ -300,9 +300,9 @@ def write_revisao_final(out_dir: Path, *, default_horizontal_interval_ms: int) -
     ims = default_horizontal_interval_ms
     txt = f"""# Revisao final -- Cobertura, ordem e recomendacoes
 
-Tema do TCC: **Analise de arquiteturas para um sistema de monitoramento
-esportivo de um clube de futebol** (WebSocket, REST Polling e Serverless
-alimentadas por ESP32 + Wi-Fi; MQTT opcional, isolada em pasta propria).
+Tema do TCC: **Analise de arquiteturas para integracao de sensores IoT
+com aplicacoes web** (WebSocket, REST Polling, MQTT e Serverless
+alimentadas por ESP32 + Wi-Fi).
 
 ## 1. Comentarios do orientador (lista de checagem)
 
@@ -421,8 +421,8 @@ sobre Wi-Fi (WebSocket, REST polling e Serverless; MQTT opcional).
 
 ## Tema
 
-**Analise de arquiteturas para um sistema de monitoramento esportivo
-de um clube de futebol** -- qual arquitetura para qual cenario operacional.
+**Analise de arquiteturas para integracao de sensores IoT com aplicacoes
+web** -- qual arquitetura para qual perfil de uso.
 
 ## Estrutura
 

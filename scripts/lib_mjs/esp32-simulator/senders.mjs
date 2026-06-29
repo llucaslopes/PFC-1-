@@ -54,7 +54,7 @@ export function createServerlessHttpSender({
 export async function createMqttSender({
   brokerUrl,
   deviceId,
-  topicTemplate = "clube/{deviceId}/sensor",
+  topicTemplate = "iot/{deviceId}/sensor",
   username,
   password,
   qos = 0,

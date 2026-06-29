@@ -130,7 +130,7 @@ export async function stopMqttBroker(handle, { remove = false } = {}) {
 export async function startMqttBridge({
   port = 4002,
   brokerUrl = "mqtt://localhost:1883",
-  topic = "clube/+/sensor",
+  topic = "iot/+/sensor",
   qos = 0,
   readyTimeoutMs = 30_000,
   extraEnv = {},

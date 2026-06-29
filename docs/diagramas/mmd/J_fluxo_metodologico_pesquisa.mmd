@@ -1,0 +1,37 @@
+%% Diagrama J - Fluxo metodologico geral da pesquisa
+%% Figura de sintese para a secao de Metodos: campanha -> criterios -> adequacao.
+flowchart LR
+    classDef campaign fill:#E5DAFF,stroke:#5A3A99,stroke-width:2px,color:#222
+    classDef arch     fill:#CFE5FF,stroke:#2F6BBF,stroke-width:2px,color:#222
+    classDef profile  fill:#D4F0CF,stroke:#357A2E,stroke-width:2px,color:#222
+    classDef criteria fill:#FFF3BF,stroke:#9A6B00,stroke-width:2px,color:#222
+    classDef result   fill:#F6D1D1,stroke:#A33A3A,stroke-width:2px,color:#222
+
+    Campanha["<b>Campanha experimental</b><br/>ESP32 via Wi-Fi<br/>6 intervalos x 3 repeticoes x 60 s"]:::campaign
+
+    subgraph Arquiteturas["3 arquiteturas avaliadas"]
+        direction TB
+        WS["WebSocket<br/>Backend Node"]:::arch
+        REST["REST polling<br/>Backend Node"]:::arch
+        MQTT["MQTT / Pub-Sub<br/>Broker + bridge Node"]:::arch
+    end
+
+    subgraph Perfis["3 perfis de uso analisados"]
+        direction TB
+        P1["P1 - Atualizacao<br/>em tempo real"]:::profile
+        P2["P2 - Dashboard<br/>periodico"]:::profile
+        P3["P3 - Ingestao IoT<br/>centralizada"]:::profile
+    end
+
+    subgraph Criterios["2 criterios de avaliacao"]
+        direction TB
+        Desempenho["<b>Desempenho</b><br/>latencia media, P95<br/>e throughput"]:::criteria
+        Robustez["<b>Robustez</b><br/>perdas, saturacao<br/>e estabilidade sob carga"]:::criteria
+    end
+
+    Resultado["<b>Avaliacao de adequacao</b><br/>arquitetura mais indicada<br/>por perfil de uso"]:::result
+
+    Campanha --> Arquiteturas
+    Arquiteturas --> Criterios
+    Perfis --> Criterios
+    Criterios --> Resultado

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Monitor Esportivo</title>
+    <title>Dashboard Experimental IoT</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -11,7 +11,7 @@
       <section class="topbar">
         <div>
           <p class="eyebrow">ESP32 -> Wi-Fi -> &lt;REST | WebSocket | MQTT | Serverless&gt; -> Dashboard</p>
-          <h1>Monitor Esportivo do Clube</h1>
+          <h1>Dashboard Experimental IoT</h1>
         </div>
         <div class="topbar-actions">
           <label class="target-selector">
@@ -30,9 +30,9 @@
         </div>
       </section>
 
-      <section class="readings" aria-label="Leituras dos sensores">
+      <section class="readings" aria-label="Leituras do no sensor IoT simulado">
         <article class="reading-card pulse">
-          <span>Batimento</span>
+          <span>Frequencia cardiaca</span>
           <strong><output id="heartRate">--</output><small>bpm</small></strong>
         </article>
         <article class="reading-card motion">
@@ -51,7 +51,7 @@
             <h2>Tempo real</h2>
             <span id="messageInfo">Aguardando dados</span>
           </div>
-          <canvas id="sensorChart" width="960" height="360" aria-label="Grafico de batimentos em tempo real"></canvas>
+          <canvas id="sensorChart" width="960" height="360" aria-label="Grafico de frequencia cardiaca em tempo real"></canvas>
         </div>
 
         <aside class="panel details-panel">

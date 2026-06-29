@@ -17,6 +17,7 @@ relance — poucos nós, poucas cores e rótulos curtos.
 | `G` | **Ambiente experimental** completo | `F_ambiente_experimental` |
 | `H` | **Fluxo de dados no backend Node.js** (ingestão única + duas vias de entrega) | *(novo, seção 3.3 do artigo)* |
 | `I` | **Fluxo de dados no bridge MQTT** (subscribe + pipeline reaproveitado + WebSocket) | *(novo, seção 3.4 do artigo)* |
+| `J` | **Fluxo metodológico geral da pesquisa** (campanha, arquiteturas, perfis, critérios e adequação) | *(novo, seção de Métodos)* |
 
 > Os identificadores internos `A1` (WebSocket), `A2` (REST polling),
 > `A3` (Serverless) e `A4` (MQTT) ainda aparecem nos scripts da campanha
@@ -65,7 +66,7 @@ Pré-requisito: Python 3.10+ e conexão com internet (usa o serviço público
 python docs/diagramas/_render.py
 ```
 
-Saída esperada: `SVG 9/9 | PNG 9/9`. Se não houver internet, os `.mmd`
+Saída esperada: `SVG 10/10 | PNG 10/10`. Se não houver internet, os `.mmd`
 permanecem como fonte canônica e podem ser renderizados depois.
 
 Para editar um diagrama:
@@ -87,3 +88,4 @@ Para editar um diagrama:
 | G — Ambiente experimental | ![G](png/G_ambiente_experimental.png) |
 | H — Fluxo de dados no backend Node.js | ![H](png/H_backend_node_dataflow.png) |
 | I — Fluxo de dados no bridge MQTT | ![I](png/I_mqtt_bridge_dataflow.png) |
+| J — Fluxo metodológico geral da pesquisa | ![J](png/J_fluxo_metodologico_pesquisa.png) |

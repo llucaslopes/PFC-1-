@@ -2,16 +2,16 @@
 
 Procedimento experimental do TCC. Este roteiro padroniza a execucao da campanha que compara os **tres padroes de comunicacao principais** (REST polling, WebSocket e MQTT/Pub-Sub) e avalia, complementarmente, a arquitetura serverless. Todos sao alimentados por um **ESP32 real conectado por Wi-Fi**. WebSerial e USB serial direto sao tratados como **trabalho anterior** (preservados em `prototypes/_legacy_webserial/` e `embedded/_legacy_arduino_uno/`) e nao fazem mais parte do escopo experimental atual.
 
-> Tema: **Analise comparativa de padroes de comunicacao (REST polling, WebSocket e MQTT) para integracao de sensores IoT em monitoramento esportivo** -- qual padrao e mais adequado para cada cenario operacional do clube.
+> Tema: **Analise comparativa de padroes de comunicacao (REST polling, WebSocket e MQTT) para integracao de sensores IoT com aplicacoes web** -- qual padrao e mais adequado para cada perfil de uso.
 
 ## 0. Cenarios operacionais analisados
 
-| Cenario do clube | Caracteristica | Padrao tipicamente favorecido |
+| Perfil de uso | Caracteristica | Padrao tipicamente favorecido |
 | --- | --- | --- |
-| Jogo em tempo real | Latencia subsegundo critica; multiplos clientes assistindo (tecnico, medico, preparador fisico) | **WebSocket** (push em tempo real) |
-| Pos-treino / dashboard staff | Latencia tolerante, leitura sob demanda | **REST polling** (pull simples) |
-| Treino com muitos jogadores publicando ao mesmo tempo | Variacao de carga, ingestao concorrente | **MQTT / Pub-Sub** (broker desacopla produtores/consumidores) |
-| (Subsecao complementar) Telemetria multi-time sem servidor proprio | Modelo elastico pay-per-use | **Serverless** (avaliado isoladamente) |
+| Aplicacao web em tempo real | Latencia baixa e estavel; cliente precisa reagir a cada amostra | **WebSocket** (push em tempo real) |
+| Dashboard web periodico | Latencia tolerante, leitura sob demanda | **REST polling** (pull simples) |
+| Ingestao IoT centralizada | Variacao de carga, ingestao concorrente e desacoplamento | **MQTT / Pub-Sub** (broker desacopla produtores/consumidores) |
+| (Subsecao complementar) Ingestao sem servidor proprio | Modelo elastico pay-per-use | **Serverless** (avaliado isoladamente) |
 
 ## 1. Preparacao do ambiente
 

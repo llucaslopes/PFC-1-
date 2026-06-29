@@ -123,7 +123,7 @@ function handleMqttMessage({ topic, payloadBuf, sensorDataService, mqttIntake })
 async function main() {
   const port = Number(readEnv("BRIDGE_PORT", "4002")) || 4002;
   const brokerUrl = readEnv("MQTT_URL", "mqtt://localhost:1883");
-  const topic = readEnv("MQTT_TOPIC", "clube/+/sensor");
+  const topic = readEnv("MQTT_TOPIC", "iot/+/sensor");
   const qos = Number(readEnv("MQTT_QOS", "0")) || 0;
   const username = readEnv("MQTT_USERNAME", "") || undefined;
   const password = readEnv("MQTT_PASSWORD", "") || undefined;

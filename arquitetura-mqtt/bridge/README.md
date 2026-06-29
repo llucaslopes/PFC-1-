@@ -8,7 +8,7 @@ metricas e contrato de mensagens do backend A1/A2.
 A4 publica via MQTT, mas o frontend e os runners de campanha sao os
 mesmos de A1 (consomem WebSocket + REST). A bridge faz o "tradutor":
 
-1. Assina `clube/+/sensor` no broker.
+1. Assina `iot/+/sensor` no broker.
 2. Para cada mensagem, processa via `SensorDataService.processJsonPayload`
    reutilizando o `dist/` do backend.
 3. Faz broadcast via `SensorWebSocketServer` na porta da bridge (default
@@ -45,7 +45,7 @@ Variaveis de ambiente suportadas:
 |---------------------------|--------------------------|-----------|
 | `BRIDGE_PORT`             | `4002`                   | porta HTTP/WS da bridge |
 | `MQTT_URL`                | `mqtt://localhost:1883`  | URL do broker MQTT |
-| `MQTT_TOPIC`              | `clube/+/sensor`         | topico assinado |
+| `MQTT_TOPIC`              | `iot/+/sensor`           | topico assinado |
 | `MQTT_QOS`                | `0`                      | QoS da subscricao |
 | `MQTT_USERNAME`           | (vazio)                  | usuario MQTT (opcional) |
 | `MQTT_PASSWORD`           | (vazio)                  | senha MQTT (opcional) |

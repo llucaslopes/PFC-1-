@@ -13,7 +13,7 @@ ESP32 -> POST /ingest/sensor -> SensorDataService -> {WebSocket broadcast | /dat
 
 ## Pergunta-problema
 
-Quais diferencas de desempenho, confiabilidade, taxa de transferencia e adequacao ao tempo real podem ser observadas entre A1 e A2 no contexto de monitoramento esportivo de um clube de futebol?
+Quais diferencas de desempenho, confiabilidade, taxa de transferencia e adequacao ao tempo real podem ser observadas entre A1 e A2 no contexto de integracao de sensores IoT com aplicacoes web?
 
 ## Contrato dos dados (mesmo que A3 e A4)
 

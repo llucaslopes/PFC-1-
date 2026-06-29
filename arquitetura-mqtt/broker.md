@@ -35,7 +35,7 @@ allow_anonymous true
 
 | Tópico                    | Direção         | QoS | Conteúdo                             |
 | ------------------------- | --------------- | --- | ------------------------------------ |
-| `clube/<deviceId>/sensor` | ESP32 → Broker  | 0   | JSON do payload (mesmo de A1/A2/A3). |
+| `iot/<deviceId>/sensor` | ESP32 → Broker  | 0   | JSON do payload (mesmo de A1/A2/A3). |
 
 > O canal de **controle** (`intervalMs` vigente) **não passa por MQTT**.
 > A bridge expõe o mesmo `GET /config` do backend Node em `:4002`, e o
@@ -59,7 +59,7 @@ allow_anonymous true
 
 ```env
 MQTT_URL=mqtt://localhost:1883
-MQTT_TOPIC=clube/+/sensor
+MQTT_TOPIC=iot/+/sensor
 MQTT_QOS=0
 MQTT_USERNAME=
 MQTT_PASSWORD=

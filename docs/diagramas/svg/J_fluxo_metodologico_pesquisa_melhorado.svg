@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="560" viewBox="0 0 1800 560" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo metodológico da pesquisa</title>
+  <desc id="desc">Fluxograma da campanha experimental, arquiteturas avaliadas, perfis de uso, critérios de avaliação e recomendação final.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 1 1 L 11 6 L 1 11 z" fill="#334155"/>
+    </marker>
+    <filter id="soft-shadow" x="-8%" y="-12%" width="116%" height="124%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+    <style>
+      .bg { fill: #ffffff; }
+      .panel { stroke-width: 2; rx: 10; filter: url(#soft-shadow); }
+      .node { stroke-width: 2.5; rx: 8; filter: url(#soft-shadow); }
+      .flow { fill: none; stroke: #334155; stroke-width: 2.5; marker-end: url(#arrow); }
+      .panel-label { fill: #334155; font: 700 22px Arial, Helvetica, sans-serif; text-anchor: middle; }
+      .title { fill: #111827; font: 700 23px Arial, Helvetica, sans-serif; text-anchor: middle; }
+      .body { fill: #1f2937; font: 20px Arial, Helvetica, sans-serif; text-anchor: middle; }
+      .small { fill: #334155; font: 18px Arial, Helvetica, sans-serif; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1800" height="560"/>
+
+  <g id="campaign">
+    <rect class="node" x="40" y="192" width="270" height="150" fill="#ede7ff" stroke="#6d4bb3"/>
+    <text class="title" x="175" y="238">Campanha experimental</text>
+    <text class="body" x="175" y="274">ESP32 via Wi-Fi</text>
+    <text class="body" x="175" y="306">6 intervalos x 3 repetições</text>
+    <text class="body" x="175" y="338">x 60 s</text>
+  </g>
+
+  <g id="inputs">
+    <rect class="panel" x="375" y="56" width="645" height="184" fill="#fbfbdf" stroke="#b7a94a"/>
+    <text class="panel-label" x="697.5" y="92">3 arquiteturas avaliadas</text>
+
+    <rect class="node" x="420" y="126" width="160" height="78" fill="#d8eaff" stroke="#2f6bbf"/>
+    <text class="body" x="500" y="158">WebSocket</text>
+    <text class="body" x="500" y="188">Backend Node</text>
+
+    <rect class="node" x="620" y="126" width="160" height="78" fill="#d8eaff" stroke="#2f6bbf"/>
+    <text class="body" x="700" y="158">REST polling</text>
+    <text class="body" x="700" y="188">Backend Node</text>
+
+    <rect class="node" x="810" y="126" width="190" height="78" fill="#d8eaff" stroke="#2f6bbf"/>
+    <text class="body" x="905" y="158">MQTT / Pub-Sub</text>
+    <text class="small" x="905" y="188">Broker + bridge Node</text>
+
+    <rect class="panel" x="375" y="306" width="645" height="184" fill="#fbfbdf" stroke="#b7a94a"/>
+    <text class="panel-label" x="697.5" y="342">3 perfis de uso analisados</text>
+
+    <rect class="node" x="420" y="376" width="170" height="78" fill="#dcf2d8" stroke="#357a2e"/>
+    <text class="body" x="505" y="408">P1 - Atualização</text>
+    <text class="body" x="505" y="438">em tempo real</text>
+
+    <rect class="node" x="620" y="376" width="170" height="78" fill="#dcf2d8" stroke="#357a2e"/>
+    <text class="body" x="705" y="408">P2 - Dashboard</text>
+    <text class="body" x="705" y="438">periódico</text>
+
+    <rect class="node" x="820" y="376" width="170" height="78" fill="#dcf2d8" stroke="#357a2e"/>
+    <text class="body" x="905" y="408">P3 - Ingestão IoT</text>
+    <text class="body" x="905" y="438">centralizada</text>
+  </g>
+
+  <g id="criteria">
+    <rect class="panel" x="1100" y="168" width="500" height="220" fill="#fbfbdf" stroke="#b7a94a"/>
+    <text class="panel-label" x="1350" y="204">2 critérios de avaliação</text>
+
+    <rect class="node" x="1140" y="248" width="185" height="92" fill="#fff3bf" stroke="#9a6b00"/>
+    <text class="title" x="1232.5" y="280">Desempenho</text>
+    <text class="small" x="1232.5" y="308">latência média, P95</text>
+    <text class="small" x="1232.5" y="334">e throughput</text>
+
+    <rect class="node" x="1370" y="248" width="200" height="92" fill="#fff3bf" stroke="#9a6b00"/>
+    <text class="title" x="1470" y="280">Robustez</text>
+    <text class="small" x="1470" y="308">perdas, saturação</text>
+    <text class="small" x="1470" y="334">estabilidade sob carga</text>
+  </g>
+
+  <g id="result">
+    <rect class="node" x="1640" y="218" width="140" height="120" fill="#f7d6d6" stroke="#a33a3a"/>
+    <text class="small" x="1710" y="252" font-weight="700">Avaliação de</text>
+    <text class="small" x="1710" y="278" font-weight="700">adequação</text>
+    <text class="small" x="1710" y="308">arquitetura mais</text>
+    <text class="small" x="1710" y="334">indicada por perfil</text>
+  </g>
+
+  <path class="flow" d="M310 267 C338 267 342 148 375 148"/>
+  <path class="flow" d="M310 267 C338 267 342 398 375 398"/>
+  <path class="flow" d="M1020 148 C1082 148 1045 248 1100 252"/>
+  <path class="flow" d="M1020 398 C1082 398 1045 336 1100 332"/>
+  <path class="flow" d="M1600 278 L1640 278"/>
+</svg>

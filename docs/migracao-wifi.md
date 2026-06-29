@@ -152,7 +152,7 @@ Alinhar a comparação a **3 cenários operacionais do clube** (estudo de caso):
 
 - Tempo real durante o jogo (latência crítica) → favorece A1 WebSocket.
 - Dashboard pós-treino do staff técnico (latência tolerável) → favorece A2 REST polling.
-- Telemetria massiva de muitos jogadores / múltiplos clubes (escalabilidade global) → favorece A3 Serverless.
+- Ingestao IoT centralizada com multiplos dispositivos (escalabilidade global) -> favorece A3 Serverless.
 
 ### Fase 1 — Firmware ESP32 com Wi-Fi
 
@@ -269,7 +269,7 @@ Matriz auxiliar de cold start (só A3): 1 amostra após 1 s, 30 s, 60 s, 5 min, 
 
 Pasta `arquitetura-mqtt/` totalmente isolada — pode ser removida do plano sem afetar A1/A2/A3:
 
-- ESP32 publica em tópico `clube/<deviceId>/sensor`.
+- ESP32 publica em tópico `iot/<deviceId>/sensor`.
 - Broker (Mosquitto local ou HiveMQ Cloud free tier).
 - Bridge Node assina o tópico, expõe WebSocket idêntico a A1 para o dashboard.
 - Cenário do clube associado: ingestão massiva intra-LAN (vestiário/CT) com persistência centralizada.
