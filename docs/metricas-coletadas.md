@@ -17,8 +17,8 @@ pede que seja avaliado.
 >
 > 1. Foco principal: comparação entre **REST polling, WebSocket e MQTT**.
 > 2. Serverless = subseção complementar.
-> 3. Avaliação pratica: "qual padrão é mais adequado para cada contexto
->    de uso de um clube de futebol".
+> 3. Avaliação pratica: "qual padrão é mais adequado para cada perfil
+>    de uso de aplicações web que consomem dados IoT".
 > 4. Métricas que devem aparecer no artigo:
 >    - **Latência** (ponta a ponta, com método de medição declarado).
 >    - **Confiabilidade** (perdas, throughput, mensagens inválidas).

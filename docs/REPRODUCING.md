@@ -258,7 +258,7 @@ node scripts/run-experiments.mjs --scenarios a3 --reps 3 \
 Substitui o ESP32 pelo `scripts/esp32-simulator.mjs`, que gera o
 **mesmo payload** com a **mesma cadência** mas via subprocess Node.
 Útil para reprodutibilidade em CI, em máquina de banca/avaliador, ou
-em ambientes sem acesso ao hardware do clube.
+em ambientes sem acesso ao ESP32 fisico.
 
 ```bash
 node scripts/run-experiments.mjs \

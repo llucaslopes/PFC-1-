@@ -1,6 +1,6 @@
 ---
 name: Migracao TCC para arquiteturas Wi-Fi
-overview: Reposicionar o TCC para "Análise de arquiteturas para um clube de futebol", remover WebSerial/USB, adotar ESP32 real via Wi-Fi como única fonte de dados, adicionar Vercel Functions como arquitetura serverless e adequar firmware, backend, testes e métricas — mantendo MQTT como cenário opcional destacável.
+overview: Reposicionar o TCC para "Análise de arquiteturas para integração de sensores IoT com aplicações web", remover WebSerial/USB, adotar ESP32 real via Wi-Fi como única fonte de dados, adicionar Vercel Functions como arquitetura serverless e adequar firmware, backend, testes e métricas — mantendo MQTT como cenário opcional destacável.
 
 > **Snapshot histórico — não atualizar.** Este documento congela o plano
 > de migração no estado em que estava em junho/2026, **antes** das duas
@@ -14,7 +14,7 @@ overview: Reposicionar o TCC para "Análise de arquiteturas para um clube de fut
 > arquivo permanece intocado para preservar a trilha de decisão.
 todos:
   - id: fase-0-tema
-    content: "Fase 0: reposicionar tema 'Análise de arquiteturas / clube de futebol' nos docs (README, roteiro, tcc_report)"
+    content: "Fase 0: reposicionar tema 'Análise de arquiteturas / sensores IoT em aplicações web' nos docs (README, roteiro, tcc_report)"
     status: in_progress
   - id: fase-1-esp32
     content: "Fase 1: criar sketch ESP32 com Wi-Fi + SNTP + HTTP POST do payload JSON; mover sketch Uno para legado"
@@ -48,7 +48,7 @@ isProject: false
 
 ## Decisões fechadas
 
-- Tema: "Análise de arquiteturas" como estudo de caso de um clube de futebol — qual arquitetura para qual cenário operacional.
+- Tema: "Análise de arquiteturas" para integração de sensores IoT com aplicações web — qual arquitetura para qual perfil de uso.
 - Matriz nova (todas alimentadas por **Wi-Fi**, ESP32 real):
   - **A1** — Backend Node + WebSocket
   - **A2** — Backend Node + REST polling
@@ -85,9 +85,9 @@ flowchart LR
 
 ## Pontos a confirmar antes de executar
 
-1. **Banco da Vercel para A3**: Vercel KV (Redis, ideal para latência) vs Vercel Postgres / Neon (relacional, mais "real" como sistema de clube). Sugestão: começar com **Vercel KV** pelo low-latency — combinaria melhor com a comparação de latência das outras arquiteturas.
+1. **Banco da Vercel para A3**: Vercel KV (Redis, ideal para latência) vs Vercel Postgres / Neon (relacional, mais "real" como sistema de aplicação). Sugestão: começar com **Vercel KV** pelo low-latency — combinaria melhor com a comparação de latência das outras arquiteturas.
 2. **Resultados antigos** em [resultados/](resultados/) (campanha USB serial): mover para `resultados/_legacy_usb_serial/` e congelar como "campanha v1 — comparativo USB", ou deletar?
-3. **Matriz de intervalos**: hoje é `100, 50, 20, 10, 5, 1 ms`. Wi-Fi não sustenta 1 ms HTTP POST (≥1000 req/s por dispositivo). Sugestão da nova matriz oficial: `1000, 500, 200, 100, 50, 20 ms` (mais fiel a sensores esportivos comerciais que rodam a 50–200 Hz). Aprovar?
+3. **Matriz de intervalos**: hoje é `100, 50, 20, 10, 5, 1 ms`. Wi-Fi não sustenta 1 ms HTTP POST (≥1000 req/s por dispositivo). Sugestão da nova matriz oficial: `1000, 500, 200, 100, 50, 20 ms`. Aprovar?
 4. **WebSerial**: remover do disco (`prototypes/webserial`, scripts e testes) ou mover para `_legacy/` mantendo no Git?
 
 Sigo com o plano abaixo. Esses pontos podem ser confirmados ao revisar.
@@ -140,7 +140,7 @@ PFC-1-/
 
 ### Fase 0 — Reposicionamento do tema (apenas docs)
 
-Atualizar narrativa do TCC ("Análise de arquiteturas para um clube de futebol") em:
+Atualizar narrativa do TCC ("Análise de arquiteturas para integração de sensores IoT com aplicações web") em:
 
 - [README.md](README.md) — pergunta de pesquisa, escopo, matriz, limitações, segurança qualitativa.
 - [docs/roteiro-experimentos.md](docs/roteiro-experimentos.md) — matriz, fluxo Wi-Fi, sincronização SNTP, sem WebSerial.
@@ -148,10 +148,10 @@ Atualizar narrativa do TCC ("Análise de arquiteturas para um clube de futebol")
 - [scripts/tcc_report/tabelas.py](scripts/tcc_report/tabelas.py) — descrições de arquiteturas.
 - [scripts/tcc_report/diagramas_mpl.py](scripts/tcc_report/diagramas_mpl.py) e [scripts/tcc_report/mermaid.py](scripts/tcc_report/mermaid.py) — substituir desenhos USB→Node→Browser por ESP32→Wi-Fi→{Node, Serverless}.
 
-Alinhar a comparação a **3 cenários operacionais do clube** (estudo de caso):
+Alinhar a comparação a **3 perfis de uso de aplicações web IoT**:
 
 - Tempo real durante o jogo (latência crítica) → favorece A1 WebSocket.
-- Dashboard pós-treino do staff técnico (latência tolerável) → favorece A2 REST polling.
+- Dashboard web periódico (latência tolerável) → favorece A2 REST polling.
 - Ingestao IoT centralizada com multiplos dispositivos (escalabilidade global) -> favorece A3 Serverless.
 
 ### Fase 1 — Firmware ESP32 com Wi-Fi
@@ -272,7 +272,7 @@ Pasta `arquitetura-mqtt/` totalmente isolada — pode ser removida do plano sem 
 - ESP32 publica em tópico `iot/<deviceId>/sensor`.
 - Broker (Mosquitto local ou HiveMQ Cloud free tier).
 - Bridge Node assina o tópico, expõe WebSocket idêntico a A1 para o dashboard.
-- Cenário do clube associado: ingestão massiva intra-LAN (vestiário/CT) com persistência centralizada.
+- Perfil associado: ingestão IoT centralizada com persistência.
 
 ## Trabalho explicitamente FORA do escopo desta migração
 
